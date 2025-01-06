@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Heat Compensation Tool</title>
+    <link rel="shortcut icon" type="image/x-icon" href="../public/ulendo_favi.jpg">
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/bootstrap-icons.css">
+    <link rel="stylesheet" href="../css/bootstrap-icons.min.css">
+    <script src="../js/plotly.min.js"></script>
+    <script type="text/javascript" src="/eel.js"></script>
+    <script defer src="../js/app.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="left-panel">
+            <div class="top-panel">
+                <img src="../public/ulendo_full_logo_no_bg.png" alt="Ulendo Logo" class="logo">
+                <div class="file-input form-group">
+                    <input type="file" id="cliFile" accept=".cli" class="form-control">
+                    <form id="materialForm">
+                        <div class="mb-3">
+                            <label for="materialName" class="form-label">Select Material:</label>
+                            <select id="materialName" class="form-select" required>
+                            </select>
+                        </div>
+                        <div id="custom-config" class="custom-config" style="display: none;">
+                            <div class="form-group">
+                                <label for="custom-name" class="form-label">Custom Name:</label>
+                                <input id="custom-name" class="form-control" placeholder="e.g., Custom Material">
+                            </div>
+                            <div class="form-group">
+                                <label for="kt" class="form-label">Thermal Conductivity (kt) [W/mK]</label>
+                                <input type="number" id="kt" class="form-control" step="0.01" placeholder="e.g., 7.0">
+                            </div>
+                            <div class="form-group">
+                                <label for="rho" class="form-label">Density (rho) [kg/m³]</label>
+                                <input type="number" id="rho" class="form-control" step="1" placeholder="e.g., 4420">
+                            </div>
+                            <div class="form-group">
+                                <label for="cp" class="form-label">Heat Capacity (cp) [J/kgK]</label>
+                                <input type="number" id="cp" class="form-control" step="1" placeholder="e.g., 560">
+                            </div>
+                            <div class="form-group">
+                                <label for="vs" class="form-label">Scanning Speed (vs) [m/s]</label>
+                                <input type="number" id="vs" class="form-control" step="0.01" placeholder="e.g., 0.6">
+                            </div>
+                            <div class="form-group">
+                                <label for="h" class="form-label">Convection Coefficient (h) [W/m²K]</label>
+                                <input type="number" id="h" class="form-control" step="0.01" placeholder="e.g., 20">
+                            </div>
+                            <div class="form-group">
+                                <label for="P" class="form-label">Laser Power (P) [W]</label>
+                                <input type="number" id="P" class="form-control" step="1" placeholder="e.g., 150">
+                            </div>
+                        </div>
+                    </form>
+                    <button id="processButton" class="btn btn-primary">Optimize File</button>
+                    <div class="loading-bar" id="loadingBar">
+                        <div class="loading-progress" id="loadingProgress"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="btm-panel">
+                <h2>History</h2>
+                <button id="refreshButton" class="refresh-btn btn btn-primary">Refresh</button>
+                <div class="file-history">
+                    <div class="list-group" id="fileHistory"></div>
+                    <nav aria-label="history-nav">
+                        <ul class="pagination">
+                            <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="docs-link">
+              <a href="https://example.com/docs" target="_blank">Documentation</a>
+            </div>
+        </div>
+        <div class="resizer"></div>
+        <div class="right-panel">
+            <div id="graph-container" style="display: none;">
+                <div id="plot"></div>
+                <div class="slider-container mt-3 px-3">
+                    <div class="d-flex align-items-center justify-content-evenly mt-3">
+                        <label for="rOptimized" class="form-label" style="display: none;">R Optimal: <span
+                                id="rOptimized"></span></label>
+                        <label for="rOriginal" class="form-label" style="display: none;">R Original: <span
+                                id="rOriginal"></span></label>
+                        <button id="playButton" class="btn btn-primary">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                        <div class="ms-2">
+                            <label for="speedRange" class="form-label">Speed: <span id="speedValue">1x</span></label>
+                            <input type="range" class="form-range" id="speedRange" min="0.5" max="2" step="0.5"
+                                value="1">
+                        </div>
+                        <div>
+                            <input class="form-check-input" type="checkbox" value="" id="showHatchCheckbox">
+                            <label class="form-check-label" for="showHatchCheckbox">
+                                Show Hatch Lines
+                            </label>
+                        </div>
+                    </div>
+                    <label for="layerSlider" class="form-label">Layer: <span id="layerValue">0</span></label>
+                    <input type="range" class="form-range" id="layerSlider" value="0">
+                    <label for="hatchSlider" class="form-label">Hatches: <span id="hatchesValue">0</span></label>
+                    <input type="range" class="form-range" id="hatchSlider" value="0">
+                </div>
+            </div>
+        </div>
+        <div class="terminal_panel" hidden>
+            <pre id="terminalOutput"></pre>
+        </div>
+    </div>
+</body>
+
+</html>
