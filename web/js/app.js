@@ -27,34 +27,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const customConfigFields = document.getElementById('custom-config');
     const materialForm = document.getElementById('materialForm');
     const customConfigInput = document.querySelectorAll("#custom-config input");
+    const resizer = document.getElementById('dragMe');
+    const leftSide = resizer.previousElementSibling;
+    const rightSide = resizer.nextElementSibling;
+    let x = 0;
+    let y = 0;
+    let leftWidth = 0;
+
     var selectedMaterial = {};
     let currentPage = 1;
     const itemsPerPage = 5;
-
-    const MIN_WIDTH = 1000;
-    const MIN_HEIGHT = 1000;
-
-    function handleResize() {
-        if (window.innerWidth < MIN_WIDTH || window.innerHeight < MIN_HEIGHT) {
-            window.resizeTo(
-                Math.max(window.innerWidth, MIN_WIDTH),
-                Math.max(window.innerHeight, MIN_HEIGHT)
-            );
-        }
-    }
-
-    // Set initial size
-    window.resizeTo(MIN_WIDTH, MIN_HEIGHT);
-
-    // Watch for resize attempts
-    window.addEventListener('resize', handleResize);
 
     window.addEventListener('load', () => {
         loadFileHistory();
         loadMaterials();
     });
+    
 
-    if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox && refreshButton && playButton && processButton && materialNameDropdown && customConfigFields && materialForm) {
+    if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox && refreshButton && playButton && processButton && materialNameDropdown && customConfigFields && materialForm && resizer) {
         layerSlider.addEventListener('input', async (event) => {
             const layerIndex = parseInt(event.target.value);
             document.getElementById('layerValue').textContent = event.target.value;
@@ -126,6 +116,58 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshButton.addEventListener('click', loadFileHistory);
 
         playButton.addEventListener('click', togglePlay);
+
+        const mouseDownHandler = function (e) {
+            // Get the current mouse position
+            x = e.clientX;
+            y = e.clientY;
+            leftWidth = leftSide.getBoundingClientRect().width;
+    
+            // Attach the listeners to document
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+        };
+    
+        const mouseMoveHandler = function (e) {
+            // How far the mouse has been moved
+            const dx = e.clientX - x;
+            const dy = e.clientY - y;
+    
+            const newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
+
+            if (newLeftWidth < 20){
+                newLeftWidth = 20;
+            }
+            leftSide.style.width = newLeftWidth + '%';
+    
+            updateGraph();
+            resizer.style.cursor = 'col-resize';
+            document.body.style.cursor = 'col-resize';
+    
+            leftSide.style.userSelect = 'none';
+            leftSide.style.pointerEvents = 'none';
+    
+            rightSide.style.userSelect = 'none';
+            rightSide.style.pointerEvents = 'none';
+        };
+    
+        const mouseUpHandler = function () {
+            resizer.style.removeProperty('cursor');
+            document.body.style.removeProperty('cursor');
+    
+            leftSide.style.removeProperty('user-select');
+            leftSide.style.removeProperty('pointer-events');
+    
+            rightSide.style.removeProperty('user-select');
+            rightSide.style.removeProperty('pointer-events');
+    
+            // Remove the handlers of mousemove and mouseup
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+        };
+    
+        // Attach the handler
+        resizer.addEventListener('mousedown', mouseDownHandler);
     }
 
     function updateCustomMaterial() {
@@ -177,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (isPlaying) {
             playButton.innerHTML = '<i class="bi bi-pause-fill"></i>';
             const current = graphData.curHatch < graphData.numHatches;
-            
+
             if (!current) {
                 graphData.curHatch = 0;
                 hatchSlider.value = 0;
@@ -267,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             // Wait for materials to load
             const materials = await eel.get_materials()();
-            
+
             // Add material options
             Object.keys(materials).forEach(material => {
                 const option = document.createElement('option');
@@ -275,13 +317,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 option.textContent = material.replace(/_/g, ' ').toUpperCase();
                 materialNameDropdown.appendChild(option);
             });
-    
+
             // Add custom option last
             const option = document.createElement('option');
             option.value = "custom";
             option.textContent = "Custom Material";
             materialNameDropdown.appendChild(option);
-            
+
             const event = new Event('change');
             materialNameDropdown.dispatchEvent(event);
         } catch (error) {
@@ -508,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateTerminalOutput(output) {
         const terminal = document.getElementById('terminal');
         terminal.scrollTop = terminal.scrollHeight
-        
+
         terminal.textContent += output + "\n";
     }
     eel.expose(updateTerminalOutput);

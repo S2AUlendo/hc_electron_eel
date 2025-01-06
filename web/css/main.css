@@ -6,13 +6,12 @@
 }
 
 .left-panel {
-    flex: 1;
     display: grid;
     background-color: #f5f5f5;
     border-right: 1px solid #ddd;
     min-height: 100vh; /* Change height to min-height */
     height: 100%; /* Add this to ensure full content height */
-    width: 100%;
+    width: 50%;
     overflow-y: auto; /* Add scrolling if content exceeds viewport */
 }
 
