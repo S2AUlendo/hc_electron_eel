@@ -135,9 +135,14 @@ document.addEventListener('DOMContentLoaded', function () {
     
             const newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
 
-            if (newLeftWidth < 20){
-                newLeftWidth = 20;
+            if (newLeftWidth < 25){
+                newLeftWidth = 25;
+            } 
+
+            if (newLeftWidth > 70) {
+                newLeftWidth = 70;
             }
+
             leftSide.style.width = newLeftWidth + '%';
     
             updateGraph();

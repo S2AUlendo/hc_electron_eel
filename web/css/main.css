@@ -16,10 +16,14 @@
 }
 
 .resizer {
-    width: 5px;
+    width: 8px;
     cursor: col-resize;
+}
+
+.resizer:hover {
+    width: 8px;
     background-color: #ccc;
-  }
+}
 
 .right-panel {
     flex: 1;
