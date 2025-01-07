@@ -2,5 +2,8 @@ node_modules
 output/
 dist/
 build/
+electron/
+
 *.spec
 *.zip
+*.pyc
