@@ -1,5 +1,7 @@
 // Modules to control application life and create native browser window
+const path = require('path');
 const {app, BrowserWindow} = require('electron')
+const iconPath = path.join(__dirname, "web", "public", "icon.ico");
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -12,7 +14,8 @@ function createWindow () {
     height: 1024,
     webPreferences: {
       nodeIntegration: true
-    }
+    },
+    icon: iconPath
   })
 
   // and load the index.html of the app.
