@@ -64,7 +64,7 @@ import logging
 # DEBUG_LEVEL = 2 # Enable major loop print statements
 # DEBUG_LEVEL = 3 # Save sub-function files to numpy txt
 # DEBUG_LEVEL = 2 # Enable sub function loop print statements
-DEBUG_LEVEL = 0
+DEBUG_LEVEL = -1
 
 # We need to disable file saves for production
 # Set to -1 for release

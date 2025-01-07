@@ -46,25 +46,25 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
     # print(f" Total rows: {len(data)}")
 
     units, version, date, dimension, layers, label = parse_cli_header(data)
-    print(f"Units: {units}, Version: {version}, Date: {date}, Dimension: {dimension}, Layers: {layers}, Label: {label}")
+    # print(f"Units: {units}, Version: {version}, Date: {date}, Dimension: {dimension}, Layers: {layers}, Label: {label}")
     
     # Assuming 'data' is a list or array containing strings
     # Find indices where strings start with '$$LAYER/'
     layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]    
-    print(f"Layer Indicies {len(layer_indices)}")
+    # print(f"Layer Indicies {len(layer_indices)}")
 
     # Find indices where strings start with '$$HATCHES/'
     hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
-    print(f"Hatch Indicies {len(hatch_indices)}")
+    # print(f"Hatch Indicies {len(hatch_indices)}")
 
     polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
-    print(f"Polyline Indicies {len(polyline_indices)}")
+    # print(f"Polyline Indicies {len(polyline_indices)}")
     
     # Combine layer and hatch indices
     layer_indices = np.array(layer_indices)
     hatch_indices = np.array(hatch_indices)
     layer_indices = np.append(layer_indices, hatch_indices[-1]+ 1)
-    print(f"Layer Indicies {len(layer_indices)}")    
+    # print(f"Layer Indicies {len(layer_indices)}")    
 
     # Initialize an empty dictionary for hatch lines
     hatch_lines = {}
@@ -137,16 +137,16 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
 
             if (layer_num in hatch_lines):
                 totaltracker = int(hatch_lines[layer_num].shape[0]) + totaltracker
-                print(hatch_lines[layer_num].shape , "total : ", totaltracker)
+                # print(hatch_lines[layer_num].shape , "total : ", totaltracker)
                                     
                 new_layer, x_size, y_size = convert_hatch_to_voxel(hatch_lines[layer_num], 67, 1, 1)   
                 Objective_layers = 2     
                 
                 # Create super-features
-                print(f"Total Hatch Lines {hatch_lines[layer_num].shape}, at layer {layer_num}")
+                # print(f"Total Hatch Lines {hatch_lines[layer_num].shape}, at layer {layer_num}")
 
                 Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
-                print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
+                # print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
                 
                 tic = time.perf_counter()
                 optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=hatch_lines[layer_num], 
@@ -180,10 +180,10 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
 
     minumum_x = np.min(x_min_value)
     minumum_y = np.min(x_min_value)
-    print("minimum x: ", minumum_x, "minimum y : ", minumum_y)
+    # print("minimum x: ", minumum_x, "minimum y : ", minumum_y)
 
     
-    print(f"Layer Lines {len(hatch_lines)} layer num {layer_num}")
+    # print(f"Layer Lines {len(hatch_lines)} layer num {layer_num}")
     # print(f"Hatch Data {hatch_data} ")
 
     # Iterate over layers

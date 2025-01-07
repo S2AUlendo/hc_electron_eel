@@ -3,7 +3,8 @@ import os
 from os import listdir
 import subprocess
 import sys
-  
+import json
+
 from cli_format.cli_visualizer import *
 from cli_format.cli_reformat import *
 
@@ -13,7 +14,55 @@ executor = ThreadPoolExecutor(max_workers=2)
 futures = {}
 progress = {}
 materials = {}
+materials_path = ""
 terminal_output = []
+default_materials = {
+    "titanium_alloy": {
+        "name": "Titanium Alloy",
+        "kt": 7.0,
+        "rho": 4420,
+        "cp": 560,
+        "vs": 0.6,
+        "h": 20,
+        "P": 150
+    },
+    "aluminum_alloy": {
+        "name": "Aluminum Alloy",
+        "kt": 120.0,
+        "rho": 2700,
+        "cp": 900,
+        "vs": 1.0,
+        "h": 20,
+        "P": 250
+    },
+    "nickel_alloy": {
+        "name": "Nickel Alloy",
+        "kt": 12.0,
+        "rho": 8190,
+        "cp": 435,
+        "vs": 0.8,
+        "h": 20,
+        "P": 300
+    },
+    "stainless_steel": {
+        "name": "Stainless Steel",
+        "kt": 22.5,
+        "rho": 7990,
+        "cp": 500,
+        "vs": 0.6,
+        "h": 50,
+        "P": 100
+    },
+    "cobalt_chromium": {
+        "name": "Cobalt Chromium",
+        "kt": 14.0,
+        "rho": 8300,
+        "cp": 420,
+        "vs": 0.7,
+        "h": 20,
+        "P": 200
+    }
+}
 
 # class StreamToList:
 #     def __init__(self, output_list):
@@ -29,28 +78,31 @@ terminal_output = []
 # sys.stdout = StreamToList(terminal_output)
 # sys.stderr = StreamToList(terminal_output)
 
+
+def resource_path(rel_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, rel_path)
+
 def get_persistent_output_dir():
-    if hasattr(sys, '_MEIPASS'):
-        # Running as bundled EXE - store beside the EXE
-        exe_dir = os.path.dirname(sys.executable)
-        return os.path.join(exe_dir, 'output')
-    else:
-        # Running in development
-        project_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(project_dir, 'output')
+    output_dir = resource_path("output")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    return output_dir
     
 def store_custom_material(material_key, custom_material):
     try:
+        global materials_path
         # Validate input
         if not isinstance(custom_material, dict) or "name" not in custom_material:
             raise ValueError("Invalid custom material format")
         materials[material_key] = custom_material
         
-        project_path = os.getcwd()
-        file_path = os.path.join(project_path, 'materials.json')
-        
-        with open(file_path, 'w') as f:
-            json.dump(materials, f, indent=4)
+        with open(materials_path, 'w') as f:
+            f.write(json.dumps(materials))
             
         return True
 
@@ -65,10 +117,17 @@ def get_terminal_output():
 @eel.expose
 def get_materials():
     global materials
-    with open('materials.json', 'r') as f:
-        materials = json.load(f)
-    return materials
-
+    global materials_path
+    materials_path = resource_path('materials.json')
+    try:
+        with open(materials_path, 'r') as f:
+            materials = json.load(f)
+        return materials
+    except FileNotFoundError:
+        with open(materials_path, 'w') as f:
+            f.write(json.dumps(default_materials))
+        return get_materials()
+        
 @eel.expose
 def convert_cli_file(filecontent, filename, selected_material):
     if type(selected_material) == str:
@@ -198,16 +257,6 @@ def retrieve_coords_from_cur():
     coords = visualizer.retrieve_hatch_lines_from_layer()
     return {'x': coords[0], 'y': coords[1], 'x_min': visualizer.x_min, 'x_max': visualizer.x_max, 'y_min': visualizer.y_min, 'y_max': visualizer.y_max}
 
-def get_json_path():
-    if hasattr(sys, '_MEIPASS'):
-        # Running as bundled exe
-        base_path = sys._MEIPASS
-    else:
-        # Running in development
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
-    return os.path.join(base_path, 'materials.json')
-
-get_json_path()
+eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
 eel.init('web')
 eel.start('templates/main.html', mode="electron")

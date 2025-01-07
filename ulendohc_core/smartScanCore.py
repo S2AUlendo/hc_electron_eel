@@ -249,7 +249,7 @@ def convert_hatch_to_voxel(hatch_lines, rotation=0, x_resolution=1, y_resolution
         
     toc = time.perf_counter()
 
-    print(f"Vectorized hatch to voxel time: {toc - tic:0.4f} seconds")
+    # print(f"Vectorized hatch to voxel time: {toc - tic:0.4f} seconds")
 
     # Stack grid with an empty zero layer
     grid_zero = np.zeros_like(grid)
