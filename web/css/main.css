@@ -1,3 +1,6 @@
+:root {
+    --left-panel-width: 50%;
+  }
 
 .app-container {
     display: flex;
@@ -6,12 +9,13 @@
 }
 
 .left-panel {
+    position: relative;
     display: grid;
     background-color: #f5f5f5;
     border-right: 1px solid #ddd;
     min-height: 100vh; /* Change height to min-height */
     height: 100%; /* Add this to ensure full content height */
-    width: 50%;
+    width: var(--left-panel-width);
     overflow-y: auto; /* Add scrolling if content exceeds viewport */
 }
 
@@ -100,10 +104,19 @@
 }
 
 #graph-container {
+    display: flex;
+    flex-direction: column; /* Arrange children vertically */
+    justify-content: center;
+    align-items: center;
     width: 100%;
     height: 100%;
     background-color: white;
     border: 1px solid #ddd;
+}
+
+#graph-container > * {
+    align-self: stretch; /* Stretch children to fill the container's width */
+    text-align: center; /* Center text inside the children */
 }
 
 #custom-config {
@@ -147,7 +160,9 @@
 
 .docs-link {
     position: fixed;
-    bottom: 10px;
-    left: 10px;
+    bottom: 0px;
+    left: 0;
+    width: var(--left-panel-width);
+    background-color: rgba(245, 245, 245, 0.5);
     font-size: 0.9rem;
   }

@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const dx = e.clientX - x;
             const dy = e.clientY - y;
     
-            const newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
+            var newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
 
             if (newLeftWidth < 25){
                 newLeftWidth = 25;
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 newLeftWidth = 70;
             }
 
-            leftSide.style.width = newLeftWidth + '%';
+            document.documentElement.style.setProperty('--left-panel-width', newLeftWidth + '%');
     
             updateGraph();
             resizer.style.cursor = 'col-resize';
@@ -189,9 +189,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function displayRValues() {
         r_values = graphData.rValues;
-        console.log('yo', r_values);
-        rOptimizedLabel.style.display = 'block';
-        rOriginalLabel.style.display = 'block';
         rOptimizedLabel.textContent = r_values[0];
         rOriginalLabel.textContent = r_values[1];
     }
@@ -302,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
             displayRValues();
             updateLayerSlider();
             updateHatchSlider();
-            document.getElementById('graph-container').style.display = 'block';
+            document.getElementById('graph-container').style.display = 'flex';
             updateGraph(0);
         } catch (error) {
             console.error('Error loading file:', error);
@@ -315,6 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Wait for materials to load
             const materials = await eel.get_materials()();
 
+            materialNameDropdown.innerHTML = '';
             // Add material options
             Object.keys(materials).forEach(material => {
                 const option = document.createElement('option');
@@ -345,7 +343,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Calculate pagination
             const totalPages = Math.ceil(files.length / itemsPerPage);
-            console.log(totalPages);
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const currentFiles = files.slice(startIndex, endIndex);
@@ -426,6 +423,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (error) {
                 console.error('Error processing file:', error);
             }
+        } else {
+            alert("Please attached a file to process!");
         }
     }
 
@@ -498,7 +497,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateGraph(layerIndex) {
         try {
             if (!graphData.layers || graphData.numLayers === 0) {
-                console.warn('No graph data available');
                 return;
             }
 
