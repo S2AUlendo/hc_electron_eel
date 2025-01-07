@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox && refreshButton && playButton && processButton && materialNameDropdown && customConfigFields && materialForm && resizer) {
         layerSlider.addEventListener('input', async (event) => {
             const layerIndex = parseInt(event.target.value);
-            document.getElementById('layerValue').textContent = event.target.value;
+            document.getElementById('layerValue').textContent = layerIndex;
             await eel.set_current_layer(layerIndex)();
             await eel.set_current_hatch(0)();
             graphData.curHatch = 0;
@@ -186,11 +186,16 @@ document.addEventListener('DOMContentLoaded', function () {
             P: parseFloat(document.getElementById('P').value) || 0
         };
     }
+    
+    function isDouble(str) {
+        const num = parseFloat(str);
+        return !isNaN(num) && isFinite(num);
+    }
 
     function displayRValues() {
         r_values = graphData.rValues;
-        rOptimizedLabel.textContent = r_values[0];
-        rOriginalLabel.textContent = r_values[1];
+        rOptimizedLabel.textContent =  isDouble(r_values[0]) ? r_values[0] : "NaN";
+        rOriginalLabel.textContent = isDouble(r_values[1]) ? r_values[1] : "NaN";
     }
 
     async function retrieveHashLines() {
