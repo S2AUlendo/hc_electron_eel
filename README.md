@@ -13,5 +13,5 @@ python main.py
 ## Building Distributables
 Create a single executable with:
 ```
-python -m eel main.py web --onefile --noconsole
+python -m eel main.py web --hidden-import bottle_websocket --add-data electron;electron --add-data main.js;electron/resources/app --add-data package.json;electron/resources/app --onefile --noconsole --debug all
 ```
