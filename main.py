@@ -87,8 +87,12 @@ def resource_path(rel_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, rel_path)
 
+def persistent_path(rel_path):
+    exe_dir = os.path.dirname(sys.executable)
+    return os.path.join(exe_dir, rel_path)
+
 def get_persistent_output_dir():
-    output_dir = resource_path("output")
+    output_dir = persistent_path("output")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     return output_dir
@@ -118,7 +122,7 @@ def get_terminal_output():
 def get_materials():
     global materials
     global materials_path
-    materials_path = resource_path('materials.json')
+    materials_path = persistent_path('materials.json')
     try:
         with open(materials_path, 'r') as f:
             materials = json.load(f)
