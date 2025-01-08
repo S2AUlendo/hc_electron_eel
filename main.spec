@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [('v', None, 'OPTION')],
-    name='main',
+    name='ulendohc_tool',
     debug=True,
     bootloader_ignore_signals=False,
     strip=False,

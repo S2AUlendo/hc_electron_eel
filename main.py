@@ -88,7 +88,12 @@ def resource_path(rel_path):
     return os.path.join(base_path, rel_path)
 
 def persistent_path(rel_path):
-    exe_dir = os.path.dirname(sys.executable)
+    if getattr(sys, 'frozen', False):
+        # The application is frozen (PyInstaller)
+        exe_dir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        exe_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(exe_dir, rel_path)
 
 def get_persistent_output_dir():
