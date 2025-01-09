@@ -1,4 +1,4 @@
-# Created by SThompson for Ulendo Technolpoiges in
+# Created by SThompson for Ulendo Technolpoiges inc
 # Based on the code developed by Chuan He
 # Convert the CLI+ format output by the Dyndrite LPBF Pro software
 # and reformat it into the same format that is expected by Smart Scan
@@ -46,25 +46,24 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
     # print(f" Total rows: {len(data)}")
 
     units, version, date, dimension, layers, label = parse_cli_header(data)
-    # print(f"Units: {units}, Version: {version}, Date: {date}, Dimension: {dimension}, Layers: {layers}, Label: {label}")
+    print(f"Units: {units}, Version: {version}, Date: {date}, Dimension: {dimension}, Layers: {layers}, Label: {label}")
     
     # Assuming 'data' is a list or array containing strings
     # Find indices where strings start with '$$LAYER/'
     layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]    
-    # print(f"Layer Indicies {len(layer_indices)}")
 
     # Find indices where strings start with '$$HATCHES/'
     hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
-    # print(f"Hatch Indicies {len(hatch_indices)}")
+    print(f"Hatch Indicies {len(hatch_indices)}")
 
     polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
-    # print(f"Polyline Indicies {len(polyline_indices)}")
+    print(f"Polyline Indicies {len(polyline_indices)}")
     
     # Combine layer and hatch indices
     layer_indices = np.array(layer_indices)
     hatch_indices = np.array(hatch_indices)
     layer_indices = np.append(layer_indices, hatch_indices[-1]+ 1)
-    # print(f"Layer Indicies {len(layer_indices)}")    
+    print(f"Layer Indicies {len(layer_indices)}")    
 
     # Initialize an empty dictionary for hatch lines
     hatch_lines = {}
@@ -83,6 +82,7 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
         os.makedirs(output_dir)
 
     # Then use os.path.join for file path
+    print("Output file created. Starting...")
     output_file = os.path.join(output_dir, f"hatches-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli")
     with open(output_file, "a+") as outfile:
         # Iterate over layers
@@ -143,10 +143,10 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
                 Objective_layers = 2     
                 
                 # Create super-features
-                # print(f"Total Hatch Lines {hatch_lines[layer_num].shape}, at layer {layer_num}")
+                print(f"Total Hatch Lines {hatch_lines[layer_num].shape}, at layer {layer_num}")
 
                 Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
-                # print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
+                print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
                 
                 tic = time.perf_counter()
                 optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=hatch_lines[layer_num], 
@@ -171,7 +171,7 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
                     outfile.write(f"{hatch_data[opt_seq]}\n")
                     
                 progress[filename] = (layer_num + 1) / len(layer_indices)
-                    
+                
         outfile.write("$$GEOMETRYEND\n")
 
     # Calculate dimensions

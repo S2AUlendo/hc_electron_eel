@@ -5,12 +5,14 @@ import subprocess
 import sys
 import json
 
+from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
 from cli_format.cli_reformat import *
 
 visualizer = None
 
 executor = ThreadPoolExecutor(max_workers=2)
+
 futures = {}
 progress = {}
 materials = {}
@@ -64,20 +66,6 @@ default_materials = {
     }
 }
 
-# class StreamToList:
-#     def __init__(self, output_list):
-#         self.output_list = output_list
-        
-#     def write(self, message):
-#         if message.strip():
-#             self.output_list.append(message)
-    
-#     def flush(self):
-#         pass
-    
-# sys.stdout = StreamToList(terminal_output)
-# sys.stderr = StreamToList(terminal_output)
-
 
 def resource_path(rel_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -87,6 +75,9 @@ def resource_path(rel_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, rel_path)
 
+# eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
+eel.init('web', allowed_extensions=['.js', '.html'])
+   
 def persistent_path(rel_path):
     if getattr(sys, 'frozen', False):
         # The application is frozen (PyInstaller)
@@ -209,7 +200,7 @@ def read_cli(filename):
     
     visualizer.read_cli_file(output_dir)
     return
-
+            
 @eel.expose
 def retrieve_layers():
     global visualizer
@@ -266,6 +257,6 @@ def retrieve_coords_from_cur():
     coords = visualizer.retrieve_hatch_lines_from_layer()
     return {'x': coords[0], 'y': coords[1], 'x_min': visualizer.x_min, 'x_max': visualizer.x_max, 'y_min': visualizer.y_min, 'y_max': visualizer.y_max}
 
-eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
-eel.init('web')
-eel.start('templates/main.html', mode="electron")
+output_capture = OutputCapture()
+output_capture.start_capture()
+eel.start('templates/app.html', mode="electron")

@@ -1,6 +1,6 @@
 // Modules to control application life and create native browser window
 const path = require('path');
-const {app, BrowserWindow} = require('electron')
+const {app, BrowserWindow, Menu, MenuItem} = require('electron')
 const iconPath = path.join(__dirname, "web", "public", "icon.ico");
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -19,7 +19,7 @@ function createWindow () {
   })
 
   // and load the index.html of the app.
-  mainWindow.loadURL('http://localhost:8000/templates/main.html');
+  mainWindow.loadURL('http://localhost:8000/templates/app.html');
 
   mainWindow.setMinimumSize(1024, 1024);
   // Open the DevTools.
@@ -33,6 +33,82 @@ function createWindow () {
     mainWindow = null
   })
 }
+
+let terminalWindow
+
+function createTerminalWindow () {
+  // Create the browser window.
+  terminalWindow = new BrowserWindow({
+    width: 512,
+    height: 256,
+    webPreferences: {
+      nodeIntegration: true
+    },
+    icon: iconPath
+  })
+  terminalWindow.removeMenu();
+  terminalWindow.setMinimumSize(300, 150);
+
+  terminalWindow.loadURL('http://localhost:8000/templates/terminal.html');
+}
+
+const menuTemplate = [
+  {
+    label: 'File',
+    submenu: [
+      { role: 'quit' },
+    ],
+  },
+  {
+    label: 'Edit',
+    submenu: [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+    ],
+  },
+  {
+    label: 'View',
+    submenu: [
+      { role: 'reload' },
+      { role: 'toggledevtools' },
+      { type: 'separator' },
+      { role: 'resetzoom' },
+      { role: 'zoomin' },
+      { role: 'zoomout' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' },
+    ],
+  },
+  {
+    label: 'Tools',
+    submenu: [
+      {
+        label: 'Terminal',
+        click() {
+          createTerminalWindow();
+        },
+      },
+    ],
+  },
+  {
+    label: 'Help',
+    submenu: [
+      {
+        label: 'Learn More',
+        click() {
+          require('electron').shell.openExternal('https://s2aulendo.github.io/HeatCompensation-Docs/');
+        },
+      },
+    ],
+  },
+];
+
+const menu = Menu.buildFromTemplate(menuTemplate);
+Menu.setApplicationMenu(menu);
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

@@ -41,14 +41,11 @@ class OutputCapture:
             try:
                 output = self.output_queue.get()
                 # Send captured output to frontend
-                eel.update_terminal_output(output)()
+                if output:
+                    eel.update_terminal_output(output)
             except Exception as e:
                 print(f"Error in output monitoring: {e}")
     
     def restore(self):
         sys.stdout = self.original_stdout
         sys.stderr = self.original_stderr
-
-# Initialize output capture
-output_capture = OutputCapture()
-output_capture.start_capture()

@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox && refreshButton && playButton && processButton && materialNameDropdown && customConfigFields && materialForm && resizer) {
         layerSlider.addEventListener('input', async (event) => {
             const layerIndex = parseInt(event.target.value);
-            document.getElementById('layerValue').textContent = layerIndex;
+            document.getElementById('layerValue').textContent = layerIndex / 10;
             await eel.set_current_layer(layerIndex)();
             await eel.set_current_hatch(0)();
             graphData.curHatch = 0;
@@ -528,7 +528,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const layout = {
-                title: `Layer ${layerIndex}`,
+                title: `Layer ${layerIndex / 10}`,
                 xaxis: {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
