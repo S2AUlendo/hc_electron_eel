@@ -165,3 +165,16 @@
     background-color: rgba(245, 245, 245, 0.5);
     font-size: 0.9rem;
   }
+
+  .loading-status {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 5px; /* Add some space between the status text and the loading bar */
+    text-align: center; /* Center the text */
+}
+
+.analyze-container {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+}

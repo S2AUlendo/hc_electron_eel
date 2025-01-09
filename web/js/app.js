@@ -1,7 +1,17 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     var selectedFile = '';
-    var graphData = {
+    var selectedFileGraphData = {
+        layers: [],
+        numLayers: 0,
+        numHatches: 0,
+        curLayer: 0,
+        curHatch: 0,
+        rValues: [],
+
+    }
+    
+    var optimizedGraphData = {
         layers: [],
         numLayers: 0,
         numHatches: 0,
@@ -27,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const customConfigFields = document.getElementById('custom-config');
     const materialForm = document.getElementById('materialForm');
     const customConfigInput = document.querySelectorAll("#custom-config input");
+    const loadingStatus = document.getElementById('loadingStatus');
     const resizer = document.getElementById('dragMe');
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
@@ -50,10 +61,10 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('layerValue').textContent = layerIndex / 10;
             await eel.set_current_layer(layerIndex)();
             await eel.set_current_hatch(0)();
-            graphData.curHatch = 0;
-            graphData.curLayer = layerIndex;
+            optimizedGraphData.curHatch = 0;
+            optimizedGraphData.curLayer = layerIndex;
             const r_values = await eel.get_r_from_layer()();
-            graphData.rValues = r_values;
+            optimizedGraphData.rValues = r_values;
             displayRValues();
             if (showHatchLines) {
                 retrieveHashLines();
@@ -67,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const hatchIndex = parseInt(event.target.value);
             document.getElementById('hatchesValue').textContent = event.target.value;
             await eel.set_current_hatch(hatchIndex)();
-            graphData.curHatch = hatchIndex;
+            optimizedGraphData.curHatch = hatchIndex;
 
             if (showHatchLines) {
                 retrieveHashLines();
@@ -175,6 +186,14 @@ document.addEventListener('DOMContentLoaded', function () {
         resizer.addEventListener('mousedown', mouseDownHandler);
     }
 
+
+    eel.expose(displayStatus)
+    function displayStatus(status){
+        if (loadingStatus) {
+            loadingStatus.textContent = status;
+        }
+    }
+
     function updateCustomMaterial() {
         selectedMaterial = {
             name: document.getElementById('custom-name').value || '',
@@ -193,29 +212,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayRValues() {
-        r_values = graphData.rValues;
+        r_values = optimizedGraphData.rValues;
         rOptimizedLabel.textContent =  isDouble(r_values[0]) ? r_values[0] : "NaN";
         rOriginalLabel.textContent = isDouble(r_values[1]) ? r_values[1] : "NaN";
     }
 
     async function retrieveHashLines() {
         const coords = await eel.retrieve_coords_from_cur()();
-        graphData.layers = coords;
-        graphData.x_min = coords.x_min;
-        graphData.x_max = coords.x_max;
-        graphData.y_min = coords.y_min;
-        graphData.y_max = coords.y_max;
-        updateGraph(graphData.curLayer);
+        optimizedGraphData.layers = coords;
+        optimizedGraphData.x_min = coords.x_min;
+        optimizedGraphData.x_max = coords.x_max;
+        optimizedGraphData.y_min = coords.y_min;
+        optimizedGraphData.y_max = coords.y_max;
+        updateGraph(optimizedGraphData.curLayer);
     }
 
     async function retrieveBoundingBoxes() {
         const coords = await eel.retrieve_bounding_box_from_layer()();
-        graphData.layers = coords.bounding_boxes;
-        graphData.x_min = coords.x_min;
-        graphData.x_max = coords.x_max;
-        graphData.y_min = coords.y_min;
-        graphData.y_max = coords.y_max;
-        updateGraph(graphData.curLayer);
+        optimizedGraphData.layers = coords.bounding_boxes;
+        optimizedGraphData.x_min = coords.x_min;
+        optimizedGraphData.x_max = coords.x_max;
+        optimizedGraphData.y_min = coords.y_min;
+        optimizedGraphData.y_max = coords.y_max;
+        updateGraph(optimizedGraphData.curLayer);
     }
 
     function togglePlay() {
@@ -225,10 +244,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (isPlaying) {
             playButton.innerHTML = '<i class="bi bi-pause-fill"></i>';
-            const current = graphData.curHatch < graphData.numHatches;
+            const current = optimizedGraphData.curHatch < optimizedGraphData.numHatches;
 
             if (!current) {
-                graphData.curHatch = 0;
+                optimizedGraphData.curHatch = 0;
                 hatchSlider.value = 0;
             }
 
@@ -244,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let currentHatch = parseInt(hatchSlider.value);
 
         playInterval = setInterval(async () => {
-            if (currentHatch >= graphData.numHatches) {
+            if (currentHatch >= optimizedGraphData.numHatches) {
                 togglePlay(); // Stop when reached end
                 return;
             }
@@ -254,13 +273,13 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('hatchesValue').textContent = currentHatch;
 
             await eel.set_current_hatch(currentHatch)();
-            graphData.curHatch = currentHatch;
+            optimizedGraphData.curHatch = currentHatch;
             if (showHatchLines) {
                 retrieveHashLines();
             } else {
                 retrieveBoundingBoxes();
             }
-            updateGraph(graphData.curLayer);
+            updateGraph(optimizedGraphData.curLayer);
         }, playSpeed);
     }
 
@@ -268,14 +287,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateHatchSlider() {
         const hatchSlider = document.getElementById('hatchSlider');
-        hatchSlider.max = graphData.numHatches;
+        hatchSlider.max = optimizedGraphData.numHatches;
         hatchSlider.value = 0;
         document.getElementById('hatchesValue').textContent = 0;
     }
 
     function updateLayerSlider() {
         const layerSlider = document.getElementById('layerSlider');
-        layerSlider.max = graphData.numLayers;
+        layerSlider.max = optimizedGraphData.numLayers;
         layerSlider.value = 1;
         document.getElementById('layerValue').textContent = 0;
     }
@@ -294,12 +313,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 retrieveBoundingBoxes();
             }
             const numHatches = await eel.get_num_hatches()();
-            graphData.numLayers = numLayers;
-            graphData.numHatches = numHatches;
-            graphData.curLayer = 0;
+            optimizedGraphData.numLayers = numLayers;
+            optimizedGraphData.numHatches = numHatches;
+            optimizedGraphData.curLayer = 0;
 
             const r_values = await eel.get_r_from_layer()();
-            graphData.rValues = r_values;
+            optimizedGraphData.rValues = r_values;
 
             displayRValues();
             updateLayerSlider();
@@ -413,14 +432,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function processFile() {
+        processButton.disabled = true;
         const fileInput = document.getElementById('cliFile');
-
+        
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {
                 // Read file content
+                displayStatus("Reading File...");
                 const fileContent = await readFileContent(file);
-
+                
+                displayStatus("Uploading to backend...");
                 // Send file content and name to Python
                 await eel.convert_cli_file(fileContent, file.name, selectedMaterial)();
                 checkTaskStatus(file.name);
@@ -446,6 +468,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadingProgress.style.width = progress + '%';
             } else {
                 clearInterval(interval);
+                processButton.disabled = false;
+                loadingStatus.innerText = "";
                 loadingBar.style.display = 'none';
                 loadFileHistory();
                 loadMaterials();
@@ -471,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function createScatterTraces(boxes) {
-        let rate = 120 / graphData.numHatches * 3;
+        let rate = 120 / optimizedGraphData.numHatches * 3;
         return boxes.map((box, index) => {
             const x = box[0];
             const y = box[1];
@@ -501,19 +525,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateGraph(layerIndex) {
         try {
-            if (!graphData.layers || graphData.numLayers === 0) {
+            if (!optimizedGraphData.layers || optimizedGraphData.numLayers === 0) {
                 return;
             }
 
-            const xPadding = (graphData.x_max - graphData.x_min) * 0.1;
-            const yPadding = (graphData.y_max - graphData.y_min) * 0.1;
+            const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
+            const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
             var data = [];
 
             if (showHatchLines) {
-                for (let i = 0; i < graphData.layers.x.length; i += 2) {
+                for (let i = 0; i < optimizedGraphData.layers.x.length; i += 2) {
                     data.push({
-                        x: [graphData.layers.x[i], graphData.layers.x[i + 1]],
-                        y: [graphData.layers.y[i], graphData.layers.y[i + 1]],
+                        x: [optimizedGraphData.layers.x[i], optimizedGraphData.layers.x[i + 1]],
+                        y: [optimizedGraphData.layers.y[i], optimizedGraphData.layers.y[i + 1]],
                         mode: 'lines',
                         type: 'scattergl',
                         line: {
@@ -524,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             } else {
-                data = createScatterTraces(graphData.layers);
+                data = createScatterTraces(optimizedGraphData.layers);
             }
 
             const layout = {
@@ -533,11 +557,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
                     scaleratio: 1,
-                    range: [graphData.x_min - xPadding, graphData.x_max + xPadding]
+                    range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding]
                 },
                 yaxis: {
                     title: 'Y',
-                    range: [graphData.y_min - yPadding, graphData.y_max + yPadding]
+                    range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding]
                 },
                 hovermode: false,
                 showlegend: false

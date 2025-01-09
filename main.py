@@ -9,13 +9,52 @@ from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
 from cli_format.cli_reformat import *
 
-visualizer = None
+opti_visualizer = None
+data_visualizer = None
 
 executor = ThreadPoolExecutor(max_workers=2)
 
 futures = {}
 progress = {}
 materials = {}
+
+   
+def persistent_path(rel_path):
+    if getattr(sys, 'frozen', False):
+        # The application is frozen (PyInstaller)
+        exe_dir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        exe_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(exe_dir, rel_path)
+
+def get_persistent_output_dir():
+    output_dir = persistent_path("output")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    return output_dir
+    
+def get_data_dir():
+    data_dir = persistent_path("data")
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    return data_dir
+
+def get_data_output_dict():
+    data_output_dict_path = persistent_path("dictionary.json")
+    data_output_dict = {}
+    if not os.path.exists(data_output_dict_path):
+        with open("dictionary.json", "w") as file:
+            pass
+    else:
+        with open(data_output_dict_path, 'r') as f:
+            data_output_dict = json.load(f)
+    return data_output_dict
+
+OUTPUT_DIR = get_persistent_output_dir()
+DATA_DIR = get_data_dir()
+DATA_OUTPUT_DICT = get_data_output_dict()
+
 materials_path = ""
 terminal_output = []
 default_materials = {
@@ -77,22 +116,8 @@ def resource_path(rel_path):
 
 # eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
 eel.init('web', allowed_extensions=['.js', '.html'])
-   
-def persistent_path(rel_path):
-    if getattr(sys, 'frozen', False):
-        # The application is frozen (PyInstaller)
-        exe_dir = os.path.dirname(sys.executable)
-    else:
-        # The application is not frozen
-        exe_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(exe_dir, rel_path)
 
-def get_persistent_output_dir():
-    output_dir = persistent_path("output")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    return output_dir
-    
+
 def store_custom_material(material_key, custom_material):
     try:
         global materials_path
@@ -109,7 +134,7 @@ def store_custom_material(material_key, custom_material):
     except (IOError, json.JSONDecodeError) as e:
         print(f"Error saving custom material: {e}")
         return False
-
+    
 @eel.expose
 def get_terminal_output():
     return terminal_output
@@ -130,15 +155,26 @@ def get_materials():
         
 @eel.expose
 def convert_cli_file(filecontent, filename, selected_material):
+    display_status("Starting...")
+    global OUTPUT_DIR
+    global DATA_DIR
     if type(selected_material) == str:
         selected_material = json.loads(selected_material)
+    
+    display_status("Saving Custom Material...")
     material_key = "_".join(selected_material["name"].lower().strip().split(" "))
     if (material_key not in materials):
         store_custom_material(material_key, selected_material)
     
-    output_dir = get_persistent_output_dir()
+    # store original file
+    data_file = os.path.join(DATA_DIR, filename)
+    with open(data_file, "w") as f:
+        f.write(filecontent)
     
-    future = executor.submit(convertDYNCliFile, filecontent, filename, output_dir, progress, selected_material)
+    outputname = f"{filename}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
+    DATA_OUTPUT_DICT[outputname] = filename
+        
+    future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, OUTPUT_DIR, progress, selected_material)
     futures[filename] = future
     progress[filename] = 0
     return "Task started"
@@ -161,14 +197,14 @@ def get_task_status(filename):
 @eel.expose
 def view_processed_files():
     try:
-        output_dir = get_persistent_output_dir()
+        global OUTPUT_DIR
         
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
             
-        files = [f for f in listdir(output_dir) if f.endswith('.cli')]
+        files = [f for f in listdir(OUTPUT_DIR) if f.endswith('.cli')]
         
-        files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
+        files.sort(key=lambda x: os.path.getmtime(os.path.join(OUTPUT_DIR, x)), reverse=True)
         
         return files
     except Exception as e:
@@ -182,9 +218,9 @@ def plot_with_slider():
 @eel.expose
 def open_file_location(filename):
     try:
-        base_path = get_persistent_output_dir()
+        global OUTPUT_DIR
         
-        file_path = os.path.join(base_path, filename)
+        file_path = os.path.join(OUTPUT_DIR, filename)
         subprocess.Popen(f'explorer /select,"{file_path}"')
         
     except Exception as e:
@@ -193,69 +229,84 @@ def open_file_location(filename):
 
 @eel.expose
 def read_cli(filename):
-    global visualizer  # Add global keyword
-    visualizer = CLIVisualizer(filename)
+    global opti_visualizer  # Add global keyword
+    global OUTPUT_DIR
+    opti_visualizer = CLIVisualizer(filename)
     
-    output_dir = get_persistent_output_dir()
+    opti_visualizer.read_cli_file(OUTPUT_DIR)
+    return
+
+@eel.expose
+def comapreCLI(filename):
+    global data_visualizer
+    global opti_visualizer  # Add global keyword
+    global DATA_DIR
+    global OUTPUT_DIR
+    global DATA_OUTPUT_DICT
     
-    visualizer.read_cli_file(output_dir)
+    original_file = DATA_OUTPUT_DICT[filename]
+    data_visualizer = CLIVisualizer(original_file)
+    opti_visualizer = CLIVisualizer(filename)
+    
+    data_visualizer.read_cli_file(DATA_DIR)
+    opti_visualizer.read_cli_file(OUTPUT_DIR)
     return
             
 @eel.expose
 def retrieve_layers():
-    global visualizer
-    if visualizer is None:
+    global opti_visualizer
+    if opti_visualizer is None:
         return []
-    return visualizer.layers
+    return opti_visualizer.layers
 
 @eel.expose
 def get_num_layers():
-    global visualizer
-    if visualizer is None:
+    global opti_visualizer
+    if opti_visualizer is None:
         return 0
-    return visualizer.get_num_layers()
+    return opti_visualizer.get_num_layers()
 
 @eel.expose
 def get_num_hatches():
-    global visualizer
-    if visualizer is None:
+    global opti_visualizer
+    if opti_visualizer is None:
         return 0
-    return visualizer.get_num_hatches()
+    return opti_visualizer.get_num_hatches()
 
 @eel.expose
 def get_r_from_layer():
-    global visualizer
-    if visualizer is None:
+    global opti_visualizer
+    if opti_visualizer is None:
         return []
-    return visualizer.get_r_from_layer()
+    return opti_visualizer.get_r_from_layer()
 
 @eel.expose
 def set_current_layer(layer_num):
-    global visualizer
-    if visualizer is not None:
-        visualizer.set_current_layer(layer_num)
+    global opti_visualizer
+    if opti_visualizer is not None:
+        opti_visualizer.set_current_layer(layer_num)
 
 @eel.expose
 def set_current_hatch(hatch_num):
-    global visualizer
-    if visualizer is not None:
-        visualizer.set_current_hatch(hatch_num)
+    global opti_visualizer
+    if opti_visualizer is not None:
+        opti_visualizer.set_current_hatch(hatch_num)
     
 @eel.expose
 def retrieve_bounding_box_from_layer():
-    global visualizer
-    if visualizer is None:
+    global opti_visualizer
+    if opti_visualizer is None:
         return {'x': [], 'y': []}
-    bounding_boxes = visualizer.get_bounding_boxes_from_layer()
-    return {'bounding_boxes': bounding_boxes, 'x_min': visualizer.x_min, 'x_max': visualizer.x_max, 'y_min': visualizer.y_min, 'y_max': visualizer.y_max}
+    bounding_boxes = opti_visualizer.get_bounding_boxes_from_layer()
+    return {'bounding_boxes': bounding_boxes, 'x_min': opti_visualizer.x_min, 'x_max': opti_visualizer.x_max, 'y_min': opti_visualizer.y_min, 'y_max': opti_visualizer.y_max}
 
 @eel.expose
 def retrieve_coords_from_cur():
-    global visualizer
-    if visualizer is None:
+    global opti_visualizer
+    if opti_visualizer is None:
         return []
-    coords = visualizer.retrieve_hatch_lines_from_layer()
-    return {'x': coords[0], 'y': coords[1], 'x_min': visualizer.x_min, 'x_max': visualizer.x_max, 'y_min': visualizer.y_min, 'y_max': visualizer.y_max}
+    coords = opti_visualizer.retrieve_hatch_lines_from_layer()
+    return {'x': coords[0], 'y': coords[1], 'x_min': opti_visualizer.x_min, 'x_max': opti_visualizer.x_max, 'y_min': opti_visualizer.y_min, 'y_max': opti_visualizer.y_max}
 
 output_capture = OutputCapture()
 output_capture.start_capture()
