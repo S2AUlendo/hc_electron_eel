@@ -22,10 +22,11 @@ class CLIVisualizer:
         self.y_min = 0
         self.y_max = 0
 
-    def read_cli_file(self, output_dir, data=None):
+    def read_cli_file(self, dir, opti=False, data=None):
 
         if data is None:
-            file_path = os.path.join(output_dir, self.filename)
+            file_path = os.path.join(dir, self.filename)
+            print(file_path)
             with open(file_path, 'r') as f:
                 data = f.readlines()
                 
@@ -54,8 +55,9 @@ class CLIVisualizer:
             
             if layer_hatches:  # Only append if we have data
                 self.layers.append(layer_hatches)  # Store as numpy array
-                r_val = data[r_indices[layer_num]][11:-3].split(',')
-                self.r_values.append([r_val[0], r_val[1]])  # Store r values
+                if opti:
+                    r_val = data[r_indices[layer_num]][11:-3].split(',')
+                    self.r_values.append([r_val[0], r_val[1]])  # Store r values
 
     def get_num_layers(self):
         return len(self.layers)

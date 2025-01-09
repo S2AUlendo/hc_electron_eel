@@ -44,11 +44,16 @@ def get_data_output_dict():
     data_output_dict_path = persistent_path("dictionary.json")
     data_output_dict = {}
     if not os.path.exists(data_output_dict_path):
-        with open("dictionary.json", "w") as file:
-            pass
+        with open(data_output_dict_path, "w") as file:
+            json.dump(data_output_dict, file)  # Write an empty dictionary to the file
     else:
         with open(data_output_dict_path, 'r') as f:
-            data_output_dict = json.load(f)
+            try:
+                data_output_dict = json.load(f)
+            except json.JSONDecodeError:
+                data_output_dict = {}
+                with open(data_output_dict_path, "w") as file:
+                    json.dump(data_output_dict, file)  # Write an empty dictionary to the file
     return data_output_dict
 
 OUTPUT_DIR = get_persistent_output_dir()
@@ -158,6 +163,7 @@ def convert_cli_file(filecontent, filename, selected_material):
     display_status("Starting...")
     global OUTPUT_DIR
     global DATA_DIR
+    global DATA_OUTPUT_DICT
     if type(selected_material) == str:
         selected_material = json.loads(selected_material)
     
@@ -168,11 +174,14 @@ def convert_cli_file(filecontent, filename, selected_material):
     
     # store original file
     data_file = os.path.join(DATA_DIR, filename)
-    with open(data_file, "w") as f:
+    with open(data_file, "w", newline='') as f:
         f.write(filecontent)
     
-    outputname = f"{filename}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
+    outputname = f"{filename[:-4].strip()}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
     DATA_OUTPUT_DICT[outputname] = filename
+    
+    with open(persistent_path("dictionary.json"), "w") as file:
+        json.dump(DATA_OUTPUT_DICT, file)
         
     future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, OUTPUT_DIR, progress, selected_material)
     futures[filename] = future
@@ -237,7 +246,7 @@ def read_cli(filename):
     return
 
 @eel.expose
-def comapreCLI(filename):
+def compare_cli(filename):
     global data_visualizer
     global opti_visualizer  # Add global keyword
     global DATA_DIR
@@ -245,19 +254,27 @@ def comapreCLI(filename):
     global DATA_OUTPUT_DICT
     
     original_file = DATA_OUTPUT_DICT[filename]
+    print(original_file)
     data_visualizer = CLIVisualizer(original_file)
     opti_visualizer = CLIVisualizer(filename)
     
     data_visualizer.read_cli_file(DATA_DIR)
-    opti_visualizer.read_cli_file(OUTPUT_DIR)
+    opti_visualizer.read_cli_file(OUTPUT_DIR, opti=True)
     return
             
 @eel.expose
-def retrieve_layers():
+def retrieve_opti_layers():
     global opti_visualizer
     if opti_visualizer is None:
         return []
     return opti_visualizer.layers
+
+@eel.expose
+def retrieve_data_layers():
+    global data_visualizer
+    if data_visualizer is None:
+        return []
+    return data_visualizer.layers
 
 @eel.expose
 def get_num_layers():
@@ -274,26 +291,45 @@ def get_num_hatches():
     return opti_visualizer.get_num_hatches()
 
 @eel.expose
-def get_r_from_layer():
+def get_r_from_opti_layer():
     global opti_visualizer
     if opti_visualizer is None:
         return []
     return opti_visualizer.get_r_from_layer()
 
 @eel.expose
-def set_current_layer(layer_num):
+def get_r_from_data_layer():
+    global data_visualizer
+    if data_visualizer is None:
+        return []
+    return data_visualizer.get_r_from_layer()
+
+@eel.expose
+def set_current_opti_layer(layer_num):
     global opti_visualizer
     if opti_visualizer is not None:
         opti_visualizer.set_current_layer(layer_num)
+        
+@eel.expose
+def set_current_data_layer(layer_num):
+    global data_visualizer
+    if data_visualizer is not None:
+        data_visualizer.set_current_layer(layer_num)
 
 @eel.expose
-def set_current_hatch(hatch_num):
+def set_current_opti_hatch(hatch_num):
     global opti_visualizer
     if opti_visualizer is not None:
         opti_visualizer.set_current_hatch(hatch_num)
+        
+@eel.expose
+def set_current_data_hatch(hatch_num):
+    global data_visualizer
+    if data_visualizer is not None:
+        data_visualizer.set_current_hatch(hatch_num)
     
 @eel.expose
-def retrieve_bounding_box_from_layer():
+def retrieve_bounding_box_from_opti_layer():
     global opti_visualizer
     if opti_visualizer is None:
         return {'x': [], 'y': []}
@@ -301,12 +337,28 @@ def retrieve_bounding_box_from_layer():
     return {'bounding_boxes': bounding_boxes, 'x_min': opti_visualizer.x_min, 'x_max': opti_visualizer.x_max, 'y_min': opti_visualizer.y_min, 'y_max': opti_visualizer.y_max}
 
 @eel.expose
-def retrieve_coords_from_cur():
+def retrieve_coords_from_opti_cur():
     global opti_visualizer
     if opti_visualizer is None:
         return []
     coords = opti_visualizer.retrieve_hatch_lines_from_layer()
     return {'x': coords[0], 'y': coords[1], 'x_min': opti_visualizer.x_min, 'x_max': opti_visualizer.x_max, 'y_min': opti_visualizer.y_min, 'y_max': opti_visualizer.y_max}
+
+@eel.expose
+def retrieve_bounding_box_from_data_layer():
+    global data_visualizer
+    if data_visualizer is None:
+        return {'x': [], 'y': []}
+    bounding_boxes = data_visualizer.get_bounding_boxes_from_layer()
+    return {'bounding_boxes': bounding_boxes, 'x_min': data_visualizer.x_min, 'x_max': data_visualizer.x_max, 'y_min': data_visualizer.y_min, 'y_max': data_visualizer.y_max}
+
+@eel.expose
+def retrieve_coords_from_data_cur():
+    global data_visualizer
+    if data_visualizer is None:
+        return []
+    coords = data_visualizer.retrieve_hatch_lines_from_layer()
+    return {'x': coords[0], 'y': coords[1], 'x_min': data_visualizer.x_min, 'x_max': data_visualizer.x_max, 'y_min': data_visualizer.y_min, 'y_max': data_visualizer.y_max}
 
 output_capture = OutputCapture()
 output_capture.start_capture()

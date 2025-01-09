@@ -5,9 +5,9 @@ document.addEventListener('DOMContentLoaded', function () {
     eel.expose(update_terminal_output);
 
     function update_terminal_output(output) {
-        const terminal = document.getElementById('terminal');
         if (terminal) {
-            terminal.textContent += `${output}`; // Append new output with a newline character
+            terminal.textContent += `${output}`;
+            terminal.scrollTop = terminal.scrollHeight;
         }
     }
 

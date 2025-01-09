@@ -9,6 +9,7 @@ import json
 from datetime import datetime
 from ulendohc_core.smartScanCore import *
 from ulendohc_core.util import *
+import eel
 
 FACTOR = 1 
 LAYER_GROUP = 10
@@ -32,11 +33,16 @@ def parse_cli_header(data):
     layers = int(extract_value("$$LAYERS"))
     label = extract_value("$$LABEL")
     return [units, version, date, dimensions, layers, label]
+
+def display_status(status_message):
+    eel.displayStatus(status_message)
+    print(status_message)
     
-def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_material):
+def convertDYNCliFile(filecontent, filename, outputname, filelocation, progress, selected_material):
     Sorted_layers = np.array([])
     v0_evInit = None
-         
+    
+    display_status("Retrieving file information...")
     data = filecontent.splitlines()
     # with open(filename, 'r') as f:
     #     data = f.readlines()
@@ -44,7 +50,7 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
     # fileFound = os.path.isfile(filename)
     # print(f" File status: {fileFound}")
     # print(f" Total rows: {len(data)}")
-
+    
     units, version, date, dimension, layers, label = parse_cli_header(data)
     print(f"Units: {units}, Version: {version}, Date: {date}, Dimension: {dimension}, Layers: {layers}, Label: {label}")
     
@@ -82,11 +88,13 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
         os.makedirs(output_dir)
 
     # Then use os.path.join for file path
-    print("Output file created. Starting...")
-    output_file = os.path.join(output_dir, f"hatches-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli")
+    display_status("Creating output file...")
+    output_file = os.path.join(output_dir, outputname)
+    
     with open(output_file, "a+") as outfile:
         # Iterate over layers
         for layer_num in range(len(layer_indices)-1):
+            display_status(f"Processing layer {layer_num}/{len(layer_indices) - 1}")
             # Find feature indices within the current layer
             hatch_data = {}
             hatch_feature_indices = [i for i in hatch_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
@@ -172,7 +180,9 @@ def convertDYNCliFile(filecontent, filename, filelocation, progress, selected_ma
                     
                 progress[filename] = (layer_num + 1) / len(layer_indices)
                 
+        display_status("Finishing...")
         outfile.write("$$GEOMETRYEND\n")
+        
 
     # Calculate dimensions
     dimension_x = np.max(x_max_value) - np.min(x_min_value)

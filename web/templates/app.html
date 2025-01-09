@@ -60,8 +60,8 @@
                         </div>
                     </form>
                     <div class="analyze-container">
-                        <button id="processButton" class="btn btn-primary">Optimize</button>
                         <button id="viewButton" class="btn btn-primary">View</button>
+                        <button id="processButton" class="btn btn-primary">Optimize</button>
                     </div>
                     <div class="loading-status" id="loadingStatus"></div>
                     <div class="loading-bar" id="loadingBar">
@@ -88,8 +88,11 @@
         </div>
         <div class="resizer" id="dragMe"></div>
         <div class="right-panel">
-            <div id="graph-container" style="display: none;">
-                <div id="plot"></div>
+            <div id="analysis-container" style="display: none;">
+                <div id="plot-container">
+                    <div id="data_plot"></div>
+                    <div id="opti_plot"></div>
+                </div>
                 <label for="rOptimized" class="form-label">R Optimal: <span id="rOptimized"></span></label>
                 <label for="rOriginal" class="form-label">R Original: <span id="rOriginal"></span></label>
                 <div class="slider-container px-3">

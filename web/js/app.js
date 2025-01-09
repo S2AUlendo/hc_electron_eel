@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     var selectedFile = '';
-    var selectedFileGraphData = {
+    var rawGraphData = {
         layers: [],
         numLayers: 0,
         numHatches: 0,
@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const customConfigInput = document.querySelectorAll("#custom-config input");
     const loadingStatus = document.getElementById('loadingStatus');
     const resizer = document.getElementById('dragMe');
+    const viewButton = document.getElementById('viewButton');
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
     let x = 0;
@@ -59,11 +60,13 @@ document.addEventListener('DOMContentLoaded', function () {
         layerSlider.addEventListener('input', async (event) => {
             const layerIndex = parseInt(event.target.value);
             document.getElementById('layerValue').textContent = layerIndex / 10;
-            await eel.set_current_layer(layerIndex)();
-            await eel.set_current_hatch(0)();
+            await eel.set_current_data_layer(layerIndex)();
+            await eel.set_current_opti_layer(layerIndex)();
+            await eel.set_current_data_hatch(0)();
+            await eel.set_current_opti_hatch(0)();
             optimizedGraphData.curHatch = 0;
             optimizedGraphData.curLayer = layerIndex;
-            const r_values = await eel.get_r_from_layer()();
+            const r_values = await eel.get_r_from_opti_layer()();
             optimizedGraphData.rValues = r_values;
             displayRValues();
             if (showHatchLines) {
@@ -77,7 +80,8 @@ document.addEventListener('DOMContentLoaded', function () {
         hatchSlider.addEventListener('input', async (event) => {
             const hatchIndex = parseInt(event.target.value);
             document.getElementById('hatchesValue').textContent = event.target.value;
-            await eel.set_current_hatch(hatchIndex)();
+            await eel.set_current_data_hatch(hatchIndex)();
+            await eel.set_current_opti_hatch(hatchIndex)();
             optimizedGraphData.curHatch = hatchIndex;
 
             if (showHatchLines) {
@@ -122,6 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
+        viewButton.addEventListener('click', viewOriginal);
+
         processButton.addEventListener('click', processFile);
 
         refreshButton.addEventListener('click', loadFileHistory);
@@ -156,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             document.documentElement.style.setProperty('--left-panel-width', newLeftWidth + '%');
     
-            updateGraph();
+            updateGraph(optimizedGraphData.curLayer);
             resizer.style.cursor = 'col-resize';
             document.body.style.cursor = 'col-resize';
     
@@ -194,6 +200,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function viewOriginal() {
+        processButton.disabled = true;
+        const fileInput = document.getElementById('cliFile');
+        
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            try {
+                // Read file content
+                displayStatus("Reading File...");
+                const fileContent = await readFileContent(file);
+            }
+        }
+
+    }
+
     function updateCustomMaterial() {
         selectedMaterial = {
             name: document.getElementById('custom-name').value || '',
@@ -218,22 +239,40 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function retrieveHashLines() {
-        const coords = await eel.retrieve_coords_from_cur()();
-        optimizedGraphData.layers = coords;
-        optimizedGraphData.x_min = coords.x_min;
-        optimizedGraphData.x_max = coords.x_max;
-        optimizedGraphData.y_min = coords.y_min;
-        optimizedGraphData.y_max = coords.y_max;
+        const dataCoords = await eel.retrieve_coords_from_data_cur()();
+        console.log(dataCoords)
+        rawGraphData.layers = dataCoords;
+        rawGraphData.x_min = dataCoords.x_min;
+        rawGraphData.x_max = dataCoords.x_max;
+        rawGraphData.y_min = dataCoords.y_min;
+        rawGraphData.y_max = dataCoords.y_max;
+
+        const optiCoords = await eel.retrieve_coords_from_opti_cur()();
+        console.log(optiCoords)
+        optimizedGraphData.layers = optiCoords;
+        optimizedGraphData.x_min = optiCoords.x_min;
+        optimizedGraphData.x_max = optiCoords.x_max;
+        optimizedGraphData.y_min = optiCoords.y_min;
+        optimizedGraphData.y_max = optiCoords.y_max;
         updateGraph(optimizedGraphData.curLayer);
     }
 
     async function retrieveBoundingBoxes() {
-        const coords = await eel.retrieve_bounding_box_from_layer()();
-        optimizedGraphData.layers = coords.bounding_boxes;
-        optimizedGraphData.x_min = coords.x_min;
-        optimizedGraphData.x_max = coords.x_max;
-        optimizedGraphData.y_min = coords.y_min;
-        optimizedGraphData.y_max = coords.y_max;
+        const dataCoords = await eel.retrieve_bounding_box_from_data_layer()();
+        console.log(dataCoords)
+        rawGraphData.layers = dataCoords.bounding_boxes;
+        rawGraphData.x_min = dataCoords.x_min;
+        rawGraphData.x_max = dataCoords.x_max;
+        rawGraphData.y_min = dataCoords.y_min;
+        rawGraphData.y_max = dataCoords.y_max;
+
+        const optiCoords = await eel.retrieve_bounding_box_from_opti_layer()();
+        console.log(optiCoords)
+        optimizedGraphData.layers = optiCoords.bounding_boxes;
+        optimizedGraphData.x_min = optiCoords.x_min;
+        optimizedGraphData.x_max = optiCoords.x_max;
+        optimizedGraphData.y_min = optiCoords.y_min;
+        optimizedGraphData.y_max = optiCoords.y_max;
         updateGraph(optimizedGraphData.curLayer);
     }
 
@@ -272,7 +311,8 @@ document.addEventListener('DOMContentLoaded', function () {
             hatchSlider.value = currentHatch;
             document.getElementById('hatchesValue').textContent = currentHatch;
 
-            await eel.set_current_hatch(currentHatch)();
+            await eel.set_current_data_hatch(currentHatch)();
+            await eel.set_current_opti_hatch(currentHatch)();
             optimizedGraphData.curHatch = currentHatch;
             if (showHatchLines) {
                 retrieveHashLines();
@@ -303,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             selectedFile = file;
 
-            await eel.read_cli(file)();
+            await eel.compare_cli(file)();
 
             const numLayers = await eel.get_num_layers()();
 
@@ -312,22 +352,28 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 retrieveBoundingBoxes();
             }
+
             const numHatches = await eel.get_num_hatches()();
+            rawGraphData.numLayers = numLayers;
+            rawGraphData.numHatches = numHatches;
+            rawGraphData.curLayer = 0;
+
             optimizedGraphData.numLayers = numLayers;
             optimizedGraphData.numHatches = numHatches;
             optimizedGraphData.curLayer = 0;
 
-            const r_values = await eel.get_r_from_layer()();
+            const r_values = await eel.get_r_from_opti_layer()();
+            rawGraphData.rValues = r_values;
             optimizedGraphData.rValues = r_values;
 
             displayRValues();
             updateLayerSlider();
             updateHatchSlider();
-            document.getElementById('graph-container').style.display = 'flex';
+            document.getElementById('analysis-container').style.display = 'flex';
             updateGraph(0);
         } catch (error) {
             console.error('Error loading file:', error);
-            document.getElementById('graph-container').style.display = 'none';
+            document.getElementById('analysis-container').style.display = 'none';
         }
     }
 
@@ -495,6 +541,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function createScatterTraces(boxes) {
+        console.log(boxes)
         let rate = 120 / optimizedGraphData.numHatches * 3;
         return boxes.map((box, index) => {
             const x = box[0];
@@ -525,19 +572,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateGraph(layerIndex) {
         try {
-            if (!optimizedGraphData.layers || optimizedGraphData.numLayers === 0) {
+            if (!optimizedGraphData.layers || optimizedGraphData.numLayers === 0 || rawGraphData.numLayers === 0 || !rawGraphData.layers) {
+                return;
+            }
+            if (optimizedGraphData.numLayers != rawGraphData.numLayers){
                 return;
             }
 
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
-            var data = [];
+            var rawData = [];
+            var optiData = [];
 
             if (showHatchLines) {
                 for (let i = 0; i < optimizedGraphData.layers.x.length; i += 2) {
-                    data.push({
-                        x: [optimizedGraphData.layers.x[i], optimizedGraphData.layers.x[i + 1]],
-                        y: [optimizedGraphData.layers.y[i], optimizedGraphData.layers.y[i + 1]],
+                    rawData.push({
+                        x: [rawGraphData.layers.x[i], rawGraphData.layers.x[i + 1]],
+                        y: [rawGraphData.layers.y[i], rawGraphData.layers.y[i + 1]],
                         mode: 'lines',
                         type: 'scattergl',
                         line: {
@@ -546,12 +597,26 @@ document.addEventListener('DOMContentLoaded', function () {
                         },
                         showlegend: false
                     });
+                    optiData.push({
+                        x: [optimizedGraphData.layers.x[i], optimizedGraphData.layers.x[i + 1]],
+                        y: [optimizedGraphData.layers.y[i], optimizedGraphData.layers.y[i + 1]],
+                        mode: 'lines',
+                        type: 'scattergl',
+                        line: {
+                            width: 1,
+                            color: 'green'
+                        },
+                        showlegend: false
+                    });
                 }
             } else {
-                data = createScatterTraces(optimizedGraphData.layers);
+                optiData = createScatterTraces(optimizedGraphData.layers);
+                rawData = createScatterTraces(rawGraphData.layers);
             }
 
             const layout = {
+                width: 500,
+                height: 500,
                 title: `Layer ${layerIndex / 10}`,
                 xaxis: {
                     title: 'X',
@@ -573,7 +638,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 scrollZoom: true
             };
 
-            Plotly.newPlot('plot', data, layout, config);
+            Plotly.newPlot('data_plot', rawData, layout, config);
+            Plotly.newPlot('opti_plot', optiData, layout, config);
         } catch (error) {
             console.error('Error updating graph:', error);
         }
