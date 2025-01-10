@@ -54,7 +54,6 @@ class CLIVisualizer:
 
         if data is None:
             file_path = os.path.join(dir, self.filename)
-            print(file_path)
             with open(file_path, 'r') as f:
                 data = f.readlines()
                 

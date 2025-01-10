@@ -1,7 +1,7 @@
 #terminal {
     white-space: pre-wrap; /* Preserve whitespace and line breaks */
     font-family: monospace; /* Use a monospace font for terminal-like appearance */
-    min-height: 100vh; /* Allow the height to grow */
+    height: 100vh; /* Allow the height to grow */
     width: 100%;
     overflow-y: auto; /* Enable vertical scrolling */
     background-color: #000; /* Set background color */

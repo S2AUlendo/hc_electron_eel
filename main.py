@@ -253,7 +253,6 @@ def compare_cli(filename):
     global DATA_OUTPUT_DICT
     
     original_file = DATA_OUTPUT_DICT[filename]
-    print(original_file)
     data_visualizer = CLIVisualizer(original_file)
     opti_visualizer = CLIVisualizer(filename)
     
