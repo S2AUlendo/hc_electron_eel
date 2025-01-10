@@ -1,19 +1,20 @@
 // Modules to control application life and create native browser window
 const path = require('path');
-const {app, BrowserWindow, Menu, MenuItem} = require('electron')
+const { app, BrowserWindow, Menu, ipcMain } = require('electron')
 const iconPath = path.join(__dirname, "web", "public", "icon.ico");
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
 
-function createWindow () {
+function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1024,
     height: 1024,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      preload: path.join(__dirname, 'preload.js')
     },
     icon: iconPath
   })
@@ -36,13 +37,14 @@ function createWindow () {
 
 let terminalWindow
 
-function createTerminalWindow () {
+function createTerminalWindow() {
   // Create the browser window.
   terminalWindow = new BrowserWindow({
     width: 512,
     height: 256,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      preload: path.join(__dirname, 'preload.js')
     },
     icon: iconPath
   })
@@ -51,6 +53,62 @@ function createTerminalWindow () {
 
   terminalWindow.loadURL('http://localhost:8000/templates/terminal.html');
 }
+
+let viewWindow;
+let pendingViewMessage = null;
+
+function createViewWindow(windowName) {
+  // Create the browser window.
+  viewWindow = new BrowserWindow({
+    title: `Viewing ${windowName}`,
+    width: 800,
+    height: 1024,
+    webPreferences: {
+      nodeIntegration: true,
+      preload: path.join(__dirname, 'preload.js')
+    },
+    icon: iconPath,
+    show: false
+  })
+
+  viewWindow.loadURL('http://localhost:8000/templates/view.html');
+
+  viewWindow.on('closed', () => {
+    viewWindow = null
+  })
+
+  viewWindow.webContents.on('did-finish-load', function () {
+    viewWindow.show();
+
+    if (pendingViewMessage) {
+      setTimeout(() => {
+        viewWindow.webContents.send('receive-message', pendingViewMessage);
+        pendingViewMessage = null;
+      }, 500);
+    }
+  });
+
+}
+
+ipcMain.on('message-to-view', (event, data) => {
+  pendingViewMessage = data;
+
+  if (viewWindow) {
+    viewWindow.webContents.send('receive-message', data)
+  }
+})
+
+ipcMain.on('message-to-main', (event, data) => {
+  if (mainWindow) {
+    mainWindow.webContents.send('receive-message', data)
+  }
+})
+
+ipcMain.on('open-view-window', (event, data)  => {
+  if (!viewWindow) {
+    createViewWindow(data);
+  }
+})
 
 const menuTemplate = [
   {

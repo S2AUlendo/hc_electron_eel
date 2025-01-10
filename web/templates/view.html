@@ -1,0 +1,46 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/view.css">
+    <link rel="stylesheet" href="../css/bootstrap-icons.css">
+    <link rel="stylesheet" href="../css/bootstrap-icons.min.css">
+    <script src="../js/plotly.min.js"></script>
+    <script type="text/javascript" src="/eel.js"></script>
+    <script defer src="../js/view.js"></script>
+</head>
+
+<body>
+    <div id="main-container">
+        <div class="spinner-container" id="view-spinner">
+            <div class="spinner-border text-primary"></div>
+        </div>
+        <div id="view-container" style="display: none;">
+            <div id="view-plot"></div>
+            <div class="slider-container px-3">
+                <div class="d-flex align-items-center justify-content-evenly mt-3">
+                    <button id="view-playButton" class="btn btn-primary">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    <div class="ms-2">
+                        <label for="speedRange" class="form-label">Speed: <span id="view-speedValue">1x</span></label>
+                        <input type="range" class="form-range" id="view-speedRange" min="0.5" max="2" step="0.5"
+                            value="1">
+                    </div>
+                    <div>
+                        <input class="form-check-input" type="checkbox" value="" id="view-showHatchCheckbox">
+                        <label class="form-check-label" for="showHatchCheckbox">
+                            Show Hatch Lines
+                        </label>
+                    </div>
+                </div>
+                <label for="layerSlider" class="form-label">Layer: <span id="view-layerValue">0</span></label>
+                <input type="range" class="form-range" id="view-layerSlider" value="0">
+                <label for="hatchSlider" class="form-label">Hatches: <span id="view-hatchesValue">0</span></label>
+                <input type="range" class="form-range" id="view-hatchSlider" value="0">
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

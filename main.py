@@ -237,12 +237,11 @@ def open_file_location(filename):
         return []
 
 @eel.expose
-def read_cli(filename):
-    global opti_visualizer  # Add global keyword
-    global OUTPUT_DIR
-    opti_visualizer = CLIVisualizer(filename)
+def read_cli(filecontent):
+    global data_visualizer  # Add global keyword
+    data_visualizer = CLIVisualizer()
+    data_visualizer.read_cli(filecontent)
     
-    opti_visualizer.read_cli_file(OUTPUT_DIR)
     return
 
 @eel.expose
@@ -277,11 +276,25 @@ def retrieve_data_layers():
     return data_visualizer.layers
 
 @eel.expose
+def get_num_layers_data():
+    global data_visualizer
+    if data_visualizer is None:
+        return 0
+    return data_visualizer.get_num_layers()
+
+@eel.expose
 def get_num_layers():
     global opti_visualizer
     if opti_visualizer is None:
         return 0
     return opti_visualizer.get_num_layers()
+
+@eel.expose
+def get_num_hatches_data():
+    global data_visualizer
+    if data_visualizer is None:
+        return 0
+    return data_visualizer.get_num_hatches()
 
 @eel.expose
 def get_num_hatches():

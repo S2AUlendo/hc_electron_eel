@@ -12,7 +12,6 @@
     <script src="../js/plotly.min.js"></script>
     <script type="text/javascript" src="/eel.js"></script>
     <script defer src="../js/app.js"></script>
-    <script defer src="../js/terminal.js"></script>
 </head>
 
 <body>
@@ -88,6 +87,9 @@
         </div>
         <div class="resizer" id="dragMe"></div>
         <div class="right-panel">
+            <div class="spinner-container" id="spinner">
+                <div class="spinner-border text-primary"></div>
+            </div>
             <div id="analysis-container" style="display: none;">
                 <div id="plot-container">
                     <div id="data_plot"></div>
@@ -118,9 +120,6 @@
                     <input type="range" class="form-range" id="hatchSlider" value="0">
                 </div>
             </div>
-        </div>
-        <div class="terminal_panel" hidden>
-            <pre id="terminalOutput"></pre>
         </div>
     </div>
 </body>

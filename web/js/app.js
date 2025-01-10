@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
         rValues: [],
 
     }
-    
+
     var optimizedGraphData = {
         layers: [],
         numLayers: 0,
@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var isPlaying = false;
     var playInterval = null;
     var playSpeed = 250; // Default 1 second interval
+
     const layerSlider = document.getElementById('layerSlider');
     const hatchSlider = document.getElementById('hatchSlider');
     const speedRange = document.getElementById('speedRange');
@@ -40,8 +41,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const loadingStatus = document.getElementById('loadingStatus');
     const resizer = document.getElementById('dragMe');
     const viewButton = document.getElementById('viewButton');
+    const spinner = document.getElementById('spinner');
+
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
+
     let x = 0;
     let y = 0;
     let leftWidth = 0;
@@ -54,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
         loadFileHistory();
         loadMaterials();
     });
-    
+
 
     if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox && refreshButton && playButton && processButton && materialNameDropdown && customConfigFields && materialForm && resizer) {
         layerSlider.addEventListener('input', async (event) => {
@@ -64,6 +68,9 @@ document.addEventListener('DOMContentLoaded', function () {
             await eel.set_current_opti_layer(layerIndex)();
             await eel.set_current_data_hatch(0)();
             await eel.set_current_opti_hatch(0)();
+
+            rawGraphData.curHatch = 0;
+            rawGraphData.curLayer = layerIndex;
             optimizedGraphData.curHatch = 0;
             optimizedGraphData.curLayer = layerIndex;
             const r_values = await eel.get_r_from_opti_layer()();
@@ -75,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 retrieveBoundingBoxes();
             }
             updateHatchSlider();
+            updateGraphCompare(optimizedGraphData.layerIndex);
         });
 
         hatchSlider.addEventListener('input', async (event) => {
@@ -82,6 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('hatchesValue').textContent = event.target.value;
             await eel.set_current_data_hatch(hatchIndex)();
             await eel.set_current_opti_hatch(hatchIndex)();
+
+            rawGraphData.curHatch = hatchIndex;
             optimizedGraphData.curHatch = hatchIndex;
 
             if (showHatchLines) {
@@ -126,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        viewButton.addEventListener('click', viewOriginal);
+        viewButton.addEventListener('click', openViewWindow);
 
         processButton.addEventListener('click', processFile);
 
@@ -139,80 +149,87 @@ document.addEventListener('DOMContentLoaded', function () {
             x = e.clientX;
             y = e.clientY;
             leftWidth = leftSide.getBoundingClientRect().width;
-    
+
             // Attach the listeners to document
             document.addEventListener('mousemove', mouseMoveHandler);
             document.addEventListener('mouseup', mouseUpHandler);
         };
-    
+
         const mouseMoveHandler = function (e) {
             // How far the mouse has been moved
             const dx = e.clientX - x;
             const dy = e.clientY - y;
-    
+            
             var newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
 
-            if (newLeftWidth < 25){
+            if (newLeftWidth < 25) {
                 newLeftWidth = 25;
-            } 
+            }
 
             if (newLeftWidth > 70) {
                 newLeftWidth = 70;
             }
 
             document.documentElement.style.setProperty('--left-panel-width', newLeftWidth + '%');
-    
-            updateGraph(optimizedGraphData.curLayer);
+            document.documentElement.style.setProperty('--right-panel-width', 100 - newLeftWidth + '%');
+            
+            updateGraphCompare(optimizedGraphData.curLayer);
+
             resizer.style.cursor = 'col-resize';
             document.body.style.cursor = 'col-resize';
-    
+
             leftSide.style.userSelect = 'none';
             leftSide.style.pointerEvents = 'none';
-    
+
             rightSide.style.userSelect = 'none';
             rightSide.style.pointerEvents = 'none';
         };
-    
+
         const mouseUpHandler = function () {
             resizer.style.removeProperty('cursor');
             document.body.style.removeProperty('cursor');
-    
+
             leftSide.style.removeProperty('user-select');
             leftSide.style.removeProperty('pointer-events');
-    
+
             rightSide.style.removeProperty('user-select');
             rightSide.style.removeProperty('pointer-events');
-    
+
             // Remove the handlers of mousemove and mouseup
             document.removeEventListener('mousemove', mouseMoveHandler);
             document.removeEventListener('mouseup', mouseUpHandler);
         };
-    
+
         // Attach the handler
         resizer.addEventListener('mousedown', mouseDownHandler);
     }
 
 
     eel.expose(displayStatus)
-    function displayStatus(status){
+    function displayStatus(status) {
         if (loadingStatus) {
             loadingStatus.textContent = status;
         }
     }
 
-    function viewOriginal() {
-        processButton.disabled = true;
-        const fileInput = document.getElementById('cliFile');
+    async function openViewWindow() {
         
+        const fileInput = document.getElementById('cliFile');
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {
-                // Read file content
-                displayStatus("Reading File...");
                 const fileContent = await readFileContent(file);
-            }
-        }
+                displayStatus("Opening View...");
 
+                await window.electronAPI.openViewWindow(file.name);
+                await window.electronAPI.sendToView(fileContent)
+                displayStatus("");
+            } catch (error) {
+                console.error('Error opening view:', error);
+            }
+        } else {
+            alert("Please attached a file to process!");
+        }
     }
 
     function updateCustomMaterial() {
@@ -226,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
             P: parseFloat(document.getElementById('P').value) || 0
         };
     }
-    
+
     function isDouble(str) {
         const num = parseFloat(str);
         return !isNaN(num) && isFinite(num);
@@ -234,13 +251,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function displayRValues() {
         r_values = optimizedGraphData.rValues;
-        rOptimizedLabel.textContent =  isDouble(r_values[0]) ? r_values[0] : "NaN";
+        rOptimizedLabel.textContent = isDouble(r_values[0]) ? r_values[0] : "NaN";
         rOriginalLabel.textContent = isDouble(r_values[1]) ? r_values[1] : "NaN";
     }
 
     async function retrieveHashLines() {
         const dataCoords = await eel.retrieve_coords_from_data_cur()();
-        console.log(dataCoords)
         rawGraphData.layers = dataCoords;
         rawGraphData.x_min = dataCoords.x_min;
         rawGraphData.x_max = dataCoords.x_max;
@@ -248,18 +264,16 @@ document.addEventListener('DOMContentLoaded', function () {
         rawGraphData.y_max = dataCoords.y_max;
 
         const optiCoords = await eel.retrieve_coords_from_opti_cur()();
-        console.log(optiCoords)
         optimizedGraphData.layers = optiCoords;
         optimizedGraphData.x_min = optiCoords.x_min;
         optimizedGraphData.x_max = optiCoords.x_max;
         optimizedGraphData.y_min = optiCoords.y_min;
         optimizedGraphData.y_max = optiCoords.y_max;
-        updateGraph(optimizedGraphData.curLayer);
+        updateGraphCompare(optimizedGraphData.curLayer);
     }
 
     async function retrieveBoundingBoxes() {
         const dataCoords = await eel.retrieve_bounding_box_from_data_layer()();
-        console.log(dataCoords)
         rawGraphData.layers = dataCoords.bounding_boxes;
         rawGraphData.x_min = dataCoords.x_min;
         rawGraphData.x_max = dataCoords.x_max;
@@ -267,13 +281,12 @@ document.addEventListener('DOMContentLoaded', function () {
         rawGraphData.y_max = dataCoords.y_max;
 
         const optiCoords = await eel.retrieve_bounding_box_from_opti_layer()();
-        console.log(optiCoords)
         optimizedGraphData.layers = optiCoords.bounding_boxes;
         optimizedGraphData.x_min = optiCoords.x_min;
         optimizedGraphData.x_max = optiCoords.x_max;
         optimizedGraphData.y_min = optiCoords.y_min;
         optimizedGraphData.y_max = optiCoords.y_max;
-        updateGraph(optimizedGraphData.curLayer);
+        updateGraphCompare(optimizedGraphData.curLayer);
     }
 
     function togglePlay() {
@@ -319,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 retrieveBoundingBoxes();
             }
-            updateGraph(optimizedGraphData.curLayer);
+            updateGraphCompare(optimizedGraphData.curLayer);
         }, playSpeed);
     }
 
@@ -327,14 +340,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateHatchSlider() {
         const hatchSlider = document.getElementById('hatchSlider');
-        hatchSlider.max = optimizedGraphData.numHatches;
+        hatchSlider.max = rawGraphData.numHatches;
         hatchSlider.value = 0;
         document.getElementById('hatchesValue').textContent = 0;
     }
 
     function updateLayerSlider() {
         const layerSlider = document.getElementById('layerSlider');
-        layerSlider.max = optimizedGraphData.numLayers;
+        layerSlider.max = rawGraphData.numLayers;
         layerSlider.value = 1;
         document.getElementById('layerValue').textContent = 0;
     }
@@ -342,6 +355,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function selectFile(file) {
         try {
             selectedFile = file;
+            spinner.style.display = "flex";
 
             await eel.compare_cli(file)();
 
@@ -369,8 +383,11 @@ document.addEventListener('DOMContentLoaded', function () {
             displayRValues();
             updateLayerSlider();
             updateHatchSlider();
+
+            spinner.style.display = "none";
             document.getElementById('analysis-container').style.display = 'flex';
-            updateGraph(0);
+            updateGraphCompare(0);
+
         } catch (error) {
             console.error('Error loading file:', error);
             document.getElementById('analysis-container').style.display = 'none';
@@ -480,14 +497,14 @@ document.addEventListener('DOMContentLoaded', function () {
     async function processFile() {
         processButton.disabled = true;
         const fileInput = document.getElementById('cliFile');
-        
+
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {
                 // Read file content
                 displayStatus("Reading File...");
                 const fileContent = await readFileContent(file);
-                
+
                 displayStatus("Uploading to backend...");
                 // Send file content and name to Python
                 await eel.convert_cli_file(fileContent, file.name, selectedMaterial)();
@@ -541,7 +558,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function createScatterTraces(boxes) {
-        console.log(boxes)
         let rate = 120 / optimizedGraphData.numHatches * 3;
         return boxes.map((box, index) => {
             const x = box[0];
@@ -570,14 +586,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function updateGraph(layerIndex) {
+    function updateGraphCompare(layerIndex) {
         try {
             if (!optimizedGraphData.layers || optimizedGraphData.numLayers === 0 || rawGraphData.numLayers === 0 || !rawGraphData.layers) {
                 return;
             }
-            if (optimizedGraphData.numLayers != rawGraphData.numLayers){
+            if (optimizedGraphData.numLayers != rawGraphData.numLayers) {
                 return;
             }
+            
+            const analysisContainer = document.getElementById('analysis-container');
 
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
@@ -613,24 +631,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 optiData = createScatterTraces(optimizedGraphData.layers);
                 rawData = createScatterTraces(rawGraphData.layers);
             }
+            function getLayout(title) {
 
-            const layout = {
-                width: 500,
-                height: 500,
-                title: `Layer ${layerIndex / 10}`,
-                xaxis: {
-                    title: 'X',
-                    scaleanchor: 'y',  // Make axes equal scale
-                    scaleratio: 1,
-                    range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding]
-                },
-                yaxis: {
-                    title: 'Y',
-                    range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding]
-                },
-                hovermode: false,
-                showlegend: false
-            };
+                const layout = {
+                    width: analysisContainer.clientWidth / 2,
+                    title: `${title}\nLayer ${layerIndex / 10}`,
+                    xaxis: {
+                        title: 'X',
+                        scaleanchor: 'y',  // Make axes equal scale
+                        scaleratio: 1,
+                        range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding]
+                    },
+                    yaxis: {
+                        title: 'Y',
+                        range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding]
+                    },
+                    hovermode: false,
+                    showlegend: false
+                };
+
+                return layout;
+            }
 
             const config = {
                 responsive: true,
@@ -638,18 +659,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 scrollZoom: true
             };
 
-            Plotly.newPlot('data_plot', rawData, layout, config);
-            Plotly.newPlot('opti_plot', optiData, layout, config);
+            Plotly.newPlot('data_plot', rawData, getLayout("Pre-Opt"), config);
+            Plotly.newPlot('opti_plot', optiData, getLayout("Post-Opt"), config);
         } catch (error) {
             console.error('Error updating graph:', error);
         }
     }
 
-    function updateTerminalOutput(output) {
-        const terminal = document.getElementById('terminal');
-        terminal.scrollTop = terminal.scrollHeight
-
-        terminal.textContent += output + "\n";
-    }
-    eel.expose(updateTerminalOutput);
 });
