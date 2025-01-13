@@ -121,14 +121,14 @@
     text-align: center; /* Center text inside the children */
 }
 
-#custom-config {
+#custom-material-config {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
     align-items: stretch;
 }
 
-#custom-config .form-group {
+#custom-material-config .form-group {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -136,17 +136,46 @@
     min-height: 80px; 
 }
 
-#custom-config .form-label {
+#custom-material-config .form-label {
     flex-grow: 1;
     display: flex;
     align-items: center;
 }
 
-#custom-config input {
+#custom-material-config input {
     flex: 0; 
 }
 
 #materialForm {
+    width: 100%;
+}
+
+#custom-machine-config {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+#custom-machine-config .form-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1;
+    min-height: 80px; 
+}
+
+#custom-machine-config .form-label {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+}
+
+#custom-machine-config input {
+    flex: 0; 
+}
+
+#machineForm {
     width: 100%;
 }
 

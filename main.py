@@ -17,6 +17,7 @@ executor = ThreadPoolExecutor(max_workers=2)
 futures = {}
 progress = {}
 materials = {}
+machines = {}
 
    
 def persistent_path(rel_path):
@@ -61,55 +62,53 @@ DATA_DIR = get_data_dir()
 DATA_OUTPUT_DICT = get_data_output_dict()
 
 materials_path = ""
+machines_path = ""
 terminal_output = []
-default_materials = {
+material_defaults = {
     "titanium_alloy": {
         "name": "Titanium Alloy",
         "kt": 7.0,
         "rho": 4420,
         "cp": 560,
-        "vs": 0.6,
-        "h": 20,
-        "P": 150
+        "h": 20
     },
     "aluminum_alloy": {
         "name": "Aluminum Alloy",
         "kt": 120.0,
         "rho": 2700,
         "cp": 900,
-        "vs": 1.0,
-        "h": 20,
-        "P": 250
+        "h": 20
     },
     "nickel_alloy": {
         "name": "Nickel Alloy",
         "kt": 12.0,
         "rho": 8190,
         "cp": 435,
-        "vs": 0.8,
-        "h": 20,
-        "P": 300
+        "h": 20
     },
     "stainless_steel": {
         "name": "Stainless Steel",
         "kt": 22.5,
         "rho": 7990,
         "cp": 500,
-        "vs": 0.6,
-        "h": 50,
-        "P": 100
+        "h": 50
     },
     "cobalt_chromium": {
         "name": "Cobalt Chromium",
         "kt": 14.0,
         "rho": 8300,
         "cp": 420,
-        "vs": 0.7,
-        "h": 20,
-        "P": 200
+        "h": 20
     }
 }
 
+machine_defaults = {
+    "default": {
+        "name": "Default",
+        "vs": 300,
+        "P": 100
+    }
+}
 
 def resource_path(rel_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -140,6 +139,24 @@ def store_custom_material(material_key, custom_material):
         print(f"Error saving custom material: {e}")
         return False
     
+    
+def store_custom_machine(machine_key, custom_properties):
+    try:
+        global machines_path
+        # Validate input
+        if not isinstance(custom_properties, dict) or "name" not in custom_properties:
+            raise ValueError("Invalid custom machine format")
+        machines[machine_key] = custom_properties
+        
+        with open(machines_path, 'w') as f:
+            f.write(json.dumps(machines))
+            
+        return True
+
+    except (IOError, json.JSONDecodeError) as e:
+        print(f"Error saving custom material: {e}")
+        return False
+    
 @eel.expose
 def get_terminal_output():
     return terminal_output
@@ -155,22 +172,42 @@ def get_materials():
         return materials
     except FileNotFoundError:
         with open(materials_path, 'w') as f:
-            f.write(json.dumps(default_materials))
+            f.write(json.dumps(material_defaults))
         return get_materials()
+
+@eel.expose
+def get_machines():
+    global machines
+    global machines_path
+    machines_path = persistent_path('machines.json')
+    try:
+        with open(machines_path, 'r') as f:
+            machines = json.load(f)
+        return machines
+    except FileNotFoundError:
+        with open(machines_path, 'w') as f:
+            f.write(json.dumps(machine_defaults))
+        return get_machines()
         
 @eel.expose
-def convert_cli_file(filecontent, filename, selected_material):
+def convert_cli_file(filecontent, filename, selected_material, selected_machine):
     display_status("Starting...")
     global OUTPUT_DIR
     global DATA_DIR
     global DATA_OUTPUT_DICT
     if type(selected_material) == str:
         selected_material = json.loads(selected_material)
+    if type(selected_machine) == str:
+        selected_machine = json.loads(selected_machine)
     
-    display_status("Saving Custom Material...")
     material_key = "_".join(selected_material["name"].lower().strip().split(" "))
+    machine_key = "_".join(selected_machine["name"].lower().strip().split(" "))
     if (material_key not in materials):
+        display_status("Saving Custom Material...")
         store_custom_material(material_key, selected_material)
+    if (machine_key not in machines):
+        display_status("Saving Custom Machine...")
+        store_custom_machine(machine_key, selected_machine)
     
     # store original file
     data_file = os.path.join(DATA_DIR, filename)
@@ -183,7 +220,7 @@ def convert_cli_file(filecontent, filename, selected_material):
     with open(persistent_path("dictionary.json"), "w") as file:
         json.dump(DATA_OUTPUT_DICT, file)
         
-    future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, OUTPUT_DIR, progress, selected_material)
+    future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, OUTPUT_DIR, progress, selected_material, selected_machine)
     futures[filename] = future
     progress[filename] = 0
     return "Task started"

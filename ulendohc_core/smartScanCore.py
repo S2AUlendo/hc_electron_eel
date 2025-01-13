@@ -437,279 +437,283 @@ def convert_polygon_to_vector(fragment_data = {}, originalSequenceIDs=[], x_reso
 
 
 def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:float = 1, dy:float = 1, reduced_order:int=20, 
-                    kt:float = 22.5, rho:float = 7990,  cp:float = 500, vs:float = 0.6,  h:float = 50,  P:float = 100, v0_ev=None ):
-
-    lambda_val = 0.37
-    Rb = 0.075 / 2
-
-    T_a = 293
-    T_init = 293
-
-    N_x, N_y, N_z = Sorted_layers.shape    
-
-    __ssbounds = N_x * N_y * N_z    
-    debugPrint(f"smartScanCore - numbers_set shape: {numbers_set.shape}   Sorted_layers.shape: {Sorted_layers.shape}", -1) 
-
-    tic = time.perf_counter()    
-    StateMatrix, F_z, H, G = SMC.constructStateMatrix(N_x, N_y, N_z, dx * 10**-3, dy * 10**-3, h, kt, rho, cp, vs, P)
-    StateMatrix = csr_matrix(StateMatrix, (__ssbounds, __ssbounds))
-    
-    Sorted_layers_T = np.zeros((N_x, N_y, N_z))
-    for k in range(N_z):
-        Sorted_layers_T[:, :, N_z - k - 1] = Sorted_layers[:, :, k]
-
-    Z = diags(np.reshape(Sorted_layers_T, -1), [0], __ssbounds, __ssbounds)           
-    
-    # debugPrint(f"smartScanCore - Generated State Matrix Z:{Z.shape} StateMatrix:{StateMatrix.shape} {__ssbounds} {toc - tic:0.4f} seconds", 0)
-
-    Sorted_layers_T = np.array(Sorted_layers_T)
-
-    A1 = Z.dot(StateMatrix)
-    A2 = Z.dot(A1)
-    ones_diag = np.ones((StateMatrix.shape[0], 1))
-    sum_A2 = csr_matrix.sum(A2, axis=1)  
-    
-    A3 = diags(cpy.reshape(ones_diag-sum_A2, -1), [0], __ssbounds, __ssbounds)
-        
-    Correct_A = np.add(A2.tocsr(), A3.tocsr())
-    debugPrint(f"Correct_A: {Correct_A.shape}", 0)
-
-    toc = time.perf_counter()    
-    # debugPrint(f"smartScanCore - Generated State Matrix {toc - tic:0.4f} seconds", -1)  
-    
-    tic = time.perf_counter()
-    Final_A = SMC.addBoundaryConditions(Correct_A, N_x, N_y, N_z, H, 0)    
-    toc = time.perf_counter()    
-    # debugPrint(f"smartScanCore - Added boundary conditions {toc - tic:0.4f} seconds", -1)   
-        
-    diag_elements = Correct_A.diagonal()
-    diag = np.where(diag_elements == 1)
-    #TODO: Reimplement delete of diagonal
-    # Final_A = delete(Correct_A, diag, axis = 0)
-    # Final_A = delete(Final_A, diag, axis = 1)    
-    debugPrint(f"smartScanCore - Final_A: {Final_A.shape}", -1)        
-
-    tic = time.perf_counter()    
+                    kt:float = 22.5, rho:float = 7990,  cp:float = 500, vs:float = 0.6,  h:float = 50,  P:float = 100, v0_ev=None, logging_function=None ):
     try:
-        debugPrint(f"smartScanCore - Reduced order A: {reduced_order}", 0)
-        # Catch a condition where we might try to reduce the order smaller than the existing matrix
-        # Calculating the eigenvalues and eigenvectors            
-        reduced_order = int (reduced_order)
-        custom_ncv = int(max(2*reduced_order + 1, __ssbounds/4))
-        if USE_CUDA == True:
-            CPY_Final_A = cpy_csr_matrix(Final_A)
-            temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='LA', maxiter=200) 
-            eigen_vectors = eigen_vectors.get()
-        else:
-            temp1, eigen_vectors = eigsh(Final_A, reduced_order, which='SA', v0=v0_ev, maxiter=100, return_eigenvectors=True)        
-            v0_ev = eigen_vectors[:,-1]
-    except Exception as e:
-        # The eigsh method without CUPY takes a high number of iterations to find a solution
-        # Instead we increase the order to a high number and cap it at the half of the size of geometry        
-        debugPrint(f"smartScanCore - Could not resize to - Final_A: {reduced_order} attempt to use {int (min(50, __ssbounds/2))}", -1) 
-        reduced_order = int (min(50, __ssbounds/2))        
+        lambda_val = 0.37
+        Rb = 0.075 / 2
+
+        T_a = 293
+        T_init = 293
+
+        N_x, N_y, N_z = Sorted_layers.shape    
+
+        __ssbounds = N_x * N_y * N_z    
+        debugPrint(f"smartScanCore - numbers_set shape: {numbers_set.shape}   Sorted_layers.shape: {Sorted_layers.shape}", -1) 
+
+        tic = time.perf_counter()    
+        StateMatrix, F_z, H, G = SMC.constructStateMatrix(N_x, N_y, N_z, dx * 10**-3, dy * 10**-3, h, kt, rho, cp, vs, P)
+        StateMatrix = csr_matrix(StateMatrix, (__ssbounds, __ssbounds))
         
-        custom_ncv = int(max(2*reduced_order + 1, __ssbounds/4))
+        Sorted_layers_T = np.zeros((N_x, N_y, N_z))
+        for k in range(N_z):
+            Sorted_layers_T[:, :, N_z - k - 1] = Sorted_layers[:, :, k]
+
+        Z = diags(np.reshape(Sorted_layers_T, -1), [0], __ssbounds, __ssbounds)           
         
-        # We were not able to find any solutions with the previous initialization vector, start at random
-        v0_ev = None 
+        # debugPrint(f"smartScanCore - Generated State Matrix Z:{Z.shape} StateMatrix:{StateMatrix.shape} {__ssbounds} {toc - tic:0.4f} seconds", 0)
 
-        if USE_CUDA == True:
-            CPY_Final_A = cpy_csr_matrix(Final_A)
-            temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='SA', maxiter=1000) 
-            eigen_vectors = eigen_vectors.get()
-        else:
-            temp1, eigen_vectors = eigsh(Final_A, reduced_order, ncv=custom_ncv, which='LA', v0=v0_ev, maxiter=300, return_eigenvectors=True)   
-            v0_ev = eigen_vectors[:,-1]                            
+        Sorted_layers_T = np.array(Sorted_layers_T)
+
+        A1 = Z.dot(StateMatrix)
+        A2 = Z.dot(A1)
+        ones_diag = np.ones((StateMatrix.shape[0], 1))
+        sum_A2 = csr_matrix.sum(A2, axis=1)  
         
-    toc = time.perf_counter()    
-    debugPrint(f"smartScanCore - Order time {toc - tic:0.4f} seconds  eigen_vectors: {eigen_vectors.shape}", -1)     
+        A3 = diags(cpy.reshape(ones_diag-sum_A2, -1), [0], __ssbounds, __ssbounds)
+            
+        Correct_A = np.add(A2.tocsr(), A3.tocsr())
+        debugPrint(f"Correct_A: {Correct_A.shape}", 0)
 
-    # Final_A
-    eigen_vectors = np.array(eigen_vectors)
-    
-    tempAMatrix = np.dot(eigen_vectors.T, Final_A.A)        
-    Final_A = np.dot(tempAMatrix, eigen_vectors)              
-
-    # Create arrays M and N
-    M = np.repeat(np.arange(1, N_x + 1)[:, np.newaxis], N_y, axis=1)  # row information
-    N = np.repeat(np.arange(1, N_y + 1)[np.newaxis, :], N_x, axis=0)  # col information
-
-    # Combine M and N along the third dimension
-    MN = np.dstack((M, N))
-
-    # Adjust MN values (subtract 1 and multiply by 0.2)
-    MN = (MN - 1) * 0.2 
-
-    # Sort the rows of numbers_set based on the fifth column (index 4)
-    numbers_set = numbers_set[np.argsort(numbers_set[:, 4])]
-
-    # Get the value from the last row and last column
-    feature_n = numbers_set.shape[0]    
-    debugPrint(f"smartScanCore - Total features: {feature_n}", 0)
-
-    # Initialize feature_start to 0
-    feature_start = 0
-    total_features = int(feature_n)
-
-    # Initialize an empty list for Ab_set
-    Ab_set = dict.fromkeys((range(total_features)))
-
-    # initialize matrices
-    B = np.zeros((MN.shape[0], MN.shape[1]))
-    x, y = [], []
-    Nt = 0
-    
-    # Create a zeros array for Beq
-    Beq = np.zeros((int(Final_A.shape[0]), int(feature_n)))    
-    # debugPrint(f"smartScanCoreCUDA - {Beq.shape} Beq Array Initialized", 2)      
-
-    # PRE_COMPUTE
-    MN_SLICE_0 = MN[:, :, 0]
-    MN_SLICE_1 = MN[:, :, 1]
-    q_factor_3 = np.exp(Rb)
-    q_factor_4 = np.exp(np.pi * Rb)
-    q_factor_1 = (2 * lambda_val * P)
-    nt_pre = 1 / vs / (dx / vs)
-
-    Q = 0
-
-    Ab = np.eye(Final_A.shape[0])    
-
-    tic = time.perf_counter()
-    
-    for feature_current in range(total_features):
-        numbers = numbers_set[feature_current, :]            
-
-        if feature_current != feature_start:
-            Ab = np.eye(Final_A.shape[0])
-            Bb = np.zeros((Final_A.shape[0], 1))
-            x, y = [], []
-            Nt = 0
-            B = np.zeros((MN.shape[0], MN.shape[1]))
-            A = Final_A
-            feature_start = feature_start + 1  
-
-        startPoint = numbers[:2]
-        endPoint = numbers[2:4]  
-
-        sqDiff = np.power((endPoint - startPoint), 2)
-        distance = np.sqrt(np.sum(sqDiff))
-
-        # nt = distance / vs / (dx / vs)
-        nt = distance * nt_pre
-        Nt += int(np.floor(nt))
-
-        # Create linearly spaced arrays for x and y
-        x.extend(np.linspace(startPoint[0], endPoint[0], int(nt)))
-        y.extend(np.linspace(startPoint[1], endPoint[1], int(nt)))        
-        debugPrint(f"smartScanCore - X: {x} Y: {y}", 2)
-
-        # Energy input at each time step                          
-        for i in range(Nt - int(nt), Nt):                    
-        # def go_fast(i):
-            Posi = np.array([x[i], y[i]])
-            # rb = np.power((MN[:, :, 0] - Posi[0]), 2) + np.power((MN[:, :, 1] - Posi[1]), 2)
-            rb = np.power((MN_SLICE_0 - Posi[0]), 2) + np.power((MN_SLICE_1 - Posi[1]), 2)
-            rb = np.sqrt(rb)
-            q_factor_2 = np.exp(-2 * rb)             
-            Q = q_factor_1 * (q_factor_2 / q_factor_3)  / q_factor_4
-            # Q = Q / np.sum(Q)
-            # Q = np.array(Q)            
-            # B = np.add(B, Q)
-            Q /= np.sum(Q)
-            B += Q
-
-        debugPrint(f"smartScanCore - Current Features: {feature_current}", 2)
+        toc = time.perf_counter()    
+        # debugPrint(f"smartScanCore - Generated State Matrix {toc - tic:0.4f} seconds", -1)  
         
-        # Ab = np.eye(Final_A.shape[0])        
-        debugPrint(f"smartScanCore - Ab : {Ab.shape}", 2)
+        tic = time.perf_counter()
+        Final_A = SMC.addBoundaryConditions(Correct_A, N_x, N_y, N_z, H, 0)    
+        toc = time.perf_counter()    
+        # debugPrint(f"smartScanCore - Added boundary conditions {toc - tic:0.4f} seconds", -1)   
+            
+        diag_elements = Correct_A.diagonal()
+        diag = np.where(diag_elements == 1)
+        #TODO: Reimplement delete of diagonal
+        # Final_A = delete(Correct_A, diag, axis = 0)
+        # Final_A = delete(Final_A, diag, axis = 1)    
+        debugPrint(f"smartScanCore - Final_A: {Final_A.shape}", -1)        
+
+        tic = time.perf_counter()    
+        try:
+            debugPrint(f"smartScanCore - Reduced order A: {reduced_order}", 0)
+            # Catch a condition where we might try to reduce the order smaller than the existing matrix
+            # Calculating the eigenvalues and eigenvectors            
+            reduced_order = int (reduced_order)
+            custom_ncv = int(max(2*reduced_order + 1, __ssbounds/4))
+            if USE_CUDA == True:
+                CPY_Final_A = cpy_csr_matrix(Final_A)
+                temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='LA', maxiter=200) 
+                eigen_vectors = eigen_vectors.get()
+            else:
+                temp1, eigen_vectors = eigsh(Final_A, reduced_order, which='SA', v0=v0_ev, maxiter=100, return_eigenvectors=True)        
+                v0_ev = eigen_vectors[:,-1]
+        except Exception as e:
+            # The eigsh method without CUPY takes a high number of iterations to find a solution
+            # Instead we increase the order to a high number and cap it at the half of the size of geometry        
+            debugPrint(f"smartScanCore - Could not resize to - Final_A: {reduced_order} attempt to use {int (min(50, __ssbounds/2))}", -1) 
+            reduced_order = int (min(50, __ssbounds/2))        
+            
+            custom_ncv = int(max(2*reduced_order + 1, __ssbounds/4))
+            
+            # We were not able to find any solutions with the previous initialization vector, start at random
+            v0_ev = None 
+
+            if USE_CUDA == True:
+                CPY_Final_A = cpy_csr_matrix(Final_A)
+                temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='SA', maxiter=1000) 
+                eigen_vectors = eigen_vectors.get()
+            else:
+                temp1, eigen_vectors = eigsh(Final_A, reduced_order, ncv=custom_ncv, which='LA', v0=v0_ev, maxiter=300, return_eigenvectors=True)   
+                v0_ev = eigen_vectors[:,-1]                            
+            
+        toc = time.perf_counter()    
+        debugPrint(f"smartScanCore - Order time {toc - tic:0.4f} seconds  eigen_vectors: {eigen_vectors.shape}", -1)     
+
+        # Final_A
+        eigen_vectors = np.array(eigen_vectors)
         
-        Bb = np.zeros((Final_A.shape[0], 1))        
-        debugPrint(f"smartScanCore - Bb : {Bb.shape}", 2)
+        tempAMatrix = np.dot(eigen_vectors.T, Final_A.A)        
+        Final_A = np.dot(tempAMatrix, eigen_vectors)              
 
-        # Ab = Ab ** Nt
-        Ab = np.power(Ab, Nt)
+        # Create arrays M and N
+        M = np.repeat(np.arange(1, N_x + 1)[:, np.newaxis], N_y, axis=1)  # row information
+        N = np.repeat(np.arange(1, N_y + 1)[np.newaxis, :], N_x, axis=0)  # col information
 
-        # Ab_1 = Ab @ eigen_vectors.T
-        Ab_1 = np.matmul(Ab, eigen_vectors.T)            
-        debugPrint(f"smartScanCore - Ab_1 : {Ab_1.shape}", 2)
+        # Combine M and N along the third dimension
+        MN = np.dstack((M, N))
 
-        B_current = np.reshape(B,  [N_x*N_y, -1])
-        debugPrint(f"smartScanCore - B_current : {B_current.shape}", 2)
+        # Adjust MN values (subtract 1 and multiply by 0.2)
+        MN = (MN - 1) * 0.2 
 
-        diag = np.array(diag)
-        debugPrint(f"smartScanCore - diag : {diag.shape}", 2)
+        # Sort the rows of numbers_set based on the fifth column (index 4)
+        numbers_set = numbers_set[np.argsort(numbers_set[:, 4])]
+
+        # Get the value from the last row and last column
+        feature_n = numbers_set.shape[0]    
+        debugPrint(f"smartScanCore - Total features: {feature_n}", 0)
+
+        # Initialize feature_start to 0
+        feature_start = 0
+        total_features = int(feature_n)
+
+        # Initialize an empty list for Ab_set
+        Ab_set = dict.fromkeys((range(total_features)))
+
+        # initialize matrices
+        B = np.zeros((MN.shape[0], MN.shape[1]))
+        x, y = [], []
+        Nt = 0
         
-        B_current = B_current[diag[diag < N_x*N_y ]]
-        # debugPrint(f"smartScanCoreCUDA - B_current : {B_current.shape}", 2)
+        # Create a zeros array for Beq
+        Beq = np.zeros((int(Final_A.shape[0]), int(feature_n)))    
+        # debugPrint(f"smartScanCoreCUDA - {Beq.shape} Beq Array Initialized", 2)      
 
-        Ab_1 = np.multiply(G, Ab_1)
-        Ab1_temp = np.concatenate((B_current, np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
-        Ab_1 = np.dot(Ab_1, Ab1_temp)
-        Bb = np.add(Bb, Ab_1)
+        # PRE_COMPUTE
+        MN_SLICE_0 = MN[:, :, 0]
+        MN_SLICE_1 = MN[:, :, 1]
+        q_factor_3 = np.exp(Rb)
+        q_factor_4 = np.exp(np.pi * Rb)
+        q_factor_1 = (2 * lambda_val * P)
+        nt_pre = 1 / vs / (dx / vs)
+
+        Q = 0
+
+        Ab = np.eye(Final_A.shape[0])    
+
+        tic = time.perf_counter()
         
-        Beq[:, feature_current] = Bb[0]
-        Ab_set[feature_current] = Ab
-    
+        for feature_current in range(total_features):
+            numbers = numbers_set[feature_current, :]            
 
-    
-    # # Initialize Cb matrix    
-    Cb_ones = np.ones((reduced_order, reduced_order))/reduced_order
-    Cb = np.eye(reduced_order) - Cb_ones
-    
-    # Calculate lambda_0
-    lambda_0 = np.diag(np.matmul(Beq.T,  np.matmul(Cb, Beq)))
-    
-    # if DEBUG_LEVEL > 2:
-    #     np.savetxt("staging/lambda_0.txt", lambda_0)
+            if feature_current != feature_start:
+                Ab = np.eye(Final_A.shape[0])
+                Bb = np.zeros((Final_A.shape[0], 1))
+                x, y = [], []
+                Nt = 0
+                B = np.zeros((MN.shape[0], MN.shape[1]))
+                A = Final_A
+                feature_start = feature_start + 1  
 
-    # Initialize lambda_1 (empty list)
-    lambda_1 = np.zeros((int(feature_n), Final_A.shape[0]))
+            startPoint = numbers[:2]
+            endPoint = numbers[2:4]  
 
-    def __calculateLambda_1 (feature):
-        lambda_1[feature] = (2 * np.matmul(Beq[:, feature].T, np.matmul(Cb, Ab_set[feature])))
-    
-    with ThreadPoolExecutor(max_workers=CPU_COUNT) as executor:
-        executor.map(__calculateLambda_1, range(1, int(feature_n)))    
+            sqDiff = np.power((endPoint - startPoint), 2)
+            distance = np.sqrt(np.sum(sqDiff))
 
-    T_opt = np.concatenate((T_init * np.ones(Final_A.shape[0] - 2), [T_a, T_a]))     
+            # nt = distance / vs / (dx / vs)
+            nt = distance * nt_pre
+            Nt += int(np.floor(nt))
 
-    # set_opt contains the smart scan sequence - save the output
-    set_opt = np.array([])
-    debugPrint(f"smartScanCore -lambda_0 {lambda_0.shape} lambda_1: {lambda_1.shape} T_opt: {T_opt.shape}", 2)
+            # Create linearly spaced arrays for x and y
+            x.extend(np.linspace(startPoint[0], endPoint[0], int(nt)))
+            y.extend(np.linspace(startPoint[1], endPoint[1], int(nt)))        
+            debugPrint(f"smartScanCore - X: {x} Y: {y}", 2)
 
-    toc = time.perf_counter()    
-    debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", -1)
-    
-    T_opt = np.array(T_opt)
-    T_ori = np.array(T_opt)
+            # Energy input at each time step                          
+            for i in range(Nt - int(nt), Nt):                    
+            # def go_fast(i):
+                Posi = np.array([x[i], y[i]])
+                # rb = np.power((MN[:, :, 0] - Posi[0]), 2) + np.power((MN[:, :, 1] - Posi[1]), 2)
+                rb = np.power((MN_SLICE_0 - Posi[0]), 2) + np.power((MN_SLICE_1 - Posi[1]), 2)
+                rb = np.sqrt(rb)
+                q_factor_2 = np.exp(-2 * rb)             
+                Q = q_factor_1 * (q_factor_2 / q_factor_3)  / q_factor_4
+                # Q = Q / np.sum(Q)
+                # Q = np.array(Q)            
+                # B = np.add(B, Q)
+                Q /= np.sum(Q)
+                B += Q
 
-    tic = time.perf_counter()
-    # debugPrint(f"Generating Sequence ", 0)
-    for i in range(total_features):
-        c = lambda_0 + np.dot(lambda_1, T_opt)
-        sorted_indices = np.argsort(c)
-        indices = sorted_indices[~np.isin(sorted_indices, set_opt)]
-        I = int(indices[0])
-        T_opt_temp = np.dot(Ab_set[I], T_opt)
-        T_opt = np.add(T_opt_temp, Beq[:, I])
-        T_ori = np.add(T_opt_temp, Beq[:, i])
-        set_opt = np.append(set_opt, I)
+            debugPrint(f"smartScanCore - Current Features: {feature_current}", 2)
+            
+            # Ab = np.eye(Final_A.shape[0])        
+            debugPrint(f"smartScanCore - Ab : {Ab.shape}", 2)
+            
+            Bb = np.zeros((Final_A.shape[0], 1))        
+            debugPrint(f"smartScanCore - Bb : {Bb.shape}", 2)
+
+            # Ab = Ab ** Nt
+            Ab = np.power(Ab, Nt)
+
+            # Ab_1 = Ab @ eigen_vectors.T
+            Ab_1 = np.matmul(Ab, eigen_vectors.T)            
+            debugPrint(f"smartScanCore - Ab_1 : {Ab_1.shape}", 2)
+
+            B_current = np.reshape(B,  [N_x*N_y, -1])
+            debugPrint(f"smartScanCore - B_current : {B_current.shape}", 2)
+
+            diag = np.array(diag)
+            debugPrint(f"smartScanCore - diag : {diag.shape}", 2)
+            
+            B_current = B_current[diag[diag < N_x*N_y ]]
+            # debugPrint(f"smartScanCoreCUDA - B_current : {B_current.shape}", 2)
+
+            Ab_1 = np.multiply(G, Ab_1)
+            Ab1_temp = np.concatenate((B_current, np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
+            Ab_1 = np.dot(Ab_1, Ab1_temp)
+            Bb = np.add(Bb, Ab_1)
+            
+            Beq[:, feature_current] = Bb[0]
+            Ab_set[feature_current] = Ab
+        
+
+        
+        # # Initialize Cb matrix    
+        Cb_ones = np.ones((reduced_order, reduced_order))/reduced_order
+        Cb = np.eye(reduced_order) - Cb_ones
+        
+        # Calculate lambda_0
+        lambda_0 = np.diag(np.matmul(Beq.T,  np.matmul(Cb, Beq)))
+        
+        # if DEBUG_LEVEL > 2:
+        #     np.savetxt("staging/lambda_0.txt", lambda_0)
+
+        # Initialize lambda_1 (empty list)
+        lambda_1 = np.zeros((int(feature_n), Final_A.shape[0]))
+
+        def __calculateLambda_1 (feature):
+            lambda_1[feature] = (2 * np.matmul(Beq[:, feature].T, np.matmul(Cb, Ab_set[feature])))
+        
+        with ThreadPoolExecutor(max_workers=CPU_COUNT) as executor:
+            executor.map(__calculateLambda_1, range(1, int(feature_n)))    
+
+        T_opt = np.concatenate((T_init * np.ones(Final_A.shape[0] - 2), [T_a, T_a]))     
+
+        # set_opt contains the smart scan sequence - save the output
+        set_opt = np.array([])
+        debugPrint(f"smartScanCore -lambda_0 {lambda_0.shape} lambda_1: {lambda_1.shape} T_opt: {T_opt.shape}", 2)
+
+        toc = time.perf_counter()    
+        debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", -1)
+        
+        T_opt = np.array(T_opt)
+        T_ori = np.array(T_opt)
+
+        tic = time.perf_counter()
+        # debugPrint(f"Generating Sequence ", 0)
+        for i in range(total_features):
+            c = lambda_0 + np.dot(lambda_1, T_opt)
+            sorted_indices = np.argsort(c)
+            indices = sorted_indices[~np.isin(sorted_indices, set_opt)]
+            I = int(indices[0])
+            T_opt_temp = np.dot(Ab_set[I], T_opt)
+            T_opt = np.add(T_opt_temp, Beq[:, I])
+            T_ori = np.add(T_opt_temp, Beq[:, i])
+            set_opt = np.append(set_opt, I)
 
 
+            if FILE_LOGGING_LEVEL > 2:    
+                np.savetxt("staging/T_opt.txt", T_opt)
+        
         if FILE_LOGGING_LEVEL > 2:    
-            np.savetxt("staging/T_opt.txt", T_opt)
-    
-    if FILE_LOGGING_LEVEL > 2:    
-        np.savetxt("staging/setopt.txt", set_opt)
-    
-    toc = time.perf_counter()  
-    R_opt = np.std(T_opt)
-    debugPrint(f"R_opt: {R_opt}", -1)
-    R_ori = np.std(T_ori)
-    debugPrint(f"R_ori: {R_ori}", -1)  
-    # debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", -1)
+            np.savetxt("staging/setopt.txt", set_opt)
+        
+        toc = time.perf_counter()  
+        R_opt = np.std(T_opt)
+        debugPrint(f"R_opt: {R_opt}", -1)
+        R_ori = np.std(T_ori)
+        debugPrint(f"R_ori: {R_ori}", -1)  
+        # debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", -1)
 
 
-    return set_opt.astype(int), v0_ev, R_opt, R_ori
+        return set_opt.astype(int), v0_ev, R_opt, R_ori
+    
+    except Exception as e:
+        logging_function(f"Error in smartScanCore {e}")
+        raise e

@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-    var selectedFile = '';
     var rawGraphData = {
         layers: [],
         numLayers: 0,
@@ -25,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var playInterval = null;
     var playSpeed = 250; // Default 1 second interval
 
+    // Analysis Screen
     const layerSlider = document.getElementById('layerSlider');
     const hatchSlider = document.getElementById('hatchSlider');
     const speedRange = document.getElementById('speedRange');
@@ -34,10 +34,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const processButton = document.getElementById('processButton');
     const rOptimizedLabel = document.getElementById('rOptimized');
     const rOriginalLabel = document.getElementById('rOriginal');
-    const materialNameDropdown = document.getElementById('materialName');
-    const customConfigFields = document.getElementById('custom-config');
+
+    // Custom Material
     const materialForm = document.getElementById('materialForm');
-    const customConfigInput = document.querySelectorAll("#custom-config input");
+    const materialNameDropdown = document.getElementById('materialName');
+    const customMaterialConfigFields = document.getElementById('custom-material-config');
+    const customMaterialConfigInput = document.querySelectorAll("#custom-material-config input");
+
+    // Custom Machine
+    const machineForm = document.getElementById('machineForm');
+    const machineNameDropdown = document.getElementById('machineName');
+    const customMachineConfigFields = document.getElementById('custom-machine-config');
+    const customMachineConfigInput = document.querySelectorAll("#custom-machine-config input");
+
     const loadingStatus = document.getElementById('loadingStatus');
     const resizer = document.getElementById('dragMe');
     const viewButton = document.getElementById('viewButton');
@@ -51,16 +60,33 @@ document.addEventListener('DOMContentLoaded', function () {
     let leftWidth = 0;
 
     var selectedMaterial = {};
+    var selectedMachine = {}
     let currentPage = 1;
     const itemsPerPage = 5;
 
     window.addEventListener('load', () => {
         loadFileHistory();
         loadMaterials();
+        loadMachines();
     });
 
 
-    if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox && refreshButton && playButton && processButton && materialNameDropdown && customConfigFields && materialForm && resizer) {
+    if (
+        layerSlider
+        && hatchSlider
+        && speedRange
+        && showHatchLinesCheckbox
+        && refreshButton
+        && playButton
+        && processButton
+        && materialNameDropdown
+        && customMaterialConfigFields
+        && materialForm
+        && machineNameDropdown
+        && customMachineConfigFields
+        && machineForm
+        && resizer
+    ) {
         layerSlider.addEventListener('input', async (event) => {
             const layerIndex = parseInt(event.target.value);
             document.getElementById('layerValue').textContent = layerIndex / 10;
@@ -123,16 +149,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         materialNameDropdown.addEventListener('change', () => {
             if (materialNameDropdown.value === 'custom') {
-                customConfigFields.style.display = 'grid';
-                customConfigInput.forEach(input => {
+                customMaterialConfigFields.style.display = 'grid';
+                customMaterialConfigInput.forEach(input => {
                     input.required = true;
                     input.addEventListener('input', () => {
                         updateCustomMaterial();
                     });
                 });
             } else {
-                customConfigFields.style.display = 'none';
+                customMaterialConfigFields.style.display = 'none';
                 selectedMaterial = materialNameDropdown.value;
+            }
+        });
+
+        machineNameDropdown.addEventListener('change', () => {
+            if (machineNameDropdown.value === 'custom') {
+                customMachineConfigFields.style.display = 'grid';
+                customMachineConfigInput.forEach(input => {
+                    input.required = true;
+                    input.addEventListener('input', () => {
+                        updateCustomMachine();
+                    });
+                });
+            } else {
+                customMachineConfigFields.style.display = 'none';
+                selectedMachine = machineNameDropdown.value;
             }
         });
 
@@ -159,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // How far the mouse has been moved
             const dx = e.clientX - x;
             const dy = e.clientY - y;
-            
+
             var newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
 
             if (newLeftWidth < 25) {
@@ -172,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             document.documentElement.style.setProperty('--left-panel-width', newLeftWidth + '%');
             document.documentElement.style.setProperty('--right-panel-width', 100 - newLeftWidth + '%');
-            
+
             updateGraphCompare(optimizedGraphData.curLayer);
 
             resizer.style.cursor = 'col-resize';
@@ -212,8 +253,38 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function disableForm() {
+        var materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
+        var machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
+
+        materialElements.forEach(element => {
+            element.disabled = true;
+        }
+        );
+
+        machineElements.forEach(element => {
+            element.disabled = true;
+        }
+        );
+    }
+
+    function enableForm() {
+        var materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
+        var machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
+
+        materialElements.forEach(element => {
+            element.disabled = false;
+        }
+        );
+
+        machineElements.forEach(element => {
+            element.disabled = false;
+        }
+        );
+    }
+
     async function openViewWindow() {
-        
+
         const fileInput = document.getElementById('cliFile');
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
@@ -234,12 +305,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateCustomMaterial() {
         selectedMaterial = {
-            name: document.getElementById('custom-name').value || '',
+            name: document.getElementById('custom-material-name').value || '',
             kt: parseFloat(document.getElementById('kt').value) || 0,
             rho: parseFloat(document.getElementById('rho').value) || 0,
             cp: parseFloat(document.getElementById('cp').value) || 0,
+            h: parseFloat(document.getElementById('h').value) || 0
+        };
+    }
+
+    function updateCustomMachine() {
+        selectedMachine = {
+            name: document.getElementById('custom-machine-name').value || '',
             vs: parseFloat(document.getElementById('vs').value) || 0,
-            h: parseFloat(document.getElementById('h').value) || 0,
             P: parseFloat(document.getElementById('P').value) || 0
         };
     }
@@ -421,6 +498,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function loadMachines() {
+        try {
+            // Wait for materials to load
+            const machines = await eel.get_machines()();
+
+            machineNameDropdown.innerHTML = '';
+            // Add material options
+            Object.keys(machines).forEach(machine => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(machines[machine]);
+                option.textContent = machine.replace(/_/g, ' ').toUpperCase();
+                machineNameDropdown.appendChild(option);
+            });
+
+            // Add custom option last
+            const option = document.createElement('option');
+            option.value = "custom";
+            option.textContent = "Custom Machine";
+            machineNameDropdown.appendChild(option);
+
+            const event = new Event('change');
+            machineNameDropdown.dispatchEvent(event);
+        } catch (error) {
+            console.error('Error loading machines:', error);
+        }
+    }
+
     async function loadFileHistory() {
         try {
             const files = await eel.view_processed_files()();
@@ -496,6 +600,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function processFile() {
         processButton.disabled = true;
+        disableForm();
         const fileInput = document.getElementById('cliFile');
 
         if (fileInput.files.length > 0) {
@@ -507,13 +612,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 displayStatus("Uploading to backend...");
                 // Send file content and name to Python
-                await eel.convert_cli_file(fileContent, file.name, selectedMaterial)();
+                await eel.convert_cli_file(fileContent, file.name, selectedMaterial, selectedMachine)();
                 checkTaskStatus(file.name);
 
             } catch (error) {
                 console.error('Error processing file:', error);
             }
         } else {
+            processButton.disabled = false;
+            enableForm();
             alert("Please attached a file to process!");
         }
     }
@@ -532,10 +639,12 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 clearInterval(interval);
                 processButton.disabled = false;
+                enableForm();
                 loadingStatus.innerText = "";
                 loadingBar.style.display = 'none';
                 loadFileHistory();
                 loadMaterials();
+                loadMachines();
             }
             return status;
         }, 1000);
@@ -594,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (optimizedGraphData.numLayers != rawGraphData.numLayers) {
                 return;
             }
-            
+
             const analysisContainer = document.getElementById('analysis-container');
 
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;

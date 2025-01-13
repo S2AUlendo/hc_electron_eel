@@ -38,7 +38,7 @@ def display_status(status_message):
     eel.displayStatus(status_message)
     print(status_message)
     
-def convertDYNCliFile(filecontent, filename, outputname, filelocation, progress, selected_material):
+def convertDYNCliFile(filecontent, filename, outputname, filelocation, progress, selected_material, selected_machine):
     Sorted_layers = np.array([])
     v0_evInit = None
     
@@ -164,10 +164,11 @@ def convertDYNCliFile(filecontent, filename, outputname, filelocation, progress,
                                                                             kt=float(selected_material['kt']),
                                                                             rho=float(selected_material['rho']),
                                                                             cp=float(selected_material['cp']),
-                                                                            vs=float(selected_material['vs']),
+                                                                            vs=float(selected_machine['vs']),
                                                                             h=float(selected_material['h']),
-                                                                            P=float(selected_material['P']),
+                                                                            P=float(selected_machine['P']),
                                                                             v0_ev=v0_evInit, 
+                                                                            logging_function=display_status
                                                                             )  
                 
                 outfile.write(f"$$LAYER/{layer_num:.3f}\n")

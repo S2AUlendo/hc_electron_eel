@@ -69,7 +69,7 @@ function createViewWindow(windowName) {
     },
     icon: iconPath,
     show: false
-  })
+  })  
 
   viewWindow.loadURL('http://localhost:8000/templates/view.html');
 
