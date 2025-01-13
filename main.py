@@ -10,6 +10,7 @@ from tkinter import filedialog
 from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
 from cli_format.cli_reformat import *
+from splash_screen.splashScreen import *
 
 opti_visualizer = None
 data_visualizer = None
@@ -491,7 +492,15 @@ def retrieve_coords_from_data_cur():
     coords = data_visualizer.retrieve_hatch_lines_from_layer()
     return {'x': coords[0], 'y': coords[1], 'x_min': data_visualizer.x_min, 'x_max': data_visualizer.x_max, 'y_min': data_visualizer.y_min, 'y_max': data_visualizer.y_max}
 
-output_capture = OutputCapture()
-output_capture.start_capture()
-get_configs()
-eel.start('templates/app.html', mode="electron")
+if __name__ == '__main__':
+    splash = SplashScreen()
+    for i in range(5):
+        splash.update_progress(i * 20)
+        time.sleep(0.5)  # Simulate loading
+    splash.destroy()
+    
+    output_capture = OutputCapture()
+    output_capture.start_capture()
+    
+    get_configs()
+    eel.start('templates/app.html', mode="electron")
