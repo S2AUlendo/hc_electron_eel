@@ -421,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateHatchSlider() {
         const hatchSlider = document.getElementById('hatchSlider');
-        console.log(rawGraphData.numHatches)
         hatchSlider.max = rawGraphData.numHatches;
         hatchSlider.value = 0;
         document.getElementById('hatchesValue').textContent = 0;
