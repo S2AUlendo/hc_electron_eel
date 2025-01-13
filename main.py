@@ -4,6 +4,8 @@ from os import listdir
 import subprocess
 import sys
 import json
+import tkinter as tk
+from tkinter import filedialog
 
 from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
@@ -19,7 +21,6 @@ progress = {}
 materials = {}
 machines = {}
 
-   
 def persistent_path(rel_path):
     if getattr(sys, 'frozen', False):
         # The application is frozen (PyInstaller)
@@ -57,13 +58,28 @@ def get_data_output_dict():
                     json.dump(data_output_dict, file)  # Write an empty dictionary to the file
     return data_output_dict
 
-OUTPUT_DIR = get_persistent_output_dir()
-DATA_DIR = get_data_dir()
 DATA_OUTPUT_DICT = get_data_output_dict()
+DEFAULT_DATA_DIR = get_data_dir()
+DEFAULT_OUTPUT_DIR = get_persistent_output_dir()
+
+output_dir = ""
+data_dir = ""
+config = ""
 
 materials_path = ""
 machines_path = ""
+app_config_path = ""
+
 terminal_output = []
+
+config_defaults = {
+    "default": {
+        "data": DEFAULT_DATA_DIR,
+        "output": DEFAULT_OUTPUT_DIR,
+        "active": True
+    }
+}
+
 material_defaults = {
     "titanium_alloy": {
         "name": "Titanium Alloy",
@@ -121,7 +137,6 @@ def resource_path(rel_path):
 # eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
 eel.init('web', allowed_extensions=['.js', '.html'])
 
-
 def store_custom_material(material_key, custom_material):
     try:
         global materials_path
@@ -156,7 +171,74 @@ def store_custom_machine(machine_key, custom_properties):
     except (IOError, json.JSONDecodeError) as e:
         print(f"Error saving custom material: {e}")
         return False
+
+def get_configs():
+    global config, app_config_path, data_dir, output_dir
+    app_config_path = persistent_path('config.json')
     
+    try:
+        # Load existing config
+        with open(app_config_path, 'r') as f:
+            config = json.load(f)
+            
+        # Find active config and set directories
+        active_config = None
+        for key, item in config.items():
+            if item.get("active", False):
+                active_config = item
+                break
+                
+        if active_config:
+            data_dir = active_config.get("data", DEFAULT_DATA_DIR)
+            output_dir = active_config.get("output", DEFAULT_OUTPUT_DIR)
+        else:
+            # No active config found, use defaults
+            config = config_defaults.copy()
+            data_dir = DEFAULT_DATA_DIR
+            output_dir = DEFAULT_OUTPUT_DIR
+            
+            # Save default config
+            with open(app_config_path, 'w') as f:
+                json.dump(config, f, indent=4)
+                
+    except (FileNotFoundError, json.JSONDecodeError):
+        # Create new config file with defaults
+        config = config_defaults.copy()
+        data_dir = DEFAULT_DATA_DIR
+        output_dir = DEFAULT_OUTPUT_DIR
+        
+        with open(app_config_path, 'w') as f:
+            json.dump(config, f, indent=4)
+    
+    return config
+
+@eel.expose
+def change_output_dir(new_path):
+    global config, output_dir
+    if new_path:
+        output_dir = new_path
+        config["default"]["active"] = False
+        
+        # Initialize custom config if not exists
+        if "custom" not in config:
+            config["custom"] = {
+                "data": DEFAULT_DATA_DIR,
+                "output": new_path,
+                "active": True
+            }
+        else:
+            config["custom"]["output"] = new_path
+            config["custom"]["active"] = True
+        
+        try:
+            with open(app_config_path, 'w') as f:
+                json.dump(config, f, indent=4)
+        except Exception as e:
+            print(f"Error saving config: {e}")
+            return output_dir
+            
+    return output_dir
+
 @eel.expose
 def get_terminal_output():
     return terminal_output
@@ -192,8 +274,8 @@ def get_machines():
 @eel.expose
 def convert_cli_file(filecontent, filename, selected_material, selected_machine):
     display_status("Starting...")
-    global OUTPUT_DIR
-    global DATA_DIR
+    global output_dir
+    global data_dir
     global DATA_OUTPUT_DICT
     if type(selected_material) == str:
         selected_material = json.loads(selected_material)
@@ -210,7 +292,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_machine)
         store_custom_machine(machine_key, selected_machine)
     
     # store original file
-    data_file = os.path.join(DATA_DIR, filename)
+    data_file = os.path.join(data_dir, filename)
     with open(data_file, "w", newline='') as f:
         f.write(filecontent)
     
@@ -220,7 +302,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_machine)
     with open(persistent_path("dictionary.json"), "w") as file:
         json.dump(DATA_OUTPUT_DICT, file)
         
-    future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, OUTPUT_DIR, progress, selected_material, selected_machine)
+    future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, output_dir, progress, selected_material, selected_machine)
     futures[filename] = future
     progress[filename] = 0
     return "Task started"
@@ -243,14 +325,14 @@ def get_task_status(filename):
 @eel.expose
 def view_processed_files():
     try:
-        global OUTPUT_DIR
+        global output_dir
         
-        if not os.path.exists(OUTPUT_DIR):
-            os.makedirs(OUTPUT_DIR)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
             
-        files = [f for f in listdir(OUTPUT_DIR) if f.endswith('.cli')]
+        files = [f for f in listdir(output_dir) if f.endswith('.cli')]
         
-        files.sort(key=lambda x: os.path.getmtime(os.path.join(OUTPUT_DIR, x)), reverse=True)
+        files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
         
         return files
     except Exception as e:
@@ -264,9 +346,9 @@ def plot_with_slider():
 @eel.expose
 def open_file_location(filename):
     try:
-        global OUTPUT_DIR
+        global output_dir
         
-        file_path = os.path.join(OUTPUT_DIR, filename)
+        file_path = os.path.join(output_dir, filename)
         subprocess.Popen(f'explorer /select,"{file_path}"')
         
     except Exception as e:
@@ -285,16 +367,16 @@ def read_cli(filecontent):
 def compare_cli(filename):
     global data_visualizer
     global opti_visualizer  # Add global keyword
-    global DATA_DIR
-    global OUTPUT_DIR
+    global data_dir
+    global output_dir
     global DATA_OUTPUT_DICT
     
     original_file = DATA_OUTPUT_DICT[filename]
     data_visualizer = CLIVisualizer(original_file)
     opti_visualizer = CLIVisualizer(filename)
     
-    data_visualizer.read_cli_file(DATA_DIR)
-    opti_visualizer.read_cli_file(OUTPUT_DIR, opti=True)
+    data_visualizer.read_cli_file(data_dir)
+    opti_visualizer.read_cli_file(output_dir, opti=True)
     return
             
 @eel.expose
@@ -411,4 +493,5 @@ def retrieve_coords_from_data_cur():
 
 output_capture = OutputCapture()
 output_capture.start_capture()
+get_configs()
 eel.start('templates/app.html', mode="electron")

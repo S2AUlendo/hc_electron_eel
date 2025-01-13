@@ -1,5 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
 
+    window.electronAPI.onDirectorySelected(async (path) => {
+        if (path) {
+            await eel.change_output_dir(path)();
+        }
+    });
+
     var rawGraphData = {
         layers: [],
         numLayers: 0,
@@ -18,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
         curHatch: 0,
         rValues: [],
     };
+    
     var activeButton = null;
     var showHatchLines = false;
     var isPlaying = false;

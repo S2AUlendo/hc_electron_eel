@@ -1,6 +1,6 @@
 // Modules to control application life and create native browser window
 const path = require('path');
-const { app, BrowserWindow, Menu, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
 const iconPath = path.join(__dirname, "web", "public", "icon.ico");
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -69,7 +69,7 @@ function createViewWindow(windowName) {
     },
     icon: iconPath,
     show: false
-  })  
+  })
 
   viewWindow.loadURL('http://localhost:8000/templates/view.html');
 
@@ -104,16 +104,34 @@ ipcMain.on('message-to-main', (event, data) => {
   }
 })
 
-ipcMain.on('open-view-window', (event, data)  => {
+ipcMain.on('open-view-window', (event, data) => {
   if (!viewWindow) {
     createViewWindow(data);
   }
 })
 
+ipcMain.handle('show-directory-dialog', async () => {
+  const result = await dialog.showOpenDialog({
+      properties: ['openDirectory']
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
 const menuTemplate = [
   {
     label: 'File',
     submenu: [
+      {
+        label: 'Change Output Directory',
+        click: async () => {
+          const path = await dialog.showOpenDialog({
+            properties: ['openDirectory']
+          });
+          if (!path.canceled) {
+            mainWindow.webContents.send('directory-selected', path.filePaths[0]);
+          }
+        }
+      },
       { role: 'quit' },
     ],
   },
