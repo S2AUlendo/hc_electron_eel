@@ -94,11 +94,15 @@ document.addEventListener('DOMContentLoaded', function () {
             await eel.set_current_opti_layer(layerIndex)();
             await eel.set_current_data_hatch(0)();
             await eel.set_current_opti_hatch(0)();
-
+            
+            rawGraphData.numHatches = await eel.get_num_hatches_data()();
             rawGraphData.curHatch = 0;
             rawGraphData.curLayer = layerIndex;
+
+            optimizedGraphData.numHatches = await eel.get_num_hatches_opti()();
             optimizedGraphData.curHatch = 0;
             optimizedGraphData.curLayer = layerIndex;
+
             const r_values = await eel.get_r_from_opti_layer()();
             optimizedGraphData.rValues = r_values;
             displayRValues();
@@ -417,6 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateHatchSlider() {
         const hatchSlider = document.getElementById('hatchSlider');
+        console.log(rawGraphData.numHatches)
         hatchSlider.max = rawGraphData.numHatches;
         hatchSlider.value = 0;
         document.getElementById('hatchesValue').textContent = 0;
@@ -436,21 +441,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
             await eel.compare_cli(file)();
 
-            const numLayers = await eel.get_num_layers()();
+            const numLayersOpti = await eel.get_num_layers_opti()();
+            const numHatchesOpti = await eel.get_num_hatches_opti()();
+            const numLayersRaw = await eel.get_num_layers_data()();
+            const numHatchesRaw = await eel.get_num_hatches_data()();
 
+            if (numLayersOpti != numLayersRaw) {
+                alert("Number of layers in raw and optimized files do not match!");
+                return;
+            }
+            
+            if (numHatchesOpti != numHatchesRaw) {
+                alert("Number of hatches in raw and optimized files do not match!");
+                return;
+            }
+            
             if (showHatchLines) {
                 retrieveHashLines();
             } else {
                 retrieveBoundingBoxes();
             }
 
-            const numHatches = await eel.get_num_hatches()();
-            rawGraphData.numLayers = numLayers;
-            rawGraphData.numHatches = numHatches;
+            rawGraphData.numLayers = numLayersRaw;
+            rawGraphData.numHatches = numHatchesRaw;
             rawGraphData.curLayer = 0;
 
-            optimizedGraphData.numLayers = numLayers;
-            optimizedGraphData.numHatches = numHatches;
+            optimizedGraphData.numLayers = numLayersOpti;
+            optimizedGraphData.numHatches = numHatchesOpti;
             optimizedGraphData.curLayer = 0;
 
             const r_values = await eel.get_r_from_opti_layer()();

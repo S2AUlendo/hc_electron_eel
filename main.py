@@ -319,7 +319,7 @@ def get_num_layers_data():
     return data_visualizer.get_num_layers()
 
 @eel.expose
-def get_num_layers():
+def get_num_layers_opti():
     global opti_visualizer
     if opti_visualizer is None:
         return 0
@@ -333,7 +333,7 @@ def get_num_hatches_data():
     return data_visualizer.get_num_hatches()
 
 @eel.expose
-def get_num_hatches():
+def get_num_hatches_opti():
     global opti_visualizer
     if opti_visualizer is None:
         return 0
