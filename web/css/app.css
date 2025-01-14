@@ -43,6 +43,8 @@
 }
 
 .btm-panel {
+    display: flex;
+    flex-direction: column;
     padding: 3rem;
 }
 
@@ -67,6 +69,10 @@
 
 .file-history .refresh-btn {
     width: fit-content;
+}
+
+#refreshButton {
+    align-self:flex-end;
 }
 
 .loading-bar {
@@ -110,6 +116,7 @@
     display: flex;
     flex-direction: column; /* Arrange children vertically */
     align-items: center;
+    justify-content: center;
     width: 100%;
     height: 100%;
     background-color: white;

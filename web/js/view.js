@@ -30,12 +30,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox) {
         layerSlider.addEventListener('input', async (event) => {
             const layerIndex = parseInt(event.target.value);
-            document.getElementById('view-layerValue').textContent = layerIndex / 10;
+            document.getElementById('view-layerValue').textContent = layerIndex;
             await eel.set_current_data_layer(layerIndex)();
             await eel.set_current_opti_layer(layerIndex)();
             await eel.set_current_data_hatch(0)();
             await eel.set_current_opti_hatch(0)();
 
+            rawGraphData.numHatches = await eel.get_num_hatches_data()();
             rawGraphData.curHatch = 0;
             rawGraphData.curLayer = layerIndex;
 
@@ -257,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const layout = {
-                title: `Layer ${layerIndex / 10}`,
+                title: `Layer ${layerIndex}`,
                 autosize: true,
                 xaxis: {
                     title: 'X',

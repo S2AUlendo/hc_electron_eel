@@ -71,6 +71,7 @@ function createViewWindow(windowName) {
     show: false
   })
 
+  viewWindow.removeMenu();
   viewWindow.loadURL('http://localhost:8000/templates/view.html');
 
   viewWindow.on('closed', () => {

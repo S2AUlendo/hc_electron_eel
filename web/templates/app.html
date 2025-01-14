@@ -6,7 +6,7 @@
     <title>Heat Compensation Tool</title>
     <link rel="shortcut icon" type="image/x-icon" href="../public/ulendo_favi.jpg">
     <link rel="stylesheet" href="../css/bootstrap.min.css">
-    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/app.css">
     <link rel="stylesheet" href="../css/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/bootstrap-icons.min.css">
     <script src="../js/plotly.min.js"></script>
@@ -60,8 +60,7 @@
                         <div id="custom-machine-config" class="custom-machine-config my-3" style="display: none;">
                             <div class="form-group">
                                 <label for="custom-machine-name" class="form-label">Custom Machine Name:</label>
-                                <input id="custom-machine-name" class="form-control"
-                                    placeholder="e.g., Custom Machine">
+                                <input id="custom-machine-name" class="form-control" placeholder="e.g., Custom Machine">
                             </div>
                             <div class="form-group">
                                 <label for="vs" class="form-label">Scanning Speed (vs) [m/s]</label>
@@ -85,13 +84,24 @@
             </div>
             <div class="btm-panel">
                 <h2>History</h2>
-                <button id="refreshButton" class="refresh-btn btn btn-primary">Refresh</button>
+                <button id="refreshButton" class="btn btn-primary">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    Refresh
+                </button>
                 <div class="file-history">
                     <div class="list-group" id="fileHistory"></div>
                     <nav aria-label="history-nav">
                         <ul class="pagination">
-                            <li class="page-item"><a class="page-link" href="#">Previous</a></li>
-                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">
+                                    <i class="bi bi-chevron-left"></i>
+                                    Previous
+                                </a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">
+                                    Next
+                                    <i class="bi bi-chevron-right"></i>
+                                </a></li>
                         </ul>
                     </nav>
                 </div>

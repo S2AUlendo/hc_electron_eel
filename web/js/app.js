@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
     ) {
         layerSlider.addEventListener('input', async (event) => {
             const layerIndex = parseInt(event.target.value);
-            document.getElementById('layerValue').textContent = layerIndex / 10;
+            document.getElementById('layerValue').textContent = layerIndex;
             await eel.set_current_data_layer(layerIndex)();
             await eel.set_current_opti_layer(layerIndex)();
             await eel.set_current_data_hatch(0)();
@@ -771,7 +771,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const layout = {
                     width: analysisContainer.clientWidth / 2,
-                    title: `${title}\nLayer ${layerIndex / 10}`,
+                    title: `${title}\nLayer ${layerIndex}`,
                     xaxis: {
                         title: 'X',
                         scaleanchor: 'y',  // Make axes equal scale
