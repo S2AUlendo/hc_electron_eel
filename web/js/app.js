@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', function () {
             await eel.change_output_dir(path)();
         }
     });
+    
+    window.addEventListener('resize', () => {
+        updateGraphCompare(optimizedGraphData.curLayer)
+    }, true);
 
     var rawGraphData = {
         layers: [],
@@ -24,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
         curHatch: 0,
         rValues: [],
     };
-    
+
     var activeButton = null;
     var showHatchLines = false;
     var isPlaying = false;
@@ -101,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
             await eel.set_current_opti_layer(layerIndex)();
             await eel.set_current_data_hatch(0)();
             await eel.set_current_opti_hatch(0)();
-            
+
             rawGraphData.numHatches = await eel.get_num_hatches_data()();
             rawGraphData.curHatch = 0;
             rawGraphData.curLayer = layerIndex;
@@ -456,12 +460,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 alert("Number of layers in raw and optimized files do not match!");
                 return;
             }
-            
+
             if (numHatchesOpti != numHatchesRaw) {
                 alert("Number of hatches in raw and optimized files do not match!");
                 return;
             }
-            
+
             if (showHatchLines) {
                 retrieveHashLines();
             } else {
