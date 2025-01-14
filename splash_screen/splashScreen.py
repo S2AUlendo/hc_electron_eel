@@ -23,7 +23,7 @@ class SplashScreen:
         screen_height = self.root.winfo_screenheight()
         
         # Set window size and position
-        width = 400
+        width = 420
         height = 300
         x = (screen_width/2) - (width/2)
         y = (screen_height/2) - (height/2)
@@ -35,9 +35,9 @@ class SplashScreen:
         
         # Add logo/image
         try:
-            img_path = resource_path("web/public/icon.ico")
+            img_path = resource_path("web/public/ulendo_full_logo_no_bg.png")
             img = Image.open(img_path)
-            img = img.resize((100, 100))
+            img = img.resize((280, 80))
             photo = ImageTk.PhotoImage(img)
             label = tk.Label(self.root, image=photo, bg='white')
             label.image = photo
