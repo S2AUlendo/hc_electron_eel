@@ -20,14 +20,19 @@ class OutputCapture:
                 self.original_stdout = original_stdout
             
             def write(self, text):
-                self.original_stdout.write(text)  # Still print to original stdout
-                self.queue.put(text)  # Also capture the output
+                if self.original_stdout:
+                    self.original_stdout.write(text)
+                self.queue.put(text)
                 
             def flush(self):
-                self.original_stdout.flush()
+                if self.original_stdout:
+                    self.original_stdout.flush()
                 
             def fileno(self):
-                return self.original_stdout.fileno()
+                if hasattr(self.original_stdout, 'fileno'):
+                    return self.original_stdout.fileno()
+                # TODO: this is a bypass, please fix in the future
+                return 1
         
         # Replace sys.stdout with our custom output
         sys.stdout = CustomOutput(self.output_queue, self.original_stdout)

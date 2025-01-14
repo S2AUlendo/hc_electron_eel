@@ -2,6 +2,16 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import time
+import os
+import sys
+
+def resource_path(rel_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, rel_path)
 
 class SplashScreen:
     def __init__(self):
@@ -25,7 +35,8 @@ class SplashScreen:
         
         # Add logo/image
         try:
-            img = Image.open("web/public/icon.ico")
+            img_path = resource_path("web/public/icon.ico")
+            img = Image.open(img_path)
             img = img.resize((100, 100))
             photo = ImageTk.PhotoImage(img)
             label = tk.Label(self.root, image=photo, bg='white')

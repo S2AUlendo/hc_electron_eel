@@ -503,4 +503,5 @@ if __name__ == '__main__':
     output_capture.start_capture()
     
     get_configs()
+    eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
     eel.start('templates/app.html', mode="electron")

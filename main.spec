@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\Users\\Yi Sien Ku\\AppData\\Local\\Programs\\Python\\Python38\\lib\\site-packages\\eel\\eel.js', 'eel'), ('web', 'web'), ('web', 'electron/resources/app/web'), ('electron', 'electron'), ('main.js', 'electron/resources/app'), ('package.json', 'electron/resources/app')],
+    datas=[('C:\\Projects\\hc_electron_eel\\.venv\\Lib\\site-packages\\eel\\eel.js', 'eel'), ('web', 'web'), ('web', 'electron/resources/app/web'), ('electron', 'electron'), ('main.js', 'electron/resources/app'),  ('preload.js', 'electron/resources/app'), ('package.json', 'electron/resources/app')],
     hiddenimports=['bottle_websocket', 'bottle_websocket'],
     hookspath=[],
     hooksconfig={},
