@@ -268,6 +268,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    eel.expose(displayError)
+    function displayError(message, status) {
+        alert(message, status);
+    }
+
     function disableForm() {
         var materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
         var machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
@@ -314,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Error opening view:', error);
             }
         } else {
-            alert("Please attached a file to process!");
+            displayError("Error", "Please attach a file to view!");
         }
     }
 
@@ -457,12 +462,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const numHatchesRaw = await eel.get_num_hatches_data()();
 
             if (numLayersOpti != numLayersRaw) {
-                alert("Number of layers in raw and optimized files do not match!");
+                displayError("Error", "Number of layers in raw and optimized files do not match!");
                 return;
             }
 
             if (numHatchesOpti != numHatchesRaw) {
-                alert("Number of hatches in raw and optimized files do not match!");
+                displayError("Error", "Number of hatches in raw and optimized files do not match!");
                 return;
             }
 
@@ -648,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             processButton.disabled = false;
             enableForm();
-            alert("Please attached a file to process!");
+            displayError("Error", "Please attached a file to process!");
         }
     }
 

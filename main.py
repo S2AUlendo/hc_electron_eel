@@ -4,8 +4,7 @@ from os import listdir
 import subprocess
 import sys
 import json
-import tkinter as tk
-from tkinter import filedialog
+import traceback
 
 from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
@@ -235,6 +234,7 @@ def change_output_dir(new_path):
             with open(app_config_path, 'w') as f:
                 json.dump(config, f, indent=4)
         except Exception as e:
+            eel.displayError(traceback.format_exc(), "Error")
             print(f"Error saving config: {e}")
             return output_dir
             
@@ -278,35 +278,41 @@ def convert_cli_file(filecontent, filename, selected_material, selected_machine)
     global output_dir
     global data_dir
     global DATA_OUTPUT_DICT
-    if type(selected_material) == str:
-        selected_material = json.loads(selected_material)
-    if type(selected_machine) == str:
-        selected_machine = json.loads(selected_machine)
-    
-    material_key = "_".join(selected_material["name"].lower().strip().split(" "))
-    machine_key = "_".join(selected_machine["name"].lower().strip().split(" "))
-    if (material_key not in materials):
-        display_status("Saving Custom Material...")
-        store_custom_material(material_key, selected_material)
-    if (machine_key not in machines):
-        display_status("Saving Custom Machine...")
-        store_custom_machine(machine_key, selected_machine)
-    
-    # store original file
-    data_file = os.path.join(data_dir, filename)
-    with open(data_file, "w", newline='') as f:
-        f.write(filecontent)
-    
-    outputname = f"{filename[:-4].strip()}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
-    DATA_OUTPUT_DICT[outputname] = filename
-    
-    with open(persistent_path("dictionary.json"), "w") as file:
-        json.dump(DATA_OUTPUT_DICT, file)
+    try:
+        if type(selected_material) == str:
+            selected_material = json.loads(selected_material)
+        if type(selected_machine) == str:
+            selected_machine = json.loads(selected_machine)
         
-    future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, output_dir, progress, selected_material, selected_machine)
-    futures[filename] = future
-    progress[filename] = 0
-    return "Task started"
+        material_key = "_".join(selected_material["name"].lower().strip().split(" "))
+        machine_key = "_".join(selected_machine["name"].lower().strip().split(" "))
+        if (material_key not in materials):
+            display_status("Saving Custom Material...")
+            store_custom_material(material_key, selected_material)
+        if (machine_key not in machines):
+            display_status("Saving Custom Machine...")
+            store_custom_machine(machine_key, selected_machine)
+        
+        # store original file
+        data_file = os.path.join(data_dir, filename)
+        with open(data_file, "w", newline='') as f:
+            f.write(filecontent)
+        
+        outputname = f"{filename[:-4].strip()}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
+        DATA_OUTPUT_DICT[outputname] = filename
+        
+        with open(persistent_path("dictionary.json"), "w") as file:
+            json.dump(DATA_OUTPUT_DICT, file)
+            
+        future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, output_dir, progress, selected_material, selected_machine)
+        futures[filename] = future
+        progress[filename] = 0
+        return "Task started"
+    
+    except Exception as e:
+        eel.displayError(traceback.format_exc(), "Error")
+        print(f"Error starting task: {e}")
+        return "Error starting task"
 
 @eel.expose
 def get_task_status(filename):
@@ -337,6 +343,7 @@ def view_processed_files():
         
         return files
     except Exception as e:
+        eel.displayError(traceback.format_exc(), "Error")
         print(f"Error listing processed files: {e}")
         return []
 
@@ -353,6 +360,7 @@ def open_file_location(filename):
         subprocess.Popen(f'explorer /select,"{file_path}"')
         
     except Exception as e:
+        eel.displayError(traceback.format_exc(), "Error")
         print(f"Error opening file location: {e}")
         return []
 
@@ -361,7 +369,6 @@ def read_cli(filecontent):
     global data_visualizer  # Add global keyword
     data_visualizer = CLIVisualizer()
     data_visualizer.read_cli(filecontent)
-    
     return
 
 @eel.expose
@@ -372,13 +379,17 @@ def compare_cli(filename):
     global output_dir
     global DATA_OUTPUT_DICT
     
-    original_file = DATA_OUTPUT_DICT[filename]
-    data_visualizer = CLIVisualizer(original_file)
-    opti_visualizer = CLIVisualizer(filename)
-    
-    data_visualizer.read_cli_file(data_dir)
-    opti_visualizer.read_cli_file(output_dir, opti=True)
-    return
+    try:
+        original_file = DATA_OUTPUT_DICT[filename]
+        data_visualizer = CLIVisualizer(original_file)
+        opti_visualizer = CLIVisualizer(filename)
+        
+        data_visualizer.read_cli_file(data_dir)
+        opti_visualizer.read_cli_file(output_dir, opti=True)
+        return
+    except Exception as e:
+        eel.displayError(traceback.format_exc(), "Error")
+        print(f"Error comparing files: {e}")
             
 @eel.expose
 def retrieve_opti_layers():
