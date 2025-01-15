@@ -57,8 +57,11 @@ function createTerminalWindow() {
   })
   terminalWindow.removeMenu();
   terminalWindow.setMinimumSize(300, 150);
-
   terminalWindow.loadURL('http://localhost:8000/templates/terminal.html');
+
+  terminalWindow.on('closed', () => {
+    terminalWindow = null;
+  });
 }
 
 let viewWindow;
