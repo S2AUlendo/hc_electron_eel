@@ -5,12 +5,16 @@ import subprocess
 import sys
 import json
 import traceback
+import win32event
+import win32api
+import winerror
 
 from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
 from cli_format.cli_reformat import *
 from screens.splashScreen import *
 from screens.activationScreen import *
+from screens.singleInstanceScreen import *
 from license.license import *
 
 opti_visualizer = None
@@ -507,20 +511,43 @@ def retrieve_coords_from_data_cur():
     coords = data_visualizer.retrieve_hatch_lines_from_layer()
     return {'x': coords[0], 'y': coords[1], 'x_min': data_visualizer.x_min, 'x_max': data_visualizer.x_max, 'y_min': data_visualizer.y_min, 'y_max': data_visualizer.y_max}
 
+def create_mutex():
+    """Create a Windows mutex to ensure single instance"""
+    mutex_name = "Global\\UlendoHCAppMutex"  # Choose a unique name
+    try:
+        handle = win32event.CreateMutex(None, 1, mutex_name)
+        if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+            single_screen = SingleInstanceScreen()
+            single_screen.run() # wait till users click away the screen
+            
+            sys.exit(1)
+        return handle
+    except Exception as e:
+        print(f"Error creating mutex: {e}")
+        sys.exit(1)
+        
 if __name__ == '__main__':
-    get_configs()
     
-    activation_splash = ActivationScreen()
-    activation_splash.wait_for_result()
+    mutex = create_mutex()
     
-    splash = SplashScreen()
-    for i in range(5):
-        splash.update_progress(i * 20)
-        time.sleep(0.5)  # Simulate loading
-    splash.destroy()
-    
-    output_capture = OutputCapture()
-    output_capture.start_capture()
-    
-    eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
-    eel.start('templates/app.html', mode="electron")
+    try:
+        get_configs()
+        
+        activation_splash = ActivationScreen()
+        activation_splash.run()
+        
+        splash = SplashScreen()
+        for i in range(5):
+            splash.update_progress(i * 20)
+            time.sleep(0.5)  # Simulate loading
+        splash.destroy()
+        
+        output_capture = OutputCapture()
+        output_capture.start_capture()
+        
+        eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
+        eel.start('templates/app.html', mode="electron")
+        
+    except Exception as e:
+        print(f"Application error: {e}")
+        sys.exit(1)

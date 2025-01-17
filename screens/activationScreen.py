@@ -15,14 +15,15 @@ def resource_path(rel_path):
 
 class ActivationScreen:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.protocol("WM_DELETE_WINDOW", self.stop_app)
         self.license = LicenseKey()
-        
-        self.setup_ui()
-        self.preload_license()
+        if not self.preload_license():
+            self.root = tk.Tk()
+            self.setup_ui()
+        else:
+            self.root = None
         
     def setup_ui(self):
+        self.root.protocol("WM_DELETE_WINDOW", self.stop_app)
         # Configure the main window
         self.root.title("License Activation")
         self.root.configure(bg='#f0f0f0')
@@ -178,7 +179,8 @@ class ActivationScreen:
         if self.license:
             self.license.check_license_from_cloud()
             if self.license.activated:
-                self.destroy()
+                return self.license.activated
+        return False
 
     def activate_app(self):
         self.error_label.config(text="")
@@ -201,12 +203,14 @@ class ActivationScreen:
         else:
             self.error_label.config(text="Invalid license key. Please try again.")
 
-    def wait_for_result(self):
-        self.root.mainloop()
+    def run(self):
+        if self.root:
+            self.root.mainloop()
 
     def destroy(self):
-        self.root.update() # update the tkinter frame before destroy (bypassing errors)
-        self.root.destroy()
+        if self.root:
+            self.root.update()
+            self.root.destroy()
         
     def stop_app(self):
         sys.exit()
