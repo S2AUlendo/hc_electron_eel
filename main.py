@@ -9,7 +9,9 @@ import traceback
 from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
 from cli_format.cli_reformat import *
-from splash_screen.splashScreen import *
+from screens.splashScreen import *
+from screens.activationScreen import *
+from license.license import *
 
 opti_visualizer = None
 data_visualizer = None
@@ -71,11 +73,13 @@ machines_path = ""
 app_config_path = ""
 
 terminal_output = []
+is_activated = False
 
 config_defaults = {
     "default": {
         "data": DEFAULT_DATA_DIR,
         "output": DEFAULT_OUTPUT_DIR,
+        "license_key": "",
         "active": True
     }
 }
@@ -504,6 +508,11 @@ def retrieve_coords_from_data_cur():
     return {'x': coords[0], 'y': coords[1], 'x_min': data_visualizer.x_min, 'x_max': data_visualizer.x_max, 'y_min': data_visualizer.y_min, 'y_max': data_visualizer.y_max}
 
 if __name__ == '__main__':
+    get_configs()
+    
+    activation_splash = ActivationScreen()
+    activation_splash.wait_for_result()
+    
     splash = SplashScreen()
     for i in range(5):
         splash.update_progress(i * 20)
@@ -513,6 +522,5 @@ if __name__ == '__main__':
     output_capture = OutputCapture()
     output_capture.start_capture()
     
-    get_configs()
     eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
     eel.start('templates/app.html', mode="electron")
