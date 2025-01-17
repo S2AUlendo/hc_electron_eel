@@ -10,6 +10,15 @@ document.addEventListener('DOMContentLoaded', function () {
         updateGraphCompare(optimizedGraphData.curLayer)
     }, true);
 
+    var completeGraphData = {
+        layers: [],
+        numLayers: 0,
+        numHatches: 0,
+        curLayer: 0,
+        curHatch: 0,
+        rValues: [],
+    }
+
     var rawGraphData = {
         layers: [],
         numLayers: 0,
@@ -17,7 +26,6 @@ document.addEventListener('DOMContentLoaded', function () {
         curLayer: 0,
         curHatch: 0,
         rValues: [],
-
     }
 
     var optimizedGraphData = {
@@ -29,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
         rValues: [],
     };
 
+    var completeTrace;
     var activeButton = null;
     var showHatchLines = false;
     var isPlaying = false;
@@ -75,10 +84,10 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentPage = 1;
     const itemsPerPage = 5;
 
-    window.addEventListener('load', () => {
-        loadFileHistory();
-        loadMaterials();
-        loadMachines();
+    window.addEventListener('load', async () => {
+        await loadFileHistory();
+        await loadMaterials();
+        await loadMachines();
     });
 
 
@@ -117,11 +126,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const r_values = await eel.get_r_from_opti_layer()();
             optimizedGraphData.rValues = r_values;
             displayRValues();
+
+            await loadCompleteBoundingBoxes();
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
+
             updateHatchSlider();
             updateGraphCompare(optimizedGraphData.layerIndex);
         });
@@ -136,9 +148,9 @@ document.addEventListener('DOMContentLoaded', function () {
             optimizedGraphData.curHatch = hatchIndex;
 
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
         });
 
@@ -156,9 +168,9 @@ document.addEventListener('DOMContentLoaded', function () {
         showHatchLinesCheckbox.addEventListener('change', async (e) => {
             showHatchLines = e.target.checked;
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
         });
 
@@ -369,6 +381,17 @@ document.addEventListener('DOMContentLoaded', function () {
         updateGraphCompare(optimizedGraphData.curLayer);
     }
 
+    async function loadCompleteBoundingBoxes(){
+        const completeCoords = await eel.retrieve_full_bounding_box_opti()();
+        completeGraphData.layers = completeCoords.bounding_boxes;
+        completeGraphData.x_min = completeCoords.x_min;
+        completeGraphData.x_max = completeCoords.x_max;
+        completeGraphData.y_min = completeCoords.y_min;
+        completeGraphData.y_max = completeCoords.y_max;
+
+        createCompleteTrace();
+    }
+
     async function retrieveBoundingBoxes() {
         const dataCoords = await eel.retrieve_bounding_box_from_data_layer()();
         rawGraphData.layers = dataCoords.bounding_boxes;
@@ -425,9 +448,9 @@ document.addEventListener('DOMContentLoaded', function () {
             await eel.set_current_opti_hatch(currentHatch)();
             optimizedGraphData.curHatch = currentHatch;
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
             updateGraphCompare(optimizedGraphData.curLayer);
         }, playSpeed);
@@ -471,10 +494,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            // Get full bounding box then the actual bounding box
+            await loadCompleteBoundingBoxes();
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
 
             rawGraphData.numLayers = numLayersRaw;
@@ -674,9 +699,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 enableForm();
                 loadingStatus.innerText = "";
                 loadingBar.style.display = 'none';
-                loadFileHistory();
-                loadMaterials();
-                loadMachines();
+                await loadFileHistory();
+                await loadMaterials();
+                await loadMachines();
             }
             return status;
         }, 1000);
@@ -698,12 +723,41 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function createCompleteTrace() {
+        const  boxes = completeGraphData.layers;
+
+        completeTrace =  boxes.map((box, index) => {
+            const x = box[0];
+            const y = box[1];
+            const color = '#E0E0E0';
+
+            return {
+                x: x,
+                y: y,
+                type: 'scatter',
+                mode: 'lines',  // Remove markers, lines only
+                fill: 'toself',
+                fillcolor: color,
+                opacity: 0.73,
+                line: {
+                    color: color,
+                    width: 1,
+                    simplify: false // Preserve exact path
+                },
+                showlegend: false,
+                hoverinfo: 'none'
+            };
+        });
+
+        return;
+    }
+
     function createScatterTraces(boxes) {
         let rate = 120 / optimizedGraphData.numHatches * 3;
         return boxes.map((box, index) => {
             const x = box[0];
             const y = box[1];
-            let radian = (boxes.length - index) * rate
+            let radian = (boxes.length - index) * rate;
             if (radian >= 120) {
                 radian = 120
             }
@@ -772,6 +826,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 optiData = createScatterTraces(optimizedGraphData.layers);
                 rawData = createScatterTraces(rawGraphData.layers);
             }
+
             function getLayout(title) {
 
                 const layout = {
@@ -800,8 +855,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 scrollZoom: true
             };
 
-            Plotly.newPlot('data_plot', rawData, getLayout("Pre-Opt"), config);
-            Plotly.newPlot('opti_plot', optiData, getLayout("Post-Opt"), config);
+            let rawPlotData = [...completeTrace, ...rawData]
+            let optiPlotData = [...completeTrace, ...optiData]
+            Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), config);
+            Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), config);
         } catch (error) {
             console.error('Error updating graph:', error);
         }

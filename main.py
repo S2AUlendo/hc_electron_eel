@@ -478,6 +478,22 @@ def set_current_data_hatch(hatch_num):
     global data_visualizer
     if data_visualizer is not None:
         data_visualizer.set_current_hatch(hatch_num)
+
+@eel.expose
+def retrieve_full_bounding_box_opti():
+    global opti_visualizer
+    if opti_visualizer is None:
+        return {'x': [], 'y': []}
+    bounding_boxes = opti_visualizer.get_full_bounding_boxes_from_layer()
+    return {'bounding_boxes': bounding_boxes, 'x_min': opti_visualizer.x_min, 'x_max': opti_visualizer.x_max, 'y_min': opti_visualizer.y_min, 'y_max': opti_visualizer.y_max}
+    
+@eel.expose
+def retrieve_full_bounding_box_data():
+    global data_visualizer
+    if data_visualizer is None:
+        return {'x': [], 'y': []}
+    bounding_boxes = data_visualizer.get_full_bounding_boxes_from_layer()
+    return {'bounding_boxes': bounding_boxes, 'x_min': data_visualizer.x_min, 'x_max': data_visualizer.x_max, 'y_min': data_visualizer.y_min, 'y_max': data_visualizer.y_max}
     
 @eel.expose
 def retrieve_bounding_box_from_opti_layer():

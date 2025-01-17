@@ -170,6 +170,38 @@ class CLIVisualizer:
             return bounding_boxes
         
         return None
+    
+    def get_full_bounding_boxes_from_layer(self):
+        if 0 <= self.current_layer < len(self.layers):
+            layer = self.layers[self.current_layer]
+            coords = layer
+            bounding_boxes = []
+            
+            for i in range(len(coords)):
+                x_coords = np.concatenate([coords[i][::4], coords[i][2::4]])
+                # print(x_coords)
+                y_coords = np.concatenate([coords[i][1::4], coords[i][3::4]])
+                
+                if len(coords) > 0:
+                    x_min = np.min(x_coords)
+                    x_max = np.max(x_coords)
+                    y_min = np.min(y_coords)
+                    y_max = np.max(y_coords)
+                    
+                    if x_min > self.x_min:
+                        self.x_min = x_min
+                    if x_max < self.x_max:
+                        self.x_max = x_max
+                    if y_min > self.y_min:
+                        self.y_min = y_min
+                    if y_max < self.y_max:
+                        self.y_max = y_max
+                        
+                    bounding_boxes.append([[x_min, x_max, x_max, x_min, x_min], [y_min, y_min, y_max, y_max, y_min]])
+                    
+            return bounding_boxes
+        
+        return None
                 
     def plot_with_slider(self):
         # Create figure and axis

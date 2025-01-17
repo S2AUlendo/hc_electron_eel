@@ -2,8 +2,17 @@ document.addEventListener('DOMContentLoaded', function () {
         
     window.electronAPI.onReceiveMessage((data) => {
         spinner.style.display = "flex";
-        viewFile(data);
+        readFile(data);
     });
+
+    var completeGraphData = {
+        layers: [],
+        numLayers: 0,
+        numHatches: 0,
+        curLayer: 0,
+        curHatch: 0,
+        rValues: [],
+    }
 
     var rawGraphData = {
         layers: [],
@@ -15,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
+    var completeTrace;
     var showHatchLines = false;
     var isPlaying = false;
     var playInterval = null;
@@ -32,35 +42,33 @@ document.addEventListener('DOMContentLoaded', function () {
             const layerIndex = parseInt(event.target.value);
             document.getElementById('view-layerValue').textContent = layerIndex;
             await eel.set_current_data_layer(layerIndex)();
-            await eel.set_current_opti_layer(layerIndex)();
             await eel.set_current_data_hatch(0)();
-            await eel.set_current_opti_hatch(0)();
 
             rawGraphData.numHatches = await eel.get_num_hatches_data()();
             rawGraphData.curHatch = 0;
             rawGraphData.curLayer = layerIndex;
 
             // displayRValues();
+            await loadCompleteBoundingBoxes();
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
+
             updateHatchSlider();
-            updateGraph(rawGraphData.layerIndex);
         });
 
         hatchSlider.addEventListener('input', async (event) => {
             const hatchIndex = parseInt(event.target.value);
             document.getElementById('view-hatchesValue').textContent = event.target.value;
             await eel.set_current_data_hatch(hatchIndex)();
-            await eel.set_current_opti_hatch(hatchIndex)();
 
             rawGraphData.curHatch = hatchIndex;
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
         });
 
@@ -78,37 +86,53 @@ document.addEventListener('DOMContentLoaded', function () {
         showHatchLinesCheckbox.addEventListener('change', async (e) => {
             showHatchLines = e.target.checked;
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
         });
 
         playButton.addEventListener('click', togglePlay);
     }
 
-    async function viewFile(fileContent) {
+    async function loadCompleteBoundingBoxes(){
+        const completeCoords = await eel.retrieve_full_bounding_box_data()();
+        completeGraphData.layers = completeCoords.bounding_boxes;
+        completeGraphData.x_min = completeCoords.x_min;
+        completeGraphData.x_max = completeCoords.x_max;
+        completeGraphData.y_min = completeCoords.y_min;
+        completeGraphData.y_max = completeCoords.y_max;
+
+        completeTrace = createCompleteTrace();
+        console.log('made')
+    }
+
+    async function readFile(fileContent) {
         await eel.read_cli(fileContent)();
+        await viewFile();
+    }
 
+    async function viewFile(){
+        
         const numLayers = await eel.get_num_layers_data()();
-
-        if (showHatchLines) {
-            retrieveHashLines();
-        } else {
-            retrieveBoundingBoxes();
-        }
-
         const numHatches = await eel.get_num_hatches_data()();
         rawGraphData.numLayers = numLayers;
         rawGraphData.numHatches = numHatches;
         rawGraphData.curLayer = 0;
 
+        await loadCompleteBoundingBoxes();
+        if (showHatchLines) {
+            await retrieveHashLines();
+        } else {
+            await retrieveBoundingBoxes();
+        }
+        
         updateLayerSlider();
         updateHatchSlider();
-        updateGraph(0);
-        spinner.style.display = "none";
 
+        spinner.style.display = "none";
         document.getElementById('view-container').style.display = 'flex';
+        updateGraph(0);
     }
 
     function isDouble(str) {
@@ -119,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function displayRValues() {
         rOriginalLabel.textContent = isDouble(r_values[1]) ? r_values[1] : "NaN";
     }
+
     async function retrieveHashLines() {
         const dataCoords = await eel.retrieve_coords_from_data_cur()();
         rawGraphData.layers = dataCoords;
@@ -178,9 +203,9 @@ document.addEventListener('DOMContentLoaded', function () {
             await eel.set_current_opti_hatch(currentHatch)();
             rawGraphData.curHatch = currentHatch;
             if (showHatchLines) {
-                retrieveHashLines();
+                await retrieveHashLines();
             } else {
-                retrieveBoundingBoxes();
+                await retrieveBoundingBoxes();
             }
             updateGraph(rawGraphData.curLayer);
         }, playSpeed);
@@ -198,6 +223,32 @@ document.addEventListener('DOMContentLoaded', function () {
         layerSlider.max = rawGraphData.numLayers;
         layerSlider.value = 1;
         document.getElementById('view-layerValue').textContent = 0;
+    }
+
+    function createCompleteTrace() {
+        const boxes = completeGraphData.layers;
+        return boxes.map((box, index) => {
+            const x = box[0];
+            const y = box[1];
+            const color = '#E0E0E0';
+
+            return {
+                x: x,
+                y: y,
+                type: 'scatter',
+                mode: 'lines',  // Remove markers, lines only
+                fill: 'toself',
+                fillcolor: color,
+                opacity: 0.73,
+                line: {
+                    color: color,
+                    width: 1,
+                    simplify: false // Preserve exact path
+                },
+                showlegend: false,
+                hoverinfo: 'none'
+            };
+        });
     }
 
     function createScatterTraces(boxes) {
@@ -231,10 +282,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateGraph(layerIndex) {
         try {
-            if (rawGraphData.numLayers === 0 || !rawGraphData.layers) {
-                return;
-            }
-
             const xPadding = (rawGraphData.x_max - rawGraphData.x_min) * 0.1;
             const yPadding = (rawGraphData.y_max - rawGraphData.y_min) * 0.1;
             var rawData = [];
@@ -259,7 +306,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const layout = {
                 title: `Layer ${layerIndex}`,
-                autosize: true,
                 xaxis: {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
@@ -279,8 +325,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 displayModeBar: true,
                 scrollZoom: true
             };
+            let rawPlotData = [...completeTrace, ...rawData]
 
-            Plotly.newPlot('view-plot', rawData, layout, config);
+            Plotly.newPlot('view-plot', rawPlotData, layout, config);
             window.dispatchEvent(new Event('resize'));
         } catch (error) {
             console.error('Error updating graph:', error);
