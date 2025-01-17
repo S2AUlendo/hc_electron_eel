@@ -657,6 +657,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function processFile() {
         processButton.disabled = true;
+        viewButton.disabled = true;
+        
         disableForm();
         const fileInput = document.getElementById('cliFile');
 
