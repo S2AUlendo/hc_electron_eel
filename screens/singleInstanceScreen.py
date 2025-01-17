@@ -46,7 +46,7 @@ class SingleInstanceScreen:
             wraplength=250,
             justify="center"
         )
-        title_label.pack(pady=10)
+        title_label.pack(pady=(10, 0))
         
         # Bottom frame for the button
         bottom_frame = tk.Frame(main_frame, bg='white')
@@ -58,7 +58,7 @@ class SingleInstanceScreen:
             text="OK",
             command=self.destroy  # Call the destroy method to close the window
         )
-        ok_button.pack(pady=10)
+        ok_button.pack(pady=(5, 5))
         
     def destroy(self):
         self.root.destroy()

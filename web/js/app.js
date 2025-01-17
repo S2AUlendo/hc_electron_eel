@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Error opening view:', error);
             }
         } else {
-            displayError("Error", "Please attach a file to view!");
+            displayError("Please attach a file to view!", "Error");
         }
     }
 
@@ -462,12 +462,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const numHatchesRaw = await eel.get_num_hatches_data()();
 
             if (numLayersOpti != numLayersRaw) {
-                displayError("Error", "Number of layers in raw and optimized files do not match!");
+                displayError("Number of layers in raw and optimized files do not match!", "Error");
                 return;
             }
 
             if (numHatchesOpti != numHatchesRaw) {
-                displayError("Error", "Number of hatches in raw and optimized files do not match!");
+                displayError("Number of hatches in raw and optimized files do not match!", "Error");
                 return;
             }
 
@@ -639,10 +639,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const file = fileInput.files[0];
             try {
                 // Read file content
-                displayStatus("Reading File...");
+                displayStatus("Reading file...");
                 const fileContent = await readFileContent(file);
 
-                displayStatus("Uploading to backend...");
+                displayStatus("Copying file...");
                 // Send file content and name to Python
                 await eel.convert_cli_file(fileContent, file.name, selectedMaterial, selectedMachine)();
                 checkTaskStatus(file.name);
@@ -653,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             processButton.disabled = false;
             enableForm();
-            displayError("Error", "Please attached a file to process!");
+            displayError("Please attached a file to process!", "Error");
         }
     }
 

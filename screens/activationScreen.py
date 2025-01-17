@@ -144,7 +144,7 @@ class ActivationScreen:
 
     def setup_buttons(self):
         button_frame = tk.Frame(self.main_frame, bg='#f0f0f0')
-        button_frame.pack(fill=tk.X, pady=(20, 0))
+        button_frame.pack(fill=tk.X, pady=(15, 0))
         
         # Activate button style
         activate_button = tk.Button(

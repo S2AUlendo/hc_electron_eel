@@ -205,4 +205,5 @@ def convertDYNCliFile(filecontent, filename, outputname, filelocation, progress,
             # Update y coordinates
             hatch_lines[ii][:, [1, 3]] = hatch_lines[ii][:, [1, 3]] - minumum_y
     
+    display_status("Done!")
     return hatch_lines, dimension_x, dimension_y
