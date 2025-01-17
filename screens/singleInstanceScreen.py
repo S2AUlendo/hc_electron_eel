@@ -1,14 +1,25 @@
 import tkinter as tk
 from tkinter import ttk
+import sys
+import os
 
+def resource_path(rel_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+        
 class SingleInstanceScreen:
     def __init__(self):
         self.root = tk.Tk()
         
         # Set the window title and dimensions
         self.root.title("App Already Running")
+        self.root.iconbitmap(resource_path("web/public/icon.ico"))
+        
         width = 300
-        height = 150
+        height = 250
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         x = (screen_width / 2) - (width / 2)

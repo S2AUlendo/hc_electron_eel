@@ -24,6 +24,7 @@ class ActivationScreen:
         
     def setup_ui(self):
         self.root.protocol("WM_DELETE_WINDOW", self.stop_app)
+        self.root.iconbitmap(resource_path("web/public/icon.ico"))
         # Configure the main window
         self.root.title("License Activation")
         self.root.configure(bg='#f0f0f0')
