@@ -3,6 +3,8 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import os
 import sys
+import traceback
+import eel
 from license.license import *
 
 def resource_path(rel_path):
@@ -48,6 +50,8 @@ class ActivationScreen:
         
         # Add window drag functionality
         self.setup_window_drag()
+        
+        self.root.focus_force() 
         
     def setup_window_drag(self):
         def start_move(event):
@@ -177,11 +181,15 @@ class ActivationScreen:
         close_button.pack(side=tk.RIGHT)
 
     def preload_license(self):
-        if self.license:
+        if not self.license:
+            return False
+        try:
             self.license.check_license_from_cloud()
             if self.license.activated:
                 return self.license.activated
-        return False
+            return False
+        except Exception as e:
+            raise e
 
     def activate_app(self):
         self.error_label.config(text="")
@@ -196,13 +204,19 @@ class ActivationScreen:
         self.root.update()
         
         self.license.set_license_key(input_key)
-        self.license.activate_license_from_cloud()
         
-        if self.license.activated:
-            self.root.config(cursor="")
-            self.destroy()
-        else:
-            self.error_label.config(text="Invalid license key. Please try again.")
+        try:
+            self.license.activate_license_from_cloud()
+            
+            if self.license.activated:
+                self.root.config(cursor="")
+                self.destroy()
+            else:
+                self.error_label.config(text="Invalid license key. Please try again.")
+                
+        except Exception as e:
+            self.error_label.config(text="An error occurred. Please try again.")
+            raise e
 
     def run(self):
         if self.root:

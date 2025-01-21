@@ -77,6 +77,8 @@ class SplashScreen:
         )
         self.progress.pack(fill=tk.X)
         
+        self.root.focus_force() 
+        
     def update_progress(self, value):
         self.progress['value'] = value
         self.root.update()

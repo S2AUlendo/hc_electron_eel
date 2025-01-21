@@ -24,31 +24,35 @@ class CLIVisualizer:
 
     def read_cli(self, filecontent):
         
-        data = filecontent.splitlines()
-        layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]
-        hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
-        polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
-        
-        # Combine layer and hatch indices
-        layer_indices = np.array(layer_indices)
-        hatch_indices = np.array(hatch_indices)
-        layer_indices = np.append(layer_indices, hatch_indices[-1]+ 1)
-        
-        for layer_num in range(len(layer_indices)-1):
-            # Find feature indices within the current layer
-            hatch_feature_indices = [i for i in hatch_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
-            polyline_feautre_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+        try:
+            data = filecontent.splitlines()
+            layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]
+            hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
+            polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
             
-            layer_hatches = [] 
+            # Combine layer and hatch indices
+            layer_indices = np.array(layer_indices)
+            hatch_indices = np.array(hatch_indices)
+            layer_indices = np.append(layer_indices, hatch_indices[-1]+ 1)
             
-            for kk in range(len(hatch_feature_indices)):
-                hatches = data[hatch_feature_indices[kk]]
-                strCell = hatches.split(',')
-                hatch_coords = list(map(float, strCell[2:]))
-                layer_hatches.append(hatch_coords) 
-            
-            if layer_hatches:  # Only append if we have data
-                self.layers.append(layer_hatches)  # Store as numpy array
+            for layer_num in range(len(layer_indices)-1):
+                # Find feature indices within the current layer
+                hatch_feature_indices = [i for i in hatch_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                polyline_feautre_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                
+                layer_hatches = [] 
+                
+                for kk in range(len(hatch_feature_indices)):
+                    hatches = data[hatch_feature_indices[kk]]
+                    strCell = hatches.split(',')
+                    hatch_coords = list(map(float, strCell[2:]))
+                    layer_hatches.append(hatch_coords) 
+                
+                if layer_hatches:  # Only append if we have data
+                    self.layers.append(layer_hatches)  # Store as numpy array
+                    
+        except Exception as e:
+            raise e
                     
     def read_cli_file(self, dir, opti=False, data=None):
         try:
