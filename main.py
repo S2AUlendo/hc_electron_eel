@@ -12,9 +12,9 @@ import winerror
 from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
 from cli_format.cli_reformat import *
+from screens.errorWindow import *
 from screens.splashScreen import *
 from screens.activationScreen import *
-from screens.singleInstanceScreen import *
 from license.license import *
 
 opti_visualizer = None
@@ -533,20 +533,19 @@ def create_mutex():
     try:
         handle = win32event.CreateMutex(None, 1, mutex_name)
         if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-            single_screen = SingleInstanceScreen()
-            single_screen.run() # wait till users click away the screen
-            
+            error_screen = ErrorWindow(
+                "Another instance is already running",
+                "Please close the existing Heat Compensation application before starting a new one."
+            )
             sys.exit(1)
         return handle
     except Exception as e:
-        print(f"Error creating mutex: {e}")
-        sys.exit(1)
+        raise e
         
 if __name__ == '__main__':
     
-    mutex = create_mutex()
-    
     try:
+        mutex = create_mutex()
         get_configs()
         
         activation_splash = ActivationScreen()
@@ -565,5 +564,5 @@ if __name__ == '__main__':
         eel.start('templates/app.html', mode="electron")
         
     except Exception as e:
-        print(f"Application error: {e}")
+        error_screen = ErrorWindow(str(e), traceback.format_exc())
         sys.exit(1)

@@ -94,7 +94,7 @@ class CLIVisualizer:
             raise e
 
     def get_num_layers(self):
-        return len(self.layers)
+        return len(self.layers) - 1
     
     def get_num_hatches(self):
         if 0 <= self.current_layer < len(self.layers):
