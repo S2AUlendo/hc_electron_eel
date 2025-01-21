@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function processFile() {
         processButton.disabled = true;
         viewButton.disabled = true;
-        
+
         disableForm();
         const fileInput = document.getElementById('cliFile');
 
@@ -679,6 +679,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } else {
             processButton.disabled = false;
+            viewButton.disabled = false;
             enableForm();
             displayError("Please attached a file to process!", "Error");
         }
@@ -698,6 +699,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 clearInterval(interval);
                 processButton.disabled = false;
+                viewButton.disabled = false;
                 enableForm();
                 loadingStatus.innerText = "";
                 loadingBar.style.display = 'none';
