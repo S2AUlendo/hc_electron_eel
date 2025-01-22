@@ -106,7 +106,7 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
     display_status("Creating output file...")
     output_file = os.path.join(output_dir, outputname)
     try:
-        with open(output_file, "w") as outfile:
+        with open(output_file, "+a") as outfile:
             for layer_num in range(len(layer_indices)-1):
                 display_status(f"Processing layer {layer_num}/{len(layer_indices) - 1}")
                 if layer_num == 0: 
@@ -189,7 +189,7 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
         return
     
     # Optimize and write output file
-    optimize_and_write(outputname, filelocation, inputname, progress, layer_data, data, selected_material, selected_machine, layer_indices, hatch_lines)
+    optimize_and_write(inputname, outputname, filelocation, progress, layer_data, data, selected_material, selected_machine, layer_indices, hatch_lines)
     
     minimum_x = np.min(x_min_value)
     minimum_y = np.min(y_min_value)
