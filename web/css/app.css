@@ -131,6 +131,33 @@
     color: #6c757d;
 }
 
+#info {
+    font-size: 0.875rem;
+    color:  #6c757d;
+}
+
+.dropdown-btn {
+    align-self:flex-end;
+}
+
+.btn-alpha {
+    background-color: rgba(255, 255, 255, 0);
+    border-color: rgba(255, 255, 255, 0);
+    color: var(--ulendo-green);
+}
+
+.btn-alpha:hover {
+    background-color: rgba(233, 231, 231, 0.69);
+    border-color: rgba(233, 231, 231, 0.69);
+    color: var(--ulendo-green);
+}
+
+.btn-alpha:active {
+    background-color: rgba(233, 231, 231, 0.69);
+    border-color: rgba(233, 231, 231, 0.69);
+    color: var(--ulendo-green);
+}
+
 /** Layout **/
 .app-container {
     display: flex;
@@ -163,18 +190,18 @@
 
 .right-panel {
     width: var(--right-panel-width);
-    padding: 20px;
+    padding: 10px;
     height: 100vh;
 }
 
 .top-panel {
-    padding: 3rem;
+    padding: 2rem 3rem 0.5rem 3rem;
 }
 
 .btm-panel {
     display: flex;
     flex-direction: column;
-    padding: 3rem;
+    padding: 1rem 3rem 3rem 3rem;
 }
 
 .file-input {
@@ -182,7 +209,7 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    align-items: flex-start; /* Prevent horizontal stretching */
+    align-items: stretch; /* Prevent horizontal stretching */
 }
 
 .file-input button {
@@ -283,7 +310,8 @@
 }
 
 #materialForm {
-    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 #custom-machine-config {
@@ -312,7 +340,8 @@
 }
 
 #machineForm {
-    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .logo {
