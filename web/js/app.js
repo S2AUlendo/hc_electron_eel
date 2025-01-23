@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     window.addEventListener('resize', () => {
+        if (!selectedFile) return;
+
         if (showOriginal) {
             updateGraphCompare(optimizedGraphData.curLayer)
         } else {
@@ -41,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
         rValues: [],
     };
 
+    var selectedFile;
     var completeTrace;
     var activeButton = null;
     var showHatchLines = false;
