@@ -1,6 +1,6 @@
 // Modules to control application life and create native browser window
 const path = require('path');
-const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, dialog, globalShortcut } = require('electron')
 const iconPath = path.join(__dirname, "web", "public", "icon.ico");
 
 // Keep a global reference of the window object, if you don't, the window will
