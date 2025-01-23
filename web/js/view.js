@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-        
+
     window.electronAPI.onReceiveMessage((data) => {
         spinner.style.display = "flex";
         readFile(data);
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
         playButton.addEventListener('click', togglePlay);
     }
 
-    async function loadCompleteBoundingBoxes(){
+    async function loadCompleteBoundingBoxes() {
         const completeCoords = await eel.retrieve_full_bounding_box_data()();
         completeGraphData.layers = completeCoords.bounding_boxes;
         completeGraphData.x_min = completeCoords.x_min;
@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', function () {
         await viewFile();
     }
 
-    async function viewFile(){
-        
+    async function viewFile() {
+
         const numLayers = await eel.get_num_layers_data()();
         const numHatches = await eel.get_num_hatches_data()();
         rawGraphData.numLayers = numLayers;
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             await retrieveBoundingBoxes();
         }
-        
+
         updateLayerSlider();
         updateHatchSlider();
 
@@ -310,11 +310,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
                     scaleratio: 1,
-                    range: [rawGraphData.x_min - xPadding, rawGraphData.x_max + xPadding]
+                    range: [rawGraphData.x_min - xPadding, rawGraphData.x_max + xPadding],
+                    ticksuffix: "mm"
                 },
                 yaxis: {
                     title: 'Y',
-                    range: [rawGraphData.y_min - yPadding, rawGraphData.y_max + yPadding]
+                    range: [rawGraphData.y_min - yPadding, rawGraphData.y_max + yPadding],
+                    ticksuffix: "mm"
                 },
                 hovermode: false,
                 showlegend: false

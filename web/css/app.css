@@ -390,3 +390,11 @@
     align-items: center;
     display: none;
 } 
+
+#analysis-options {
+    gap: 0.5rem;
+}
+
+#data_plot {
+    display: none;
+}

@@ -7,7 +7,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     window.addEventListener('resize', () => {
-        updateGraphCompare(optimizedGraphData.curLayer)
+        if (showOriginal) {
+            updateGraphCompare(optimizedGraphData.curLayer)
+        } else {
+            updateGraph(optimizedGraphData.curLayer)
+        }
     }, true);
 
     var completeGraphData = {
@@ -40,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var completeTrace;
     var activeButton = null;
     var showHatchLines = false;
+    var showOriginal = false;
     var isPlaying = false;
     var playInterval = null;
     var playSpeed = 250; // Default 1 second interval
@@ -49,11 +54,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const hatchSlider = document.getElementById('hatchSlider');
     const speedRange = document.getElementById('speedRange');
     const showHatchLinesCheckbox = document.getElementById('showHatchCheckbox');
+    const showOriginalCheckBox = document.getElementById('showOriginalCheckbox');
     const refreshButton = document.getElementById('refreshButton');
     const playButton = document.getElementById('playButton');
     const processButton = document.getElementById('processButton');
     const rOptimizedLabel = document.getElementById('rOptimized');
     const rOriginalLabel = document.getElementById('rOriginal');
+    const dataPlot = document.getElementById('data_plot');
 
     // Custom Material
     const materialForm = document.getElementById('materialForm');
@@ -141,7 +148,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             updateHatchSlider();
-            updateGraphCompare(optimizedGraphData.layerIndex);
+
+            if (showOriginal) {
+                updateGraphCompare(layerIndex);
+            } else {
+                updateGraph(layerIndex);
+            }
         });
 
         hatchSlider.addEventListener('input', async (event) => {
@@ -179,6 +191,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 await retrieveBoundingBoxes();
             }
         });
+
+        showOriginalCheckBox.addEventListener('change', async (e) => {
+            showOriginal = e.target.checked;
+            if (showOriginal) {
+                dataPlot.style.display = 'block';
+                updateGraphCompare(optimizedGraphData.curLayer);
+            } else {
+                dataPlot.style.display = 'none';
+                updateGraph(optimizedGraphData.curLayer);
+            }
+        }
+        );
 
         materialNameDropdown.addEventListener('change', () => {
             let selectedValue = materialNameDropdown.value;
@@ -280,7 +304,11 @@ document.addEventListener('DOMContentLoaded', function () {
             document.documentElement.style.setProperty('--left-panel-width', newLeftWidth + '%');
             document.documentElement.style.setProperty('--right-panel-width', 100 - newLeftWidth + '%');
 
-            updateGraphCompare(optimizedGraphData.curLayer);
+            if (showOriginal) {
+                updateGraphCompare(optimizedGraphData.curLayer);
+            } else {
+                updateGraph(optimizedGraphData.curLayer);
+            }
 
             resizer.style.cursor = 'col-resize';
             document.body.style.cursor = 'col-resize';
@@ -479,7 +507,12 @@ document.addEventListener('DOMContentLoaded', function () {
         optimizedGraphData.x_max = optiCoords.x_max;
         optimizedGraphData.y_min = optiCoords.y_min;
         optimizedGraphData.y_max = optiCoords.y_max;
-        updateGraphCompare(optimizedGraphData.curLayer);
+
+        if (showOriginal) {
+            updateGraphCompare(optimizedGraphData.curLayer);
+        } else {
+            updateGraph(optimizedGraphData.curLayer);
+        }
     }
 
     async function loadCompleteBoundingBoxes() {
@@ -507,7 +540,12 @@ document.addEventListener('DOMContentLoaded', function () {
         optimizedGraphData.x_max = optiCoords.x_max;
         optimizedGraphData.y_min = optiCoords.y_min;
         optimizedGraphData.y_max = optiCoords.y_max;
-        updateGraphCompare(optimizedGraphData.curLayer);
+
+        if (showOriginal) {
+            updateGraphCompare(optimizedGraphData.curLayer);
+        } else {
+            updateGraph(optimizedGraphData.curLayer);
+        }
     }
 
     function togglePlay() {
@@ -553,7 +591,12 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 await retrieveBoundingBoxes();
             }
-            updateGraphCompare(optimizedGraphData.curLayer);
+
+            if (showOriginal) {
+                updateGraphCompare(optimizedGraphData.curLayer);
+            } else {
+                updateGraph(optimizedGraphData.curLayer);
+            }
         }, playSpeed);
     }
 
@@ -621,7 +664,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             spinner.style.display = "none";
             document.getElementById('analysis-container').style.display = 'flex';
-            updateGraphCompare(0);
+
+            if (showOriginal) {
+                updateGraphCompare(0);
+            } else {
+                updateGraph(0);
+            }
 
         } catch (error) {
             console.error('Error loading file:', error);
@@ -908,6 +956,64 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function updateGraph(layerIndex) {
+        try {
+            const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
+            const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
+            var optimizedData = [];
+
+            if (showHatchLines) {
+                for (let i = 0; i < optimizedGraphData.layers.x.length; i += 2) {
+                    optimizedData.push({
+                        x: [optimizedGraphData.layers.x[i], optimizedGraphData.layers.x[i + 1]],
+                        y: [optimizedGraphData.layers.y[i], optimizedGraphData.layers.y[i + 1]],
+                        mode: 'lines',
+                        type: 'scattergl',
+                        line: {
+                            width: 1,
+                            color: 'blue'
+                        },
+                        showlegend: false
+                    });
+                }
+            } else {
+                optimizedData = createScatterTraces(optimizedGraphData.layers);
+            }
+
+            const analysisContainer = document.getElementById('analysis-container');
+
+            const layout = {
+                width: analysisContainer.clientWidth,
+                title: `Layer ${layerIndex}`,
+                xaxis: {
+                    title: 'X',
+                    scaleanchor: 'y',  // Make axes equal scale
+                    scaleratio: 1,
+                    range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding],
+                    ticksuffix: "mm"
+                },
+                yaxis: {
+                    title: 'Y',
+                    range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding],
+                    ticksuffix: "mm"
+                },
+                hovermode: false,
+                showlegend: false
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                scrollZoom: true
+            };
+            let optiPlotData = [...completeTrace, ...optimizedData]
+
+            Plotly.newPlot('opti_plot', optiPlotData, layout, config);
+        } catch (error) {
+            console.error('Error updating graph:', error);
+        }
+    }
+
     function updateGraphCompare(layerIndex) {
         try {
             if (!optimizedGraphData.layers || optimizedGraphData.numLayers === 0 || rawGraphData.numLayers === 0 || !rawGraphData.layers) {
@@ -963,11 +1069,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         title: 'X',
                         scaleanchor: 'y',  // Make axes equal scale
                         scaleratio: 1,
-                        range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding]
+                        range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding],
+                        ticksuffix: "mm"
                     },
                     yaxis: {
                         title: 'Y',
-                        range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding]
+                        range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding],
+                        ticksuffix: "mm"
                     },
                     hovermode: false,
                     showlegend: false

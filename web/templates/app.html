@@ -137,11 +137,19 @@
                             <input type="range" class="form-range" id="speedRange" min="0.5" max="2" step="0.5"
                                 value="1">
                         </div>
-                        <div>
-                            <input class="form-check-input" type="checkbox" value="" id="showHatchCheckbox">
-                            <label class="form-check-label" for="showHatchCheckbox">
-                                Show Hatch Lines
-                            </label>
+                        <div class="d-flex flex-column justify-content-evenly align-items-stretch" id="analysis-options">
+                            <div>
+                                <input class="form-check-input" type="checkbox" value="" id="showOriginalCheckbox">
+                                <label class="form-check-label" for="showOriginalCheckbox">
+                                    Show Original
+                                </label>
+                            </div>
+                            <div>
+                                <input class="form-check-input" type="checkbox" value="" id="showHatchCheckbox">
+                                <label class="form-check-label" for="showHatchCheckbox">
+                                    Show Hatch Lines
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <label for="layerSlider" class="form-label">Layer: <span id="layerValue">0</span></label>
