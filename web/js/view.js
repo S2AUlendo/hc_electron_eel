@@ -304,7 +304,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 rawData = createScatterTraces(rawGraphData.layers);
             }
 
+            const viewContainer = document.getElementById('view-container');
+
             const layout = {
+                height: viewContainer.clientHeight * 0.7,
                 title: `Layer ${layerIndex}`,
                 xaxis: {
                     title: 'X',

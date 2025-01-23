@@ -291,31 +291,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const mouseMoveHandler = function (e) {
 
-            if (!selectedFile) return;
-
+            
             // How far the mouse has been moved
             const dx = e.clientX - x;
             const dy = e.clientY - y;
-
+            
             var newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
-
+            
             if (newLeftWidth < 25) {
                 newLeftWidth = 25;
             }
-
+            
             if (newLeftWidth > 70) {
                 newLeftWidth = 70;
             }
-
+            
             document.documentElement.style.setProperty('--left-panel-width', newLeftWidth + '%');
             document.documentElement.style.setProperty('--right-panel-width', 100 - newLeftWidth + '%');
-
-            if (showOriginal) {
-                updateGraphCompare(optimizedGraphData.curLayer);
-            } else {
-                updateGraph(optimizedGraphData.curLayer);
-            }
-
+            
             resizer.style.cursor = 'col-resize';
             document.body.style.cursor = 'col-resize';
 
@@ -324,6 +317,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             rightSide.style.userSelect = 'none';
             rightSide.style.pointerEvents = 'none';
+
+            if (!selectedFile) return;
+
+            if (showOriginal) {
+                updateGraphCompare(optimizedGraphData.curLayer);
+            } else {
+                updateGraph(optimizedGraphData.curLayer);
+            }
         };
 
         const mouseUpHandler = function () {
@@ -624,7 +625,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function selectFile(file) {
         try {
-            selectedFile = file;
             spinner.style.display = "flex";
 
             await eel.compare_cli(file)();
@@ -669,6 +669,8 @@ document.addEventListener('DOMContentLoaded', function () {
             updateHatchSlider();
 
             spinner.style.display = "none";
+            
+            selectedFile = file;
             document.getElementById('analysis-container').style.display = 'flex';
 
             if (showOriginal) {
