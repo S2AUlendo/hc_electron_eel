@@ -160,7 +160,6 @@ const menuTemplate = [
   {
     label: 'View',
     submenu: [
-      { role: 'reload' },
       { role: 'toggledevtools' },
       { type: 'separator' },
       { role: 'resetzoom' },
@@ -217,3 +216,18 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+// disable refreshing
+app.on('browser-window-focus', function () {
+  globalShortcut.register("CommandOrControl+R", () => {
+      console.log("CommandOrControl+R is pressed: Shortcut Disabled");
+  });
+  globalShortcut.register("F5", () => {
+      console.log("F5 is pressed: Shortcut Disabled");
+  });
+});
+
+app.on('browser-window-blur', function () {
+  globalShortcut.unregister('CommandOrControl+R');
+  globalShortcut.unregister('F5');
+});
