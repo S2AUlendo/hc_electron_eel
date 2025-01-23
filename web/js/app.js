@@ -290,6 +290,9 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         const mouseMoveHandler = function (e) {
+
+            if (!selectedFile) return;
+
             // How far the mouse has been moved
             const dx = e.clientX - x;
             const dy = e.clientY - y;
@@ -986,6 +989,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const analysisContainer = document.getElementById('analysis-container');
 
             const layout = {
+                height: analysisContainer.clientHeight * 0.7,
                 width: analysisContainer.clientWidth,
                 title: `Layer ${layerIndex}`,
                 xaxis: {
@@ -1066,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', function () {
             function getLayout(title) {
 
                 const layout = {
+                    height: analysisContainer.clientHeight * 0.7,
                     width: analysisContainer.clientWidth / 2,
                     title: `${title}\nLayer ${layerIndex}`,
                     xaxis: {
