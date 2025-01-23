@@ -188,6 +188,10 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
         display_status("Error: Build area is less than 0")
         return
     
+    if build_area > 200 * 200:
+        display_status("Error: Build area is more than 200 by 200")
+        return
+    
     # Optimize and write output file
     optimize_and_write(inputname, outputname, filelocation, progress, layer_data, data, selected_material, selected_machine, layer_indices, hatch_lines)
     
