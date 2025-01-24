@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var materials = {};
     var machines = {};
     var selectedMaterial = {};
+    var selectedMaterialCategory = "";
     var selectedMachine = {}
     let currentPage = 1;
     const itemsPerPage = 5;
@@ -210,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
         materialNameDropdown.addEventListener('change', () => {
             let selectedValue = materialNameDropdown.value;
             if (selectedValue === 'custom') {
-                enableMaterialsForm();
+                enableMaterialsForm(with_select=true);
 
                 customMaterialConfigFields.style.display = 'grid';
                 customMaterialConfigInput.forEach(input => {
@@ -219,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         updateCustomMaterial();
                     });
                 });
+
             } else {
                 let nameField = document.getElementById('custom-material-name');
                 let ktField = document.getElementById('kt');
@@ -233,6 +235,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 rhoField.value = Number(selectedValue.rho);
                 cpField.value = Number(selectedValue.cp);
                 hField.value = Number(selectedValue.h);
+
+                // Get category from parent optgroup
+                const selectedOption = materialNameDropdown.options[materialNameDropdown.selectedIndex];
+                selectedMaterialCategory = selectedOption.parentNode.label; // This gets the category
 
                 disableMaterialsForm(with_select = false);
                 selectedMaterial = materialNameDropdown.value;
@@ -291,24 +297,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const mouseMoveHandler = function (e) {
 
-            
+
             // How far the mouse has been moved
             const dx = e.clientX - x;
             const dy = e.clientY - y;
-            
+
             var newLeftWidth = ((leftWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
-            
+
             if (newLeftWidth < 25) {
                 newLeftWidth = 25;
             }
-            
+
             if (newLeftWidth > 70) {
                 newLeftWidth = 70;
             }
-            
+
             document.documentElement.style.setProperty('--left-panel-width', newLeftWidth + '%');
             document.documentElement.style.setProperty('--right-panel-width', 100 - newLeftWidth + '%');
-            
+
             resizer.style.cursor = 'col-resize';
             document.body.style.cursor = 'col-resize';
 
@@ -451,8 +457,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!checkFileType(file.name)) {
                     processButton.disabled = false;
                     viewButton.disabled = false;
-                    enableMaterialsForm();
-                    enableMachinesForm();
+                    enableMaterialsForm(with_select=true);
+                    enableMachinesForm(with_select=true);
                     displayError("Invalid file type! Please attach a .cli file.", "Error");
                     return;
                 }
@@ -479,6 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cp: parseFloat(document.getElementById('cp').value) || 0,
             h: parseFloat(document.getElementById('h').value) || 0
         };
+        selectedMaterialCategory = "Custom";
     }
 
     function updateCustomMachine() {
@@ -669,7 +676,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateHatchSlider();
 
             spinner.style.display = "none";
-            
+
             selectedFile = file;
             document.getElementById('analysis-container').style.display = 'flex';
 
@@ -687,27 +694,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function loadMaterials() {
         try {
-            // Wait for materials to load
             const materialObjects = await eel.get_materials()();
-
+            const materialNameDropdown = document.getElementById('materialName');
             materialNameDropdown.innerHTML = '';
-            // Add material options
-            Object.keys(materialObjects).forEach(material => {
-                materials[material] = materialObjects[material];
 
-                const option = document.createElement('option');
-                option.value = JSON.stringify(materialObjects[material]);
-                option.textContent = material.replace(/_/g, ' ').toUpperCase();
-                materialNameDropdown.appendChild(option);
+            // Iterate through each category
+            Object.entries(materialObjects).forEach(([category, materials]) => {
+                // Create category group
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category;
+
+                // Add materials to category
+                Object.values(materials).forEach(material => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify(material);
+                    option.textContent = material.name;
+                    optgroup.appendChild(option);
+                });
+
+                materialNameDropdown.appendChild(optgroup);
             });
-            // Add custom option last
+
+            // Add custom option
             const option = document.createElement('option');
             option.value = "custom";
-            option.textContent = "Custom Material";
+            option.textContent = "Add Custom Material";
             materialNameDropdown.appendChild(option);
 
-            const event = new Event('change');
-            materialNameDropdown.dispatchEvent(event);
+            materialNameDropdown.dispatchEvent(new Event('change'));
         } catch (error) {
             console.error('Error loading materials:', error);
         }
@@ -725,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const option = document.createElement('option');
                 option.value = JSON.stringify(machinesObject[machine]);
-                option.textContent = machine.replace(/_/g, ' ').toUpperCase();
+                option.textContent = machine.replace(/_/g, ' ');
                 machineNameDropdown.appendChild(option);
             });
 
@@ -825,8 +839,8 @@ document.addEventListener('DOMContentLoaded', function () {
         processButton.disabled = true;
         viewButton.disabled = true;
 
-        disableMaterialsForm();
-        disableMachinesForm();
+        disableMaterialsForm(with_select=true);
+        disableMachinesForm(with_select=true);
         const fileInput = document.getElementById('cliFile');
 
         if (fileInput.files.length > 0) {
@@ -835,8 +849,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!checkFileType(file.name)) {
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm();
-                enableMachinesForm();
+                enableMaterialsForm(with_select=true);
+                enableMachinesForm(with_select=true);
                 displayError("Invalid file type! Please attach a .cli file.", "Error");
                 return;
             }
@@ -848,7 +862,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 displayStatus("Copying file...");
                 // Send file content and name to Python
-                await eel.convert_cli_file(fileContent, file.name, selectedMaterial, selectedMachine)();
+                await eel.convert_cli_file(fileContent, file.name, selectedMaterial, selectedMaterialCategory, selectedMachine)();
                 checkTaskStatus(file.name);
 
             } catch (error) {
@@ -857,8 +871,8 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             processButton.disabled = false;
             viewButton.disabled = false;
-            enableMaterialsForm();
-            enableMachinesForm();
+            enableMaterialsForm(with_select=true);
+            enableMachinesForm(with_select=true);
             displayError("Please attached a file to process!", "Error");
         }
     }
@@ -878,8 +892,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 clearInterval(interval);
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm();
-                enableMachinesForm();
+                enableMaterialsForm(with_select=true);
+                enableMachinesForm(with_select=true);
                 loadingStatus.innerText = "";
                 loadingBar.style.display = 'none';
                 await loadFileHistory();

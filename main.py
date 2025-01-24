@@ -89,40 +89,104 @@ config_defaults = {
 }
 
 material_defaults = {
-    "titanium_alloy": {
-        "name": "Titanium Alloy",
-        "kt": 7.0,
-        "rho": 4420,
-        "cp": 560,
-        "h": 20
+    "Aluminum": {
+        "AlSi10Mg": {
+            "name": "AlSi10Mg",
+            "kt": 150,
+            "rho": 2670,
+            "cp": 900,
+            "h": 10
+        },
+        "Al6061": {
+            "name": "Al6061",
+            "kt": 167,
+            "rho": 2700,
+            "cp": 895,
+            "h": 10
+        }
     },
-    "aluminum_alloy": {
-        "name": "Aluminum Alloy",
-        "kt": 120.0,
-        "rho": 2700,
-        "cp": 900,
-        "h": 20
+    "Titanium": {
+        "Ti6Al4V": {
+            "name": "Ti6Al4V",
+            "kt": 6.7,
+            "rho": 4420,
+            "cp": 560,
+            "h": 15
+        },
+        "Pure Titanium": {
+            "name": "Pure Titanium",
+            "kt": 16.4,
+            "rho": 4506,
+            "cp": 520,
+            "h": 15
+        }
     },
-    "nickel_alloy": {
-        "name": "Nickel Alloy",
-        "kt": 12.0,
-        "rho": 8190,
-        "cp": 435,
-        "h": 20
+    "Steel": {
+        "316L Stainless Steel": {
+            "name": "316L Stainless Steel",
+            "kt": 14,
+            "rho": 8000,
+            "cp": 500,
+            "h": 20
+        },
+        "304 Stainless Steel": {
+            "name": "304 Stainless Steel",
+            "kt": 14,
+            "rho": 8000,
+            "cp": 500,
+            "h": 20
+        },
+        "Maraging Steel (18Ni300)": {
+            "name": "Maraging Steel (18Ni300)",
+            "kt": 14,
+            "rho": 8000,
+            "cp": 500,
+            "h": 20
+        }
     },
-    "stainless_steel": {
-        "name": "Stainless Steel",
-        "kt": 22.5,
-        "rho": 7990,
-        "cp": 500,
-        "h": 50
+    "Nickel": {
+        "Inconel 718": {
+            "name": "Inconel 718",
+            "kt": 11.4,
+            "rho": 8190,
+            "cp": 435,
+            "h": 25
+        },
+        "Inconel 625": {
+            "name": "Inconel 625",
+            "kt": 9.8,
+            "rho": 8440,
+            "cp": 427,
+            "h": 25
+        }
     },
-    "cobalt_chromium": {
-        "name": "Cobalt Chromium",
-        "kt": 14.0,
-        "rho": 8300,
-        "cp": 420,
-        "h": 20
+    "Copper": {
+        "CuCrZr": {
+            "name": "CuCrZr",
+            "kt": 330,
+            "rho": 8900,
+            "cp": 385,
+            "h": 35
+        },
+        "Pure Copper": {
+            "name": "Pure Copper",
+            "kt": 398,
+            "rho": 8960,
+            "cp": 385,
+            "h": 35
+        }
+    },
+    "CoCr": {
+        "CoCr": {
+            "name": "CoCr",
+            "kt": 14,
+            "rho": 8500,
+            "cp": 450,
+            "h": 20
+        }
+    },
+    "Custom": {
+        
     }
 }
 
@@ -145,13 +209,13 @@ def resource_path(rel_path):
 # eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
 eel.init('web', allowed_extensions=['.js', '.html'])
 
-def store_custom_material(material_key, custom_material):
+def store_custom_material(material_category, material_key, custom_material):
     try:
         global materials_path
         # Validate input
         if not isinstance(custom_material, dict) or "name" not in custom_material:
             raise ValueError("Invalid custom material format")
-        materials[material_key] = custom_material
+        materials[material_category][material_key] = custom_material
         
         with open(materials_path, 'w') as f:
             f.write(json.dumps(materials))
@@ -281,7 +345,7 @@ def get_machines():
         return get_machines()
         
 @eel.expose
-def convert_cli_file(filecontent, filename, selected_material, selected_machine):
+def convert_cli_file(filecontent, filename, selected_material, selected_material_category, selected_machine):
     display_status("Starting...")
     global output_dir
     global data_dir
@@ -294,9 +358,9 @@ def convert_cli_file(filecontent, filename, selected_material, selected_machine)
         
         material_key = "_".join(selected_material["name"].lower().strip().split(" "))
         machine_key = "_".join(selected_machine["name"].lower().strip().split(" "))
-        if (material_key not in materials):
+        if (material_key not in materials[selected_material_category]):
             display_status("Saving Custom Material...")
-            store_custom_material(material_key, selected_material)
+            store_custom_material(selected_material_category, material_key, selected_material)
         if (machine_key not in machines):
             display_status("Saving Custom Machine...")
             store_custom_machine(machine_key, selected_machine)
