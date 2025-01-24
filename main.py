@@ -191,7 +191,7 @@ material_defaults = {
 }
 
 machine_defaults = {
-    "default": {
+    "Default": {
         "name": "Default",
         "vs": 300,
         "P": 100

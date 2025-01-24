@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
         materialNameDropdown.addEventListener('change', () => {
             let selectedValue = materialNameDropdown.value;
             if (selectedValue === 'custom') {
-                enableMaterialsForm(with_select=true);
+                enableMaterialsForm();
 
                 customMaterialConfigFields.style.display = 'grid';
                 customMaterialConfigInput.forEach(input => {
@@ -746,7 +746,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Add custom option last
             const option = document.createElement('option');
             option.value = "custom";
-            option.textContent = "Custom Machine";
+            option.textContent = "Add Custom Machine";
             machineNameDropdown.appendChild(option);
 
             const event = new Event('change');
