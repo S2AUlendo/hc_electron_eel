@@ -370,7 +370,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
         with open(data_file, "w", newline='') as f:
             f.write(filecontent)
         
-        outputname = f"{filename[:-4].strip()}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
+        outputname = f"{filename[:-4].strip()}-hc-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
         DATA_OUTPUT_DICT[outputname] = filename
         
         with open(persistent_path("dictionary.json"), "w") as file:

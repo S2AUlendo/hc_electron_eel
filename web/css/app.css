@@ -347,9 +347,9 @@
 .logo {
     min-width: 200px;
     min-height: 50px;
-    width: clamp(200px, 20%, 400px);  /* Min, preferred, max */
+    width: clamp(200px, 30%, 400px);  /* Min, preferred, max */
     height: auto;  /* Maintain aspect ratio */
-    max-width: 20%;
+    max-width: 30%;
     object-fit: contain;
     margin: 1rem 0;  /* Add some spacing */
 }

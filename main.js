@@ -225,9 +225,13 @@ app.on('browser-window-focus', function () {
   globalShortcut.register("F5", () => {
       console.log("F5 is pressed: Shortcut Disabled");
   });
+  globalShortcut.register("F1", () => {
+    require('electron').shell.openExternal('https://s2aulendo.github.io/HeatCompensation-Docs/');
+  });
 });
 
 app.on('browser-window-blur', function () {
   globalShortcut.unregister('CommandOrControl+R');
   globalShortcut.unregister('F5');
+  globalShortcut.unregister('F1');
 });
