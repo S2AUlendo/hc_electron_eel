@@ -62,6 +62,7 @@ jobs:
           certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
           
           # Sign all exes inside the folder
+          file-digest: SHA256
           files-folder: dist  # Adjust the folder where PyInstaller outputs the .exe files
           files-folder-filter: exe
           
@@ -84,6 +85,7 @@ jobs:
           certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
           
           # Sign all exes inside the folder
+          file-digest: SHA256
           files-folder: iss/output/
           files-folder-filter: exe
 
