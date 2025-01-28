@@ -63,7 +63,7 @@ jobs:
           
           # Sign all exes inside the folder
           file-digest: SHA256
-          files-folder: dist  # Adjust the folder where PyInstaller outputs the .exe files
+          files-folder: ${{ env.ARTIFACTS_PATH }}
           files-folder-filter: exe
           
       # Step 9: Compile .ISS to .EXE Installer using Inno Setup
@@ -86,7 +86,7 @@ jobs:
           
           # Sign all exes inside the folder
           file-digest: SHA256
-          files-folder: iss/output/
+          files-folder: ${{ env.ARTIFACTS_PATH }}
           files-folder-filter: exe
 
       # Step 10: Upload the .exe file as an artifact
