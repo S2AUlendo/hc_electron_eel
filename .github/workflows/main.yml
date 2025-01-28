@@ -91,7 +91,7 @@ jobs:
 
       # Step 10: Upload the .exe file as an artifact
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: installer
           path: iss/output/ulendohctool_setup.exe
