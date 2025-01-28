@@ -34,13 +34,23 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller  # Ensure PyInstaller is installed in the virtual environment
 
-      # Step 5: Run PyInstaller with your main.spec
+      # Step 5: Download electron
+      - name: Download File
+        run: |
+          curl -L -o file.zip "https://github.com/electron/electron/releases/download/v33.3.2/electron-v33.3.2-win32-x64.zip"
+
+      # Step 6: Unzip the electron file
+      - name: Unzip File
+        run: |
+          tar -xf file.zip -C ./electron
+          
+      # Step 7: Run PyInstaller with your main.spec
       - name: Run PyInstaller
         run: |
           .\venv\Scripts\activate
           pyinstaller main.spec
 
-      # Step 6: Compile .ISS to .EXE Installer using Inno Setup
+      # Step 8: Compile .ISS to .EXE Installer using Inno Setup
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
