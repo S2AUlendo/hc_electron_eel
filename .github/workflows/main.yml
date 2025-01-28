@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build the Inno Setup Installer
+    name: HC Tool CICD including Pyinstaller, ISS and Code-signing
     runs-on: windows-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # Adjust the Python version as needed
+          python-version: '3.8'  # Adjust the Python version as needed
 
       # Step 3: Create and activate a virtual environment
       - name: Create virtual environment
@@ -49,10 +49,48 @@ jobs:
         run: |
           .\venv\Scripts\activate
           pyinstaller main.spec
-
-      # Step 8: Compile .ISS to .EXE Installer using Inno Setup
+          
+      # Step 8: Sign the pyinstaller exe
+      - name: Azure Trusted Signing
+        uses: azure/trusted-signing-action@v0.3.16
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          
+          # Sign all exes inside the folder
+          files-folder: dist  # Adjust the folder where PyInstaller outputs the .exe files
+          files-folder-filter: exe
+          
+      # Step 9: Compile .ISS to .EXE Installer using Inno Setup
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
           path: iss/hc_electron_eel.iss  # Adjust the path to your .iss file
           options: /O+
+
+      # Step 10: Sign the iss exe
+      - name: Azure Trusted Signing
+        uses: azure/trusted-signing-action@v0.3.16
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          
+          # Sign all exes inside the folder
+          files-folder: iss/output/
+          files-folder-filter: exe
+
+      # Step 10: Upload the .exe file as an artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: installer
+          path: iss/output/ulendohctool_setup.exe
+      
