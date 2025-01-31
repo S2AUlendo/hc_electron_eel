@@ -71,7 +71,7 @@ class SplashScreen:
         
         # Progress bar
         self.progress = tk.Label(bottom_frame, text="Starting up...", 
-                        font=("Helvetica", 8), bg='white')
+                        font=("Helvetica", 9), bg='white', fg="#808080")
         self.progress.pack()
         
         self.root.focus_force() 

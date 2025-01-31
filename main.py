@@ -100,6 +100,13 @@ material_defaults = {
             "rho": 2700,
             "cp": 895,
             "h": 10
+        },
+        "AlSi12": {
+            "name": "AlSi12",
+            "kt": 155,
+            "rho": 2680,
+            "cp": 890,
+            "h": 10
         }
     },
     "Titanium": {
@@ -115,6 +122,20 @@ material_defaults = {
             "kt": 16.4,
             "rho": 4506,
             "cp": 520,
+            "h": 15
+        },
+        "Ti-6Al-4V (Grade 5)": {
+            "name": "Ti-6Al-4V (Grade 5)",
+            "kt": 6.7,
+            "rho": 4420,
+            "cp": 560,
+            "h": 15
+        },
+        "Ti-6Al-2Sn-4Zr-2Mo": {
+            "name": "Ti-6Al-2Sn-4Zr-2Mo",
+            "kt": 6.3,
+            "rho": 4540,
+            "cp": 570,
             "h": 15
         }
     },
@@ -173,7 +194,7 @@ material_defaults = {
             "h": 35
         }
     },
-    "CoCr": {
+    "Cobalt": {
         "CoCr": {
             "name": "CoCr",
             "kt": 14,
@@ -182,9 +203,91 @@ material_defaults = {
             "h": 20
         }
     },
-    "Custom": {
-        
-    }
+    "Nickel-Based Superalloys": {
+        "Hastelloy X": {
+            "name": "Hastelloy X",
+            "kt": 11,
+            "rho": 8220,
+            "cp": 460,
+            "h": 25
+        }
+    },
+    "Stainless Steels": {
+        "17-4 PH": {
+            "name": "17-4 PH",
+            "kt": 16,
+            "rho": 7800,
+            "cp": 500,
+            "h": 20
+        }
+    },
+    "Cobalt-Chromium Alloys": {
+        "CoCrMo": {
+            "name": "CoCrMo",
+            "kt": 14,
+            "rho": 8300,
+            "cp": 460,
+            "h": 22
+        },
+        "CoCrFeNiMn (High Entropy Alloys)": {
+            "name": "CoCrFeNiMn (High Entropy Alloys)",
+            "kt": 12.5,
+            "rho": 7800,
+            "cp": 480,
+            "h": 22
+        }
+    },
+    "Maraging Steels": {
+        "18Ni-300": {
+            "name": "18Ni-300",
+            "kt": 14.5,
+            "rho": 8000,
+            "cp": 500,
+            "h": 20
+        }
+    },
+    "Tool Steels": {
+        "H13 Tool Steel": {
+            "name": "H13 Tool Steel",
+            "kt": 28,
+            "rho": 7750,
+            "cp": 460,
+            "h": 30
+        }
+    },
+    "Refractory Metals": {
+        "Tungsten (W)": {
+            "name": "Tungsten (W)",
+            "kt": 174,
+            "rho": 19250,
+            "cp": 134,
+            "h": 50
+        },
+        "Tantalum (Ta)": {
+            "name": "Tantalum (Ta)",
+            "kt": 57.5,
+            "rho": 16650,
+            "cp": 140,
+            "h": 45
+        }
+    },
+    "Precious Metals": {
+        "Gold Alloys": {
+            "name": "Gold Alloys",
+            "kt": 315,
+            "rho": 19300,
+            "cp": 129,
+            "h": 35
+        },
+        "Platinum Alloys": {
+            "name": "Platinum Alloys",
+            "kt": 71.6,
+            "rho": 21450,
+            "cp": 133,
+            "h": 38
+        }
+    },
+    "Custom": {}
 }
 
 machine_defaults = {
