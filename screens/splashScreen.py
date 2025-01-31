@@ -67,7 +67,7 @@ class SplashScreen:
         
         # Bottom frame for progress bar
         bottom_frame = tk.Frame(main_frame, bg='white')
-        bottom_frame.pack(fill=tk.X, padx=0, pady=0)
+        bottom_frame.pack(fill=tk.X, padx=0, pady=10)
         
         # Progress bar
         self.progress = tk.Label(bottom_frame, text="Starting up...", 

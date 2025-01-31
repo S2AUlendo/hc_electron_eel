@@ -77,7 +77,7 @@ PLOT_LEVEL = False
 USE_HATCH_COMPUTE = False
 # Setting this variable to True will set the Smart
 
-
+NUM_RETRIES = 3
 POINT_RADIUS = 0.5
 
 
