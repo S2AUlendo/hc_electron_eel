@@ -4,7 +4,8 @@
 # and reformat it into the same format that is expected by Smart Scan
 
 import os
-import json
+import traceback
+import sys
 
 from datetime import datetime
 from ulendohc_core.smartScanCore import *
@@ -115,29 +116,36 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                     outfile.write(f"$$HEADEREND\n")
                     
                 if (layer_num in hatch_lines):
-                    totaltracker = int(hatch_lines[layer_num].shape[0]) + totaltracker
-                                        
-                    new_layer, x_size, y_size = convert_hatch_to_voxel(hatch_lines[layer_num], 67, 1, 1)   
-                    Objective_layers = 2     
                     
-                    print(f"Total Hatch Lines {hatch_lines[layer_num].shape}, at layer {layer_num}")
+                    if hatch_lines[layer_num].shape[0] < 3:
+                        optimized_Sequence = hatch_lines[layer_num][:, -1]
+                        R_opt = 0
+                        R_ori = 0
+                        
+                    else:
+                        totaltracker = int(hatch_lines[layer_num].shape[0]) + totaltracker
+                                            
+                        new_layer, x_size, y_size = convert_hatch_to_voxel(hatch_lines[layer_num], 67, 1, 1)   
+                        Objective_layers = 2     
+                        
+                        print(f"Total Hatch Lines {hatch_lines[layer_num].shape}, at layer {layer_num}")
 
-                    Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
-                    print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
+                        Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
+                        print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
                     
-                    optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=hatch_lines[layer_num], 
-                                                                                Sorted_layers=Sorted_layers, 
-                                                                                dx=dx, dy=dy, 
-                                                                                reduced_order=50, 
-                                                                                kt=float(selected_material['kt']),
-                                                                                rho=float(selected_material['rho']),
-                                                                                cp=float(selected_material['cp']),
-                                                                                vs=float(selected_machine['vs']),
-                                                                                h=float(selected_material['h']),
-                                                                                P=float(selected_machine['P']),
-                                                                                v0_ev=v0_evInit, 
-                                                                                logging_function=display_status
-                                                                                )  
+                        optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=hatch_lines[layer_num], 
+                                                                                    Sorted_layers=Sorted_layers, 
+                                                                                    dx=dx, dy=dy, 
+                                                                                    reduced_order=50, 
+                                                                                    kt=float(selected_material['kt']),
+                                                                                    rho=float(selected_material['rho']),
+                                                                                    cp=float(selected_material['cp']),
+                                                                                    vs=float(selected_machine['vs']),
+                                                                                    h=float(selected_material['h']),
+                                                                                    P=float(selected_machine['P']),
+                                                                                    v0_ev=v0_evInit, 
+                                                                                    logging_function=display_status
+                                                                                    )  
                     
                     outfile.write(f"$$LAYER/{layer_num:.3f}\n")
                     outfile.write(f"//R_VALUES/{R_opt:.3f}, {R_ori:.3f}//\n")
@@ -151,11 +159,13 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                         outfile.write(f"{layer_info['hatch_data'][opt_seq]}\n")
                         
                     progress[inputname] = (layer_num + 1) / len(layer_indices)
+                    sys.stdout.flush()
         
             display_status("Finishing...")
             outfile.write("$$GEOMETRYEND\n")
     
     except Exception as e:
+        print(traceback.format_exc())
         print(f"Error: {e}")
         raise e
     

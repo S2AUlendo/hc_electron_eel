@@ -12,6 +12,7 @@
 from ulendohc_core.util import *
 import ulendohc_core.stateMatrixConstruction as SMC
 from numba import jit
+import traceback
 
 class smartscanServer():
     # Class does not provide an extra benefit aside from auth
@@ -448,6 +449,7 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         N_x, N_y, N_z = Sorted_layers.shape    
 
         __ssbounds = N_x * N_y * N_z    
+        # print("_ssbounds", __ssbounds)
         debugPrint(f"smartScanCore - numbers_set shape: {numbers_set.shape}   Sorted_layers.shape: {Sorted_layers.shape}", -1) 
 
         tic = time.perf_counter()    
@@ -490,37 +492,48 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         debugPrint(f"smartScanCore - Final_A: {Final_A.shape}", -1)        
 
         tic = time.perf_counter()    
-        try:
-            debugPrint(f"smartScanCore - Reduced order A: {reduced_order}", 0)
-            # Catch a condition where we might try to reduce the order smaller than the existing matrix
-            # Calculating the eigenvalues and eigenvectors            
-            reduced_order = int (reduced_order)
-            custom_ncv = int(max(2*reduced_order + 1, __ssbounds/4))
-            if USE_CUDA == True:
-                CPY_Final_A = cpy_csr_matrix(Final_A)
-                temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='LA', maxiter=200) 
-                eigen_vectors = eigen_vectors.get()
-            else:
-                temp1, eigen_vectors = eigsh(Final_A, reduced_order, which='SA', v0=v0_ev, maxiter=100, return_eigenvectors=True)        
-                v0_ev = eigen_vectors[:,-1]
-        except Exception as e:
-            # The eigsh method without CUPY takes a high number of iterations to find a solution
-            # Instead we increase the order to a high number and cap it at the half of the size of geometry        
-            debugPrint(f"smartScanCore - Could not resize to - Final_A: {reduced_order} attempt to use {int (min(50, __ssbounds/2))}", -1) 
-            reduced_order = int (min(50, __ssbounds/2))        
-            
-            custom_ncv = int(max(2*reduced_order + 1, __ssbounds/4))
-            
-            # We were not able to find any solutions with the previous initialization vector, start at random
-            v0_ev = None 
+        retries = 0
+        order = reduced_order
+        
+        while (retries < NUM_RETRIES):
+            try:
+                debugPrint(f"smartScanCore - Reduced order A: {reduced_order}", 0)
+                # Catch a condition where we might try to reduce the order smaller than the existing matrix
+                # Calculating the eigenvalues and eigenvectors            
+                reduced_order = int (order)
+                custom_ncv = min(Final_A.shape[0], int(max(2*reduced_order + 1, __ssbounds/4)))
+                if USE_CUDA == True:
+                    CPY_Final_A = cpy_csr_matrix(Final_A)
+                    temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='LA', maxiter=200) 
+                    eigen_vectors = eigen_vectors.get()
+                else:
+                    temp1, eigen_vectors = eigsh(Final_A, reduced_order, which='SA', v0=v0_ev, maxiter=100, return_eigenvectors=True)        
+                    v0_ev = eigen_vectors[:,-10]
+                break
+                
+            except Exception as e:
+                # The eigsh method without CUPY takes a high number of iterations to find a solution
+                # Instead we increase the order to a high number and cap it at the half of the size of geometry        
+                debugPrint(f"smartScanCore - Could not resize to - Final_A: {reduced_order} attempt to use {int (min(50, __ssbounds/2))}", -1) 
+                reduced_order = int (min(50, __ssbounds/2))        
+                
+                custom_ncv = min(Final_A.shape[0], int(max(2*reduced_order + 1, __ssbounds/4)))
+                # We were not able to find any solutions with the previous initialization vector, start at random
+                v0_ev = None 
 
-            if USE_CUDA == True:
-                CPY_Final_A = cpy_csr_matrix(Final_A)
-                temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='SA', maxiter=1000) 
-                eigen_vectors = eigen_vectors.get()
-            else:
-                temp1, eigen_vectors = eigsh(Final_A, reduced_order, ncv=custom_ncv, which='LA', v0=v0_ev, maxiter=300, return_eigenvectors=True)   
-                v0_ev = eigen_vectors[:,-1]                            
+                try:
+                    if USE_CUDA == True:
+                        CPY_Final_A = cpy_csr_matrix(Final_A)
+                        temp1, eigen_vectors = eigsh(a=CPY_Final_A, k=reduced_order, which='SA', maxiter=1000) 
+                        eigen_vectors = eigen_vectors.get()
+                    else:
+                        temp1, eigen_vectors = eigsh(Final_A, reduced_order, ncv=custom_ncv, which='SA', v0=v0_ev, maxiter=1000, return_eigenvectors=True)   
+                        v0_ev = eigen_vectors[:,-10]
+                    break
+                    
+                except Exception as e:
+                    retries += 1
+                    order = order / 2                    
             
         toc = time.perf_counter()    
         debugPrint(f"smartScanCore - Order time {toc - tic:0.4f} seconds  eigen_vectors: {eigen_vectors.shape}", -1)     
@@ -715,5 +728,6 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         return set_opt.astype(int), v0_ev, R_opt, R_ori
     
     except Exception as e:
+        print(traceback.format_exc())
         logging_function(f"Error in smartScanCore {e}")
         raise e

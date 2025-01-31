@@ -256,41 +256,6 @@ def constructStateMatrix(N_x, N_y, N_z, dx, dz, h, kt, rho, cp, vs, P):
             A[i, i - N_x * N_y] = F_z
             fill.append(i)
 
-    # top_sets = [
-    #     (np.arange(2, N_x), 1, 
-    #      [-1, 1, N_x]),  # First pattern x-direction offsets
-    #     (np.arange(N_x*(N_y-1)+2, N_x*(N_y-1)+N_x), 2,
-    #      [-1, 1, -N_x]),  # Second pattern x-direction offsets
-    #     (np.arange(1+N_x, N_x*(N_y-2)+1, N_x), 2,
-    #      [-N_x, N_x, 1]),  # Third pattern x-direction offsets
-    #     (np.arange(N_x+N_x, N_x*(N_y-2)+N_x, N_x), 2,
-    #      [-N_x, N_x, -1])  # Fourth pattern x-direction offsets
-    #             ]
-    
-    # fill = []
-    # # Common z-direction offsets
-    # z_offsets = [N_x*N_y, -N_x*N_y]
-    
-    # for indices, z_limit, x_offsets in top_sets:
-    #     print("N_x, N_y, N_z:", N_x, N_y, N_z)
-    #     print("range(1, N_z-z_limit):", list(range(1, N_z-z_limit)))
-    #     print("indices:", indices)
-    #     # Vectorize operations for each pattern
-    #     base_indices = np.add.outer(range(1, N_z-z_limit), N_x*N_y) * indices[:, None]
-    #     base_indices = base_indices.reshape(-1)
-    #     # Update diagonal values
-    #     A[base_indices, base_indices] = 1 - 3 * F_x - 2 * F_z
-        
-    #     # Update x-direction neighbors
-    #     for offset in x_offsets:
-    #         A[base_indices, base_indices + offset] = F_x
-            
-    #     # Update z-direction neighbors
-    #     for offset in z_offsets:
-    #         A[base_indices, base_indices + offset] = F_z
-            
-    #     fill.extend(base_indices)
-    
     # Create an array for fill_set
     fill_set = np.arange(1, (N_z * N_x * N_y)+1)    
 
@@ -326,7 +291,6 @@ def constructStateMatrix(N_x, N_y, N_z, dx, dz, h, kt, rho, cp, vs, P):
 
     
 def addBoundaryConditions(Correct_A, N_x, N_y, N_z, H, F):
-    
 
     __stmbounds = N_x * N_y * N_z
     
