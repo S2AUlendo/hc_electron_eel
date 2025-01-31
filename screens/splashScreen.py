@@ -70,17 +70,14 @@ class SplashScreen:
         bottom_frame.pack(fill=tk.X, padx=0, pady=0)
         
         # Progress bar
-        self.progress = ttk.Progressbar(
-            bottom_frame,
-            style="Custom.Horizontal.TProgressbar",
-            mode='determinate'
-        )
-        self.progress.pack(fill=tk.X)
+        self.progress = tk.Label(bottom_frame, text="Starting up...", 
+                        font=("Helvetica", 8), bg='white')
+        self.progress.pack()
         
         self.root.focus_force() 
         
     def update_progress(self, value):
-        self.progress['value'] = value
+        self.progress['text'] = value
         self.root.update()
         
     def destroy(self):

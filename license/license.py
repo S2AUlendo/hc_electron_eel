@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-LICENSE_API_URL = "https://td737zegmh4zoaqyxbqphkpsmm0llpmp.lambda-url.us-east-2.on.aws/"
+LICENSE_API_URL = "https://xpv5trebeqjttfw2vgysbnxnve0yfzbd.lambda-url.us-east-2.on.aws/"
 
 class LicenseKey:
     

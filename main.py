@@ -5,9 +5,6 @@ import subprocess
 import sys
 import json
 import traceback
-import win32event
-import win32api
-import winerror
 
 from output_capture.output_capture import *
 from cli_format.cli_visualizer import *
@@ -207,7 +204,7 @@ def resource_path(rel_path):
     return os.path.join(base_path, rel_path)
 
 # eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
-eel.init('web', allowed_extensions=['.js', '.html'])
+# eel.init('web', allowed_extensions=['.js', '.html'])
 
 def store_custom_material(material_category, material_key, custom_material):
     try:
@@ -593,6 +590,10 @@ def retrieve_coords_from_data_cur():
 
 def create_mutex():
     """Create a Windows mutex to ensure single instance"""
+    import win32event
+    import win32api
+    import winerror
+    
     mutex_name = "Global\\UlendoHCAppMutex"  # Choose a unique name
     try:
         handle = win32event.CreateMutex(None, 1, mutex_name)
@@ -606,8 +607,9 @@ def create_mutex():
     except Exception as e:
         raise e
         
+from queue import Queue
+
 if __name__ == '__main__':
-    
     try:
         mutex = create_mutex()
         get_configs()
@@ -615,16 +617,47 @@ if __name__ == '__main__':
         activation_splash = ActivationScreen()
         activation_splash.run()
         
+        # Create communication queue and event flag
+        init_queue = Queue()
+        init_complete = threading.Event()
+
+        # Show splash screen first
         splash = SplashScreen()
-        for i in range(5):
-            splash.update_progress(i * 20)
-            time.sleep(0.5)  # Simulate loading
+
+        # Thread worker function
+        def initialize_eel():
+            try:
+                eel.init('web', allowed_extensions=['.js', '.html'])
+                eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
+                init_queue.put(("success", None))
+            except Exception as e:
+                init_queue.put(("error", e))
+            finally:
+                init_complete.set()
+
+        # Start initialization thread
+        init_thread = threading.Thread(target=initialize_eel)
+        init_thread.start()
+
+        while not init_complete.is_set():
+            # Update splash with indeterminate progress pattern
+            splash.update_progress("Warming up static files...")
+            time.sleep(0.1)  # Faster updates for responsiveness
+
+            # Check for initialization results
+            if not init_queue.empty():
+                status, payload = init_queue.get()
+                if status == "error":
+                    raise payload
+
+        # Clean up splash
         splash.destroy()
-        
+
+        # Handle post-init
         output_capture = OutputCapture()
         output_capture.start_capture()
         
-        eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
+        # start the app
         eel.start('templates/app.html', mode="electron")
         
     except Exception as e:
