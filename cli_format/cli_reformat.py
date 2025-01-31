@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 from ulendohc_core.smartScanCore import *
 from ulendohc_core.util import *
-import eel
+# import eel
 
 FACTOR = 1 
 LAYER_GROUP = 10
@@ -19,7 +19,7 @@ dx = FACTOR # mm
 dy = FACTOR # mm
         
 def display_status(status_message):
-    eel.displayStatus(status_message)
+    # eel.displayStatus(status_message)
     print(status_message)
     
 def parse_cli_header(data):
@@ -158,7 +158,7 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                     for opt_seq in optimized_Sequence:
                         outfile.write(f"{layer_info['hatch_data'][opt_seq]}\n")
                         
-                    progress[inputname] = (layer_num + 1) / len(layer_indices)
+                    progress['value'] = (layer_num + 1) / len(layer_indices)
                     sys.stdout.flush()
         
             display_status("Finishing...")

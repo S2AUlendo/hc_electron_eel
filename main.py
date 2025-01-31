@@ -14,10 +14,16 @@ from screens.splashScreen import *
 from screens.activationScreen import *
 from license.license import *
 
+from mp.multiprocessing_utils import initialize_multiprocessing
+
+from queue import Queue
+
+_manager, _pool = None, None
+futures = {}  # Tracks AsyncResult objects
+progress = {}  # Progress tracking
+
 opti_visualizer = None
 data_visualizer = None
-
-executor = ThreadPoolExecutor(max_workers=2)
 
 futures = {}
 progress = {}
@@ -34,6 +40,7 @@ def persistent_path(rel_path):
     return os.path.join(exe_dir, rel_path)
 
 def get_persistent_output_dir():
+    global output_dir
     output_dir = persistent_path("output")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -446,6 +453,11 @@ def get_machines():
         
 @eel.expose
 def convert_cli_file(filecontent, filename, selected_material, selected_material_category, selected_machine):
+    global _manager, _pool
+    
+    if _manager is None or _pool is None:
+        _manager, _pool = initialize_multiprocessing()
+    
     display_status("Starting...")
     global output_dir
     global data_dir
@@ -476,9 +488,23 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
         with open(persistent_path("dictionary.json"), "w") as file:
             json.dump(DATA_OUTPUT_DICT, file)
             
-        future = executor.submit(convertDYNCliFile, filecontent, filename, outputname, output_dir, progress, selected_material, selected_machine)
-        futures[filename] = future
-        progress[filename] = 0
+        progress[filename] = _manager.dict()
+        progress[filename]['value'] = 0
+        
+        # Submit task to pool
+        async_result = _pool.apply_async(
+            convertDYNCliFile,
+            args=(
+                filecontent,
+                filename,
+                outputname,
+                output_dir,
+                progress[filename],  # Pass the shared dict item
+                selected_material,
+                selected_machine
+            )
+        )
+        futures[filename] = async_result
         return "Task started"
     
     except Exception as e:
@@ -486,21 +512,21 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
         print(f"Error starting task: {e}")
         return "Error starting task"
 
-@eel.expose
+@eel.expose 
 def get_task_status(filename):
     if filename in futures:
-        future = futures[filename]
-        if future.done():
+        async_result = futures[filename]
+        if async_result.ready():
             try:
-                result = future.result()
-                return {"status": "completed", "result": result}
+                async_result.get()
+                return {"status": "completed"}
             except Exception as e:
+                print(traceback.format_exc())
                 return {"status": "error", "error": str(e)}
         else:
-            return {"status": "in_progress", "progress": progress[filename]}
-    else:
-        return {"status": "not_found"}
-    
+            return {"status": "running", "progress": progress[filename]['value']}
+    return {"status": "not_found"}
+
 @eel.expose
 def view_processed_files():
     try:
@@ -709,11 +735,15 @@ def create_mutex():
         return handle
     except Exception as e:
         raise e
-        
-from queue import Queue
 
 if __name__ == '__main__':
     try:
+        from multiprocessing import freeze_support
+        freeze_support()
+        
+        # Initialize multiprocessing FIRST
+        initialize_multiprocessing()
+        
         mutex = create_mutex()
         get_configs()
         
