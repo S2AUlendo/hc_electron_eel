@@ -436,7 +436,11 @@ def get_materials():
         with open(materials_path, 'w') as f:
             f.write(json.dumps(material_defaults))
         return get_materials()
-
+    
+def display_status(status_message):
+    eel.displayStatus(status_message)
+    print(status_message)
+    
 @eel.expose
 def get_machines():
     global machines
@@ -524,6 +528,7 @@ def get_task_status(filename):
                 print(traceback.format_exc())
                 return {"status": "error", "error": str(e)}
         else:
+            display_status(progress[filename]['msg'])
             return {"status": "running", "progress": progress[filename]['value']}
     return {"status": "not_found"}
 

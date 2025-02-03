@@ -10,7 +10,6 @@ import sys
 from datetime import datetime
 from ulendohc_core.smartScanCore import *
 from ulendohc_core.util import *
-# import eel
 
 FACTOR = 1 
 LAYER_GROUP = 10
@@ -18,10 +17,6 @@ LAYER_GROUP = 10
 dx = FACTOR # mm
 dy = FACTOR # mm
         
-def display_status(status_message):
-    # eel.displayStatus(status_message)
-    print(status_message)
-    
 def parse_cli_header(data):
     """Parse CLI file header section"""
     def extract_value(prefix: str) -> str:
@@ -104,12 +99,12 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    display_status("Creating output file...")
+    progress['msg'] = f"Creating output file..."
     output_file = os.path.join(output_dir, outputname)
     try:
         with open(output_file, "+a") as outfile:
             for layer_num in range(len(layer_indices)-1):
-                display_status(f"Processing layer {layer_num}/{len(layer_indices) - 1}")
+                progress['msg'] = f"Processing layer {layer_num}/{len(layer_indices) - 1}"
                 if layer_num == 0: 
                     outfile.write(f"$$HEADERSTART\n")
                     outfile.write(f"$$ASCII\n$$UNITS/{units}\n$$VERSION/{version}\n$$DATE/{date}\n$$DIMENSION/{dimension}\n$$LAYERS/{layers}\n$$LABEL/{label}\n")
@@ -143,8 +138,7 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                                                                                     vs=float(selected_machine['vs']),
                                                                                     h=float(selected_material['h']),
                                                                                     P=float(selected_machine['P']),
-                                                                                    v0_ev=v0_evInit, 
-                                                                                    logging_function=display_status
+                                                                                    v0_ev=v0_evInit 
                                                                                     )  
                     
                     outfile.write(f"$$LAYER/{layer_num:.3f}\n")
@@ -157,11 +151,11 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                         
                     for opt_seq in optimized_Sequence:
                         outfile.write(f"{layer_info['hatch_data'][opt_seq]}\n")
-                        
+                    
                     progress['value'] = (layer_num + 1) / len(layer_indices)
                     sys.stdout.flush()
         
-            display_status("Finishing...")
+            progress['msg'] = "Finishing..."
             outfile.write("$$GEOMETRYEND\n")
     
     except Exception as e:
@@ -171,7 +165,7 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
     
 def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress, selected_material, selected_machine):
     
-    display_status("Retrieving file information...")
+    progress["msg"] = "Retrieving file information..."
     data = filecontent.splitlines()
     
     layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]    
@@ -195,11 +189,11 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
     build_area = dimension_x * dimension_y
     
     if build_area < 0:
-        display_status("Error: Build area is less than 0")
+        progress["msg"] = "Error: Build area is less than 0"
         return
     
     if build_area > 200 * 200:
-        display_status("Error: Build area is more than 200 by 200")
+        progress["msg"] = "Error: Build area is more than 200 by 200"
         return
     
     # Optimize and write output file
@@ -214,6 +208,6 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
             hatch_lines[ii][:, [0, 2]] = hatch_lines[ii][:, [0, 2]] - minimum_x
             hatch_lines[ii][:, [1, 3]] = hatch_lines[ii][:, [1, 3]] - minimum_y
             
-    display_status("Done!")
+    progress["msg"] = "Completed"
     return hatch_lines, dimension_x, dimension_y
     

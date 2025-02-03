@@ -438,7 +438,7 @@ def convert_polygon_to_vector(fragment_data = {}, originalSequenceIDs=[], x_reso
 
 
 def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:float = 1, dy:float = 1, reduced_order:int=20, 
-                    kt:float = 22.5, rho:float = 7990,  cp:float = 500, vs:float = 0.6,  h:float = 50,  P:float = 100, v0_ev=None, logging_function=None ):
+                    kt:float = 22.5, rho:float = 7990,  cp:float = 500, vs:float = 0.6,  h:float = 50,  P:float = 100, v0_ev=None):
     try:
         lambda_val = 0.37
         Rb = 0.075 / 2
@@ -729,5 +729,4 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
     
     except Exception as e:
         print(traceback.format_exc())
-        logging_function(f"Error in smartScanCore {e}")
         raise e
