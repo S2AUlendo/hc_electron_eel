@@ -138,7 +138,7 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                                                                                     vs=float(selected_machine['vs']),
                                                                                     h=float(selected_material['h']),
                                                                                     P=float(selected_machine['P']),
-                                                                                    v0_ev=v0_evInit 
+                                                                                    v0_ev=v0_evInit
                                                                                     )  
                     
                     outfile.write(f"$$LAYER/{layer_num:.3f}\n")
@@ -163,7 +163,7 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
         print(f"Error: {e}")
         raise e
     
-def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress, selected_material, selected_machine):
+def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress, selected_material, selected_machine, max_size=1250):
     
     progress["msg"] = "Retrieving file information..."
     data = filecontent.splitlines()
@@ -192,8 +192,8 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
         progress["msg"] = "Error: Build area is less than 0"
         return
     
-    if build_area > 200 * 200:
-        progress["msg"] = "Error: Build area is more than 200 by 200"
+    if build_area > max_size:
+        progress["msg"] = f"Error: Build area is more than {max_size}"
         return
     
     # Optimize and write output file

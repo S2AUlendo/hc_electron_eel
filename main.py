@@ -404,11 +404,11 @@ def get_configs():
     return config
 
 def set_size_limit(feature):
-    if feature != active_config["feature"]:
-        active_config["feature"] = features[feature]
-    else:
-        active_config["feature"] = features[active_config["feature"]]
-        
+    if feature == active_config["feature"]:
+        return
+    active_config["feature"] = feature
+    
+    # save new config with new feature
     with open(app_config_path, "w") as f:
         json.dump(config, f, indent=4)
     
@@ -526,7 +526,8 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
                 output_dir,
                 progress[filename],  # Pass the shared dict item
                 selected_material,
-                selected_machine
+                selected_machine,
+                features[active_config["feature"]]
             )
         )
         futures[filename] = async_result
