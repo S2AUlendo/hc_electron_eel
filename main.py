@@ -29,6 +29,7 @@ futures = {}
 progress = {}
 materials = {}
 machines = {}
+active_config = None
 
 def persistent_path(rel_path):
     if getattr(sys, 'frozen', False):
@@ -88,6 +89,7 @@ config_defaults = {
         "data": DEFAULT_DATA_DIR,
         "output": DEFAULT_OUTPUT_DIR,
         "license_key": "",
+        "feature": 0,
         "active": True
     }
 }
@@ -305,6 +307,15 @@ machine_defaults = {
     }
 }
 
+features = {
+    "0": 1000,
+    "1": 2000,
+    "2": 20000,
+    "3": 200000,
+    "4": 1000000,
+    "5": np.inf
+}
+
 def resource_path(rel_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -352,7 +363,7 @@ def store_custom_machine(machine_key, custom_properties):
         return False
 
 def get_configs():
-    global config, app_config_path, data_dir, output_dir
+    global config, app_config_path, data_dir, output_dir, active_config
     app_config_path = persistent_path('config.json')
     
     try:
@@ -361,12 +372,11 @@ def get_configs():
             config = json.load(f)
             
         # Find active config and set directories
-        active_config = None
         for key, item in config.items():
             if item.get("active", False):
                 active_config = item
                 break
-                
+        
         if active_config:
             data_dir = active_config.get("data", DEFAULT_DATA_DIR)
             output_dir = active_config.get("output", DEFAULT_OUTPUT_DIR)
@@ -375,6 +385,7 @@ def get_configs():
             config = config_defaults.copy()
             data_dir = DEFAULT_DATA_DIR
             output_dir = DEFAULT_OUTPUT_DIR
+            active_config = config["default"]
             
             # Save default config
             with open(app_config_path, 'w') as f:
@@ -385,12 +396,22 @@ def get_configs():
         config = config_defaults.copy()
         data_dir = DEFAULT_DATA_DIR
         output_dir = DEFAULT_OUTPUT_DIR
+        active_config = config["default"]
         
         with open(app_config_path, 'w') as f:
             json.dump(config, f, indent=4)
     
     return config
 
+def set_size_limit(feature):
+    if feature != active_config["feature"]:
+        active_config["feature"] = features[feature]
+    else:
+        active_config["feature"] = features[active_config["feature"]]
+        
+    with open(app_config_path, "w") as f:
+        json.dump(config, f, indent=4)
+    
 @eel.expose
 def change_output_dir(new_path):
     global config, output_dir
@@ -749,11 +770,15 @@ if __name__ == '__main__':
         # Initialize multiprocessing FIRST
         initialize_multiprocessing()
         
-        mutex = create_mutex()
         get_configs()
+        mutex = create_mutex()
         
         activation_splash = ActivationScreen()
         activation_splash.run()
+        
+        # Set the feature size limit
+        license = activation_splash.license
+        set_size_limit(license.feature)
         
         # Create communication queue and event flag
         init_queue = Queue()

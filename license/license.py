@@ -18,6 +18,7 @@ class LicenseKey:
         self.aes_key = self._load_or_generate_key("aes_key", 32)
         self.iv = self._load_or_generate_key("iv", 16)
         self.encrypted_key = None
+        self.feature = 0
         self.license_key = self._load_saved_license_key()
 
     def _load_saved_license_key(self):
@@ -98,6 +99,7 @@ class LicenseKey:
             status = response.json().get("status", {})
             
             if response.status_code == 200 and status == "success":
+                self.feature = response.json().get("feature", {})
                 self.encrypted_key = self.encrypt_license_key(self.license_key)
                 self.write_to_registry("Software\\Ulendo", "encrypted_key", self.encrypted_key)
                 self.activated = True
@@ -113,7 +115,11 @@ class LicenseKey:
             logger.info(f"License check response: {response.text}")
             status = response.json().get("status", {})
             
-            self.activated = response.status_code == 200 and status == "success"
+            if response.status_code == 200 and status == "success":
+                self.feature = response.json().get("feature", {})
+                self.activated = True
+            else:
+                self.activated = False
         except Exception as e:
             print(f"Error during license check: {e}")
             self.activated = False
