@@ -17,11 +17,14 @@ from license.license import *
 from mp.multiprocessing_utils import initialize_multiprocessing
 
 from queue import Queue
+VERSION = "0.0.1"
 
 _manager, _pool = None, None
 futures = {}  # Tracks AsyncResult objects
 progress = {}  # Progress tracking
+license = LicenseKey()
 
+activation_splash = None
 opti_visualizer = None
 data_visualizer = None
 
@@ -752,8 +755,21 @@ def retrieve_coords_from_data_cur():
 
 @eel.expose
 def show_activate_screen():
-    activation_splash = ActivationScreen(preload=False)
+    global license
+    activation_splash = ActivationScreen(license, preload=False)
     activation_splash.run()
+    
+@eel.expose
+def get_app_info():
+    global license
+    
+    license.get_license_day_remaining()
+    return {
+        "version": VERSION,
+        "activated": license.activated,
+        "feature": license.feature,
+        "days_remaining": license.days_remaining
+    }
 
 def create_mutex():
     """Create a Windows mutex to ensure single instance"""
@@ -785,11 +801,10 @@ if __name__ == '__main__':
         get_configs()
         mutex = create_mutex()
         
-        activation_splash = ActivationScreen()
+        activation_splash = ActivationScreen(license)
         activation_splash.run()
         
         # Set the feature size limit
-        license = activation_splash.license
         if not license.activated:
             sys.exit()
         set_size_limit(license.feature)

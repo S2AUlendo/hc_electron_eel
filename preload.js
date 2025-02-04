@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld(
     'electronAPI', {
     // Expose the function to open new window
     selectDirectory: () => ipcRenderer.invoke('show-directory-dialog'),
+    getAppInfo: (callback) => {
+        ipcRenderer.on('get-app-info', () => callback());
+    },
     enterNewKey: (callback) => {
         ipcRenderer.on('enter-new-key', () => callback());
     },
@@ -12,6 +15,7 @@ contextBridge.exposeInMainWorld(
         ipcRenderer.on('directory-selected', (_, path) => callback(path));
     },
     openViewWindow: (windowName) => ipcRenderer.send('open-view-window', windowName),
+    openAboutWindow: (data) => ipcRenderer.send('open-about-window', data),
     sendToView: (data) => ipcRenderer.send('message-to-view', data),
     sendToMain: (data) => ipcRenderer.send('message-to-main', data),
     onReceiveMessage: (callback) => {

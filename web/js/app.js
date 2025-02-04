@@ -10,6 +10,16 @@ document.addEventListener('DOMContentLoaded', function () {
         await eel.show_activate_screen()();
     });
 
+    window.electronAPI.getAppInfo(async () => {
+        try {
+            response = await eel.get_app_info()();
+            // now we render about us window
+            await window.electronAPI.openAboutWindow(response);
+        } catch (error) {
+            alert(`Error getting app info: ${error}`);
+        }
+    });
+
     window.addEventListener('resize', () => {
         if (!selectedFile) return;
 

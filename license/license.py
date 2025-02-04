@@ -19,6 +19,7 @@ class LicenseKey:
         self.iv = self._load_or_generate_key("iv", 16)
         self.encrypted_key = None
         self.feature = 0
+        self.days_remaining = 0
         self.license_key = self._load_saved_license_key()
 
     def _load_saved_license_key(self):
@@ -123,5 +124,19 @@ class LicenseKey:
         except Exception as e:
             print(f"Error during license check: {e}")
             self.activated = False
+            
+    def get_license_day_remaining(self):
+        payload = {"action": "days_remaining", "license_key": self.license_key}
+        try:
+            response = requests.post(LICENSE_API_URL, json=payload)
+            status = response.json().get("status", {})
+            
+            if response.status_code == 200 and status == "success":
+                self.days_remaining = response.json().get("days_remaining", {})
+            else:
+                self.days_remaining = 0
+        except Exception as e:
+            print(f"Error during license check: {e}")
+            self.days_remaining = 0
             
         

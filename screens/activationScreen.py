@@ -6,7 +6,6 @@ import sys
 import traceback
 import webbrowser
 import eel
-from license.license import *
 
 def resource_path(rel_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -17,8 +16,8 @@ def resource_path(rel_path):
     return os.path.join(base_path, rel_path)
 
 class ActivationScreen:
-    def __init__    (self, preload=True):
-        self.license = LicenseKey()
+    def __init__    (self, license, preload=True):
+        self.license = license
         
         if preload and self.preload_license():
             self.root = None
