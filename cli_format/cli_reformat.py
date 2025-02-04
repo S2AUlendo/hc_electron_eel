@@ -188,13 +188,11 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
     build_area = dimension_x * dimension_y
     
     if build_area < 0:
-        progress["msg"] = "Error: Build area is less than 0"
-        print("Error: Build area is less than 0")
+        progress["error"] = "Error: Build area is less than 0"
         return
     
     if build_area > max_size:
-        progress["msg"] = f"Error: Build area is more than {max_size}"
-        print(f"Error: Build area is more than {max_size}")
+        progress["error"] = f"Error: Build area is more than {max_size}"
         return
     
     # Optimize and write output file

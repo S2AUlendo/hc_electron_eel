@@ -550,7 +550,11 @@ def get_task_status(filename):
                 print(traceback.format_exc())
                 return {"status": "error", "error": str(e)}
         else:
-            display_status(progress[filename]['msg'])
+            if progress[filename]['msg'] != "":
+                display_status(progress[filename]['msg'])
+            if progress[filename]['error'] != "":
+                eel.displayError(progress[filename]["error"], "Error")
+                
             return {"status": "running", "progress": progress[filename]['value']}
     return {"status": "not_found"}
 
