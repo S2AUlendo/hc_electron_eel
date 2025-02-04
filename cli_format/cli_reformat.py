@@ -153,7 +153,6 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                         outfile.write(f"{layer_info['hatch_data'][opt_seq]}\n")
                     
                     progress['value'] = (layer_num + 1) / len(layer_indices)
-                    sys.stdout.flush()
         
             progress['msg'] = "Finishing..."
             outfile.write("$$GEOMETRYEND\n")
@@ -190,10 +189,12 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
     
     if build_area < 0:
         progress["msg"] = "Error: Build area is less than 0"
+        print("Error: Build area is less than 0")
         return
     
     if build_area > max_size:
         progress["msg"] = f"Error: Build area is more than {max_size}"
+        print(f"Error: Build area is more than {max_size}")
         return
     
     # Optimize and write output file
