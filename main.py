@@ -515,6 +515,8 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
             
         progress[filename] = _manager.dict()
         progress[filename]['value'] = 0
+        progress[filename]['msg'] = ""
+        progress[filename]['error'] = ""
         
         # Submit task to pool
         async_result = _pool.apply_async(
@@ -545,6 +547,8 @@ def get_task_status(filename):
         if async_result.ready():
             try:
                 async_result.get()
+                if progress[filename]['error'] != "":
+                    eel.displayError(progress[filename]["error"], "Error")
                 return {"status": "completed"}
             except Exception as e:
                 print(traceback.format_exc())
@@ -552,8 +556,6 @@ def get_task_status(filename):
         else:
             if progress[filename]['msg'] != "":
                 display_status(progress[filename]['msg'])
-            if progress[filename]['error'] != "":
-                eel.displayError(progress[filename]["error"], "Error")
                 
             return {"status": "running", "progress": progress[filename]['value']}
     return {"status": "not_found"}

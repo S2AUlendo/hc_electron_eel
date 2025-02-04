@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 import os
 import sys
 import traceback
+import webbrowser
 import eel
 from license.license import *
 
@@ -167,6 +168,22 @@ class ActivationScreen:
         )
         activate_button.pack(side=tk.LEFT)
         
+        # Get trial button style
+        activate_button = tk.Button(
+            button_frame,
+            text="Request Trial",
+            command=lambda: webbrowser.open("https://ulendo.webflow.io/hc-desktop-trial"),
+            bg='#f0f0f0',
+            fg='#0078D4',  # Changed to blue color
+            font=("Robotica", 10, "underline"),  # Added underline
+            relief=tk.FLAT,
+            padx=20,
+            pady=10,
+            cursor="hand2",
+            activeforeground='#005A9E'  # Darker blue when hovered
+        )
+        activate_button.pack(side=tk.LEFT)
+        
         # Close button style
         close_button = tk.Button(
             button_frame,
@@ -192,7 +209,7 @@ class ActivationScreen:
             return False
         except Exception as e:
             raise e
-    
+        
     def activate_app(self):
         self.error_label.config(text="")
         input_key = self.input_text.get("1.0", tk.END).strip()

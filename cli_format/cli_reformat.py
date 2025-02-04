@@ -192,7 +192,7 @@ def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress
         return
     
     if build_area > max_size:
-        progress["error"] = f"Error: Build area is more than {max_size}"
+        progress["error"] = f"Error: Build area is more than {max_size}!\nPlease navigate to the help menu to upgrade your current license to support a bigger build volume."
         return
     
     # Optimize and write output file
