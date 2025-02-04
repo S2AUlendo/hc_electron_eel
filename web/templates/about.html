@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>About Ulendo HC ©</title>
+    <script defer src="../js/about.js"></script>
+    <script defer src="../js/all.js"></script>
+    <link rel="stylesheet" href="../css/bootstrap.css">
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/about.css">
+    <link rel="stylesheet" href="../css/all.css">
+</head>
+
+<body class="bg-light">
+    <div class="container py-4">
+        <!-- Header Section -->
+        <div class="d-flex flex-column flex-md-row align-items-center mb-4">
+            <img src="../public/ulendo_favi.jpg" class="app-icon img-fluid me-md-4 mb-3 mb-md-0" alt="App Icon" style="width: 80px; height: 80px;">
+            <div class="text-center text-md-start">
+                <h1 class="h3 text-primary mb-1">Ulendo HC Tool</h1>
+                <p class="text-muted mb-0">Ulendo Heat Compensation Tool ©</p>
+            </div>
+        </div>
+
+        <!-- Application Details Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h3 class="card-title h5 mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Application Details
+                </h3>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center p-3 bg-white rounded">
+                            <i class="fas fa-code-branch text-muted me-3"></i>
+                            <span>Version: <strong class="app-version"></strong></span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center p-3 bg-white rounded">
+                            <i class="fa-solid fa-atom text-muted me-3"></i>
+                            <span>Electron: <strong class="electron-version"></strong></span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center p-3 bg-white rounded">
+                            <i class="fab fa-node-js text-muted me-3"></i>
+                            <span>Node.js: <strong class="node-version"></strong></span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center p-3 bg-white rounded">
+                            <i class="fab fa-chrome text-muted me-3"></i>
+                            <span>Chromium: <strong class="chromium-version"></strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- License Information Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h3 class="card-title h5 mb-3">
+                    <i class="fas fa-key me-2"></i>License Information
+                </h3>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center p-3 rounded bg-success bg-opacity-10">
+                            <i class="fas fa-check-circle text-success me-3"></i>
+                            <span>Status: <strong class="license-status"></strong></span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center p-3 bg-white rounded">
+                            <i class="fas fa-layer-group text-muted me-3"></i>
+                            <span>Feature Level: <strong class="feature-level"></strong></span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-flex align-items-center p-3 bg-white rounded">
+                            <i class="fas fa-clock text-muted me-3"></i>
+                            <span>Days Remaining: <strong class="days-remaining"></strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Footer -->
+        <footer class="text-center mt-4">
+            <p class="text-muted small">Built with Electron Framework</p>
+        </footer>
+    </div>
+</body>
+</html>

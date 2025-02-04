@@ -16,15 +16,10 @@ contextBridge.exposeInMainWorld(
     },
     openViewWindow: (windowName) => ipcRenderer.send('open-view-window', windowName),
     openAboutWindow: (data) => ipcRenderer.send('open-about-window', data),
+    onAboutData: (callback) => ipcRenderer.on('about-data', (event, data) => callback(data)), // to get data across a callback
     sendToView: (data) => ipcRenderer.send('message-to-view', data),
     sendToMain: (data) => ipcRenderer.send('message-to-main', data),
-    onReceiveMessage: (callback) => {
-
-        ipcRenderer.on('receive-message', (event, data) => {
-            callback(data)
-        })
-    },
-
+    onReceiveMessage: (callback) => ipcRenderer.on('receive-message', (event, data) => callback(data)),
     // Other API methods you might need
     minimize: () => ipcRenderer.send('minimize-window'),
     maximize: () => ipcRenderer.send('maximize-window')

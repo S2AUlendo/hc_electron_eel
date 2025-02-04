@@ -3,8 +3,11 @@ const path = require('path');
 const fs = require('fs');
 
 const { app, BrowserWindow, Menu, ipcMain, dialog, globalShortcut } = require('electron')
+
+const allMinCSS = path.join(__dirname, "web", "css", "all.min.css");
+const cssContent = fs.readFileSync(allMinCSS, 'utf8');
+
 const iconPath = path.join(__dirname, "web", "public", "icon.ico");
-const iconJPG = path.join(__dirname, "web", "public", "ulendo_favi.jpg");
 const iconJPGData = fs.readFileSync(iconPath);
 const base64Icon = iconJPGData.toString('base64');
 const iconSrc = `data:image/jpeg;base64,${base64Icon}`;
@@ -44,6 +47,11 @@ function createWindow() {
     if (viewWindow) {
       viewWindow.close();
     }
+
+    if (aboutWindow) {
+      aboutWindow.close();
+    }
+
     mainWindow = null
   })
 }
@@ -113,7 +121,7 @@ function createAboutWindow(data){
   aboutWindow = new BrowserWindow({
     title: 'About',
     width: 800,
-    height: 1024,
+    height: 800,
     webPreferences: {
       nodeIntegration: true,
       preload: path.join(__dirname, 'preload.js')
@@ -122,142 +130,27 @@ function createAboutWindow(data){
     show: false
   })
 
+  aboutWindow.setMinimumSize(500, 600);
   aboutWindow.removeMenu();
-  // Create HTML content as a string
-  const htmlContent = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-      <meta charset="UTF-8">
-      <title>About Ulendo HC</title>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-      <style>
-          body {
-              font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-              padding: 2rem;
-              background: #f8f9fa;
-              color: #2c3e50;
-          }
-          .header {
-              display: flex;
-              align-items: center;
-              margin-bottom: 2rem;
-          }
-          .app-icon {
-              width: 64px;
-              height: 64px;
-              margin-right: 1.5rem;
-          }
-          .card {
-              background: white;
-              border-radius: 12px;
-              padding: 1.5rem;
-              margin-bottom: 1.5rem;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          }
-          .info-grid {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 1rem;
-          }
-          .status-item {
-              display: flex;
-              align-items: center;
-              padding: 0.75rem;
-              background: #f8f9fa;
-              border-radius: 8px;
-          }
-          .status-icon {
-              font-size: 1.2rem;
-              margin-right: 0.75rem;
-              width: 28px;
-              text-align: center;
-          }
-          .feature-level {
-              display: inline-block;
-              padding: 0.25rem 0.75rem;
-              background: #e3f2fd;
-              border-radius: 20px;
-              color: #1976d2;
-              font-weight: 500;
-          }
-          .days-remaining {
-              color: #d32f2f;
-              font-weight: 500;
-          }
-          .electron-logo {
-              width: 120px;
-              opacity: 0.8;
-              margin-top: 2rem;
-          }
-      </style>
-  </head>
-  <body>
-      <div class="header">
-          <img src="${iconSrc}" class="app-icon" alt="App Icon">
-          <div>
-              <h1 style="margin:0; color: #1976d2;">Ulendo HC</h1>
-              <p style="margin:0; color: #666;">Heat Compensation System</p>
-          </div>
-      </div>
   
-      <div class="card">
-          <h3><i class="fas fa-info-circle"></i> Application Details</h3>
-          <div class="info-grid">
-              <div class="status-item">
-                  <i class="fas fa-code-branch status-icon"></i>
-                  Version: ${data['version']}
-              </div>
-              <div class="status-item">
-                  <i class="fab fa-electron status-icon"></i>
-                  Electron: ${process.versions.electron}
-              </div>
-              <div class="status-item">
-                  <i class="fab fa-node-js status-icon"></i>
-                  Node.js: ${process.versions.node}
-              </div>
-              <div class="status-item">
-                  <i class="fab fa-chrome status-icon"></i>
-                  Chromium: ${process.versions.chrome}
-              </div>
-          </div>
-      </div>
-  
-      <div class="card">
-          <h3><i class="fas fa-key status-icon"></i> License Information</h3>
-          <div class="info-grid">
-              <div class="status-item" style="background: #e8f5e9;">
-                  <i class="fas fa-check-circle status-icon" style="color: #43a047;"></i>
-                  Status: ${data['activated'] ? "Activated" : "Not Activated"}
-              </div>
-              <div class="status-item">
-                  <i class="fas fa-layer-group status-icon"></i>
-                  Feature Level: <span class="feature-level">${data['feature']}</span>
-              </div>
-              <div class="status-item">
-                  <i class="fas fa-clock status-icon"></i>
-                  Days Remaining: <span class="days-remaining">${data['days_remaining']}</span>
-              </div>
-          </div>
-      </div>
-  
-      <div style="text-align: center; margin-top: 2rem;">
-          <img src="https://www.electronjs.org/assets/img/logo.svg" class="electron-logo" alt="Electron Logo">
-          <p style="color: #666; font-size: 0.9rem;">Built with Electron Framework</p>
-      </div>
-  </body>
-  </html>
-  `;
   // Load HTML directly using data URL
-  aboutWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+  aboutWindow.loadURL('http://localhost:8000/templates/about.html');
 
   aboutWindow.on('closed', () => {
     aboutWindow = null
   })
 
-  aboutWindow.webContents.on('did-finish-load', function () {
+  aboutWindow.webContents.on('did-finish-load', () => {
+    aboutWindow.webContents.send('about-data', {
+        version: data.version,
+        electronVersion: process.versions.electron,
+        nodeVersion: process.versions.node,
+        chromiumVersion: process.versions.chrome,
+        activated: data.activated,
+        feature: data.feature,
+        days_remaining: data.days_remaining
+    });
     aboutWindow.show();
-    aboutWindow.webContents.send('about-data', data);
   });
 }
 
