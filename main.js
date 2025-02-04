@@ -189,6 +189,18 @@ const menuTemplate = [
           require('electron').shell.openExternal('https://s2aulendo.github.io/HeatCompensation-Docs/');
         },
       },
+      {
+        label: 'Upgrade',
+        click() {
+          require('electron').shell.openExternal('https://ulendo.webflow.io/pricinghc');
+        },
+      },
+      {
+        label: 'Enter new key',
+        click() {
+          mainWindow.webContents.send('enter-new-key');
+        },
+      },
     ],
   },
 ];

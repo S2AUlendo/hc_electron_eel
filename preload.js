@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld(
     'electronAPI', {
     // Expose the function to open new window
     selectDirectory: () => ipcRenderer.invoke('show-directory-dialog'),
+    enterNewKey: (callback) => {
+        ipcRenderer.on('enter-new-key', () => callback());
+    },
     onDirectorySelected: (callback) => {
         ipcRenderer.on('directory-selected', (_, path) => callback(path));
     },

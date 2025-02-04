@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    window.electronAPI.enterNewKey(async () => {
+        await eel.show_activate_screen()();
+    });
+
     window.addEventListener('resize', () => {
         if (!selectedFile) return;
 

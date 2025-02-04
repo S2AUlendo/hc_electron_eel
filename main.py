@@ -748,6 +748,11 @@ def retrieve_coords_from_data_cur():
     coords = data_visualizer.retrieve_hatch_lines_from_layer()
     return {'x': coords[0], 'y': coords[1], 'x_min': data_visualizer.x_min, 'x_max': data_visualizer.x_max, 'y_min': data_visualizer.y_min, 'y_max': data_visualizer.y_max}
 
+@eel.expose
+def show_activate_screen():
+    activation_splash = ActivationScreen(preload=False)
+    activation_splash.run()
+
 def create_mutex():
     """Create a Windows mutex to ensure single instance"""
     import win32event
@@ -783,6 +788,8 @@ if __name__ == '__main__':
         
         # Set the feature size limit
         license = activation_splash.license
+        if not license.activated:
+            sys.exit()
         set_size_limit(license.feature)
         
         # Create communication queue and event flag

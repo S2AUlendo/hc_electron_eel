@@ -16,16 +16,18 @@ def resource_path(rel_path):
     return os.path.join(base_path, rel_path)
 
 class ActivationScreen:
-    def __init__(self):
+    def __init__    (self, preload=True):
         self.license = LicenseKey()
-        if not self.preload_license():
-            self.root = tk.Tk()
-            self.setup_ui()
-        else:
+        
+        if preload and self.preload_license():
             self.root = None
+            return
+        
+        self.root = tk.Tk()
+        self.setup_ui()
         
     def setup_ui(self):
-        self.root.protocol("WM_DELETE_WINDOW", self.stop_app)
+        self.root.protocol("WM_DELETE_WINDOW", self.destroy)
         self.root.iconbitmap(resource_path("web/public/icon.ico"))
         # Configure the main window
         self.root.title("License Activation")
@@ -169,7 +171,7 @@ class ActivationScreen:
         close_button = tk.Button(
             button_frame,
             text="Cancel",
-            command=self.stop_app,
+            command=self.destroy,
             bg='#f0f0f0',
             fg='#666666',
             font=("Robotica", 10),
@@ -190,7 +192,7 @@ class ActivationScreen:
             return False
         except Exception as e:
             raise e
-
+    
     def activate_app(self):
         self.error_label.config(text="")
         input_key = self.input_text.get("1.0", tk.END).strip()
