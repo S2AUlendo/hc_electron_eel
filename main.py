@@ -768,6 +768,7 @@ def get_app_info():
         "version": VERSION,
         "activated": license.activated,
         "feature": license.feature,
+        "license_key": license.license_key,
         "days_remaining": license.days_remaining
     }
 

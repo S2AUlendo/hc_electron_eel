@@ -146,6 +146,7 @@ function createAboutWindow(data){
         electronVersion: process.versions.electron,
         nodeVersion: process.versions.node,
         chromiumVersion: process.versions.chrome,
+        license_key: data.license_key,
         activated: data.activated,
         feature: data.feature,
         days_remaining: data.days_remaining
