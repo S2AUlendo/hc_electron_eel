@@ -20,7 +20,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
         document.querySelector('.feature-level').textContent = `Tier ${data.feature}`;
         document.querySelector('.license-key').textContent = data.license_key;
-        document.querySelector('.days-remaining').textContent = data.days_remaining;
+
+        if (data.days_remaining < 0) {
+            document.querySelector('.days-remaining').textContent = '-';
+            return;
+        } else {
+            document.querySelector('.days-remaining').textContent = data.days_remaining;
+        }
 
         // Optional: Add expiration warning
         if(data.days_remaining <= 7) {

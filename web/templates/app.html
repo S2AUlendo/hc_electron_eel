@@ -32,7 +32,8 @@
                             <select id="materialName" class="form-select" required>
                             </select>
                         </div>
-                        <button class="btn btn-alpha dropdown-btn" id="view-materials">View material params <i class="bi bi-chevron-down"></i></button>
+                        <button class="btn btn-alpha dropdown-btn" id="view-materials">View material params <i
+                                class="bi bi-chevron-down"></i></button>
                         <div id="custom-material-config" class="custom-material-config my-3" style="display: none;">
                             <div class="form-group">
                                 <label for="custom-material-name" class="form-label">Custom Material Name:</label>
@@ -63,7 +64,8 @@
                             <select id="machineName" class="form-select" required>
                             </select>
                         </div>
-                        <button class="btn btn-alpha dropdown-btn" id="view-machines">View machine params <i class="bi bi-chevron-down"></i></button>
+                        <button class="btn btn-alpha dropdown-btn" id="view-machines">View machine params <i
+                                class="bi bi-chevron-down"></i></button>
                         <div id="custom-machine-config" class="custom-machine-config my-3" style="display: none;">
                             <div class="form-group">
                                 <label for="custom-machine-name" class="form-label">Custom Machine Name:</label>
@@ -80,8 +82,10 @@
                         </div>
                     </form>
                     <div class="analyze-container">
-                        <button id="viewButton" class="btn btn-primary">View Original <i class="bi bi-eye-fill"></i></button>
-                        <button id="processButton" class="btn btn-primary">Optimize <i class="bi bi-gear-fill"></i></button>
+                        <button id="viewButton" class="btn btn-primary">View Original <i
+                                class="bi bi-eye-fill"></i></button>
+                        <button id="processButton" class="btn btn-primary">Optimize <i
+                                class="bi bi-gear-fill"></i></button>
                     </div>
                     <div class="loading-status" id="loadingStatus"></div>
                     <div class="loading-bar" id="loadingBar">
@@ -103,22 +107,28 @@
                                 <a class="page-link" href="#">
                                     <i class="bi bi-chevron-left"></i>
                                     Previous
-                                </a></li>
+                                </a>
+                            </li>
                             <li class="page-item">
                                 <a class="page-link" href="#">
                                     Next
                                     <i class="bi bi-chevron-right"></i>
-                                </a></li>
+                                </a>
+                            </li>
                         </ul>
                     </nav>
                 </div>
             </div>
             <div class="version">
-                v0.0.1
+                <span id="version-number"></span>
             </div>
         </div>
         <div class="resizer" id="dragMe"></div>
         <div class="right-panel">
+            <div class="idle-container" id="idle-screen">
+                <h2><i class="bi bi-bar-chart"></i></h2>
+                <p>Upload or select an optimized .cli file to get started</p>
+            </div>
             <div class="spinner-container" id="spinner">
                 <div class="spinner-border text-ulendo"></div>
             </div>
@@ -127,8 +137,10 @@
                     <div id="data_plot"></div>
                     <div id="opti_plot"></div>
                 </div>
-                <label for="rOptimized" class="form-label" style="display: none;">R Optimal: <span id="rOptimized"></span></label>
-                <label for="rOriginal" class="form-label" style="display: none;">R Original: <span id="rOriginal"></span></label>
+                <label for="rOptimized" class="form-label" style="display: none;">R Optimal: <span
+                        id="rOptimized"></span></label>
+                <label for="rOriginal" class="form-label" style="display: none;">R Original: <span
+                        id="rOriginal"></span></label>
                 <div class="slider-container px-3">
                     <div class="d-flex align-items-center justify-content-evenly mt-3">
                         <button id="playButton" class="btn btn-primary">
@@ -139,7 +151,8 @@
                             <input type="range" class="form-range" id="speedRange" min="0.5" max="2" step="0.5"
                                 value="1">
                         </div>
-                        <div class="d-flex flex-column justify-content-evenly align-items-stretch" id="analysis-options">
+                        <div class="d-flex flex-column justify-content-evenly align-items-stretch"
+                            id="analysis-options">
                             <div>
                                 <input class="form-check-input" type="checkbox" value="" id="showOriginalCheckbox">
                                 <label class="form-check-label" for="showOriginalCheckbox">

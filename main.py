@@ -17,7 +17,7 @@ from license.license import *
 from mp.multiprocessing_utils import initialize_multiprocessing
 
 from queue import Queue
-VERSION = "0.0.1"
+VERSION = "0.1.1"
 
 _manager, _pool = None, None
 futures = {}  # Tracks AsyncResult objects

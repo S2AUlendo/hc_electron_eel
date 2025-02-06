@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.electronAPI.getAppInfo(async () => {
         try {
-            response = await eel.get_app_info()();
+            let response = await eel.get_app_info()();
             // now we render about us window
             await window.electronAPI.openAboutWindow(response);
         } catch (error) {
@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewMaterialParamsButton = document.getElementById('view-materials');
     const viewMachineParamsButton = document.getElementById('view-machines');
     const spinner = document.getElementById('spinner');
+    const idleScreen = document.getElementById('idle-screen');
 
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
@@ -105,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let y = 0;
     let leftWidth = 0;
 
-    var materials = {};
+    var versionNumber = "";
     var machines = {};
     var selectedMaterial = {};
     var selectedMaterialCategory = "";
@@ -114,11 +115,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const itemsPerPage = 5;
 
     window.addEventListener('load', async () => {
+        
         await loadFileHistory();
         await loadMaterials();
         await loadMachines();
-    });
 
+        let response = await eel.get_app_info()();
+        versionNumber = document.getElementById('version-number');
+        versionNumber.textContent = response.version;
+    });
 
     if (
         layerSlider
@@ -646,6 +651,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function selectFile(file) {
         try {
+            idleScreen.style.display = 'none';
             spinner.style.display = "flex";
 
             await eel.compare_cli(file)();
