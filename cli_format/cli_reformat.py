@@ -127,19 +127,25 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
 
                         Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
                         print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
-                    
-                        optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=hatch_lines[layer_num], 
-                                                                                    Sorted_layers=Sorted_layers, 
-                                                                                    dx=dx, dy=dy, 
-                                                                                    reduced_order=50, 
-                                                                                    kt=float(selected_material['kt']),
-                                                                                    rho=float(selected_material['rho']),
-                                                                                    cp=float(selected_material['cp']),
-                                                                                    vs=float(selected_machine['vs']),
-                                                                                    h=float(selected_material['h']),
-                                                                                    P=float(selected_machine['P']),
-                                                                                    v0_ev=v0_evInit
-                                                                                    )  
+
+                        try:
+                            optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=hatch_lines[layer_num], 
+                                                                                        Sorted_layers=Sorted_layers, 
+                                                                                        dx=dx, dy=dy, 
+                                                                                        reduced_order=50, 
+                                                                                        kt=float(selected_material['kt']),
+                                                                                        rho=float(selected_material['rho']),
+                                                                                        cp=float(selected_material['cp']),
+                                                                                        vs=float(selected_machine['vs']),
+                                                                                        h=float(selected_material['h']),
+                                                                                        P=float(selected_machine['P']),
+                                                                                        v0_ev=v0_evInit
+                                                                                        )  
+                        except Exception as e:
+                            # if unable to find solution just original sequence
+                            optimized_Sequence = hatch_lines[layer_num][:, -1]
+                            R_opt = 0
+                            R_ori = 0
                     
                     outfile.write(f"$$LAYER/{layer_num:.3f}\n")
                     outfile.write(f"//R_VALUES/{R_opt:.3f}, {R_ori:.3f}//\n")

@@ -533,7 +533,11 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
                     
                 except Exception as e:
                     retries += 1
-                    order = order / 2                    
+                    order = order / 2 
+                    
+                    if (retries == NUM_RETRIES):
+                        debugPrint(f"smartScanCore - Could not resize to - Final_A: {reduced_order} attempt to use {int (min(50, __ssbounds/2))}", -1) 
+                        raise e                   
             
         toc = time.perf_counter()    
         debugPrint(f"smartScanCore - Order time {toc - tic:0.4f} seconds  eigen_vectors: {eigen_vectors.shape}", -1)     
