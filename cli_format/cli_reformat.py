@@ -152,11 +152,11 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                     
                     # Access stored per-layer data
                     layer_info = layer_data[layer_num]
-                    for polyline in layer_info['polyline_feautre_indices']:
-                        outfile.write(f"{data[polyline]}\n")
-                        
                     for opt_seq in optimized_Sequence:
                         outfile.write(f"{layer_info['hatch_data'][opt_seq]}\n")
+                        
+                    for polyline in layer_info['polyline_feautre_indices']:
+                        outfile.write(f"{data[polyline]}\n")
                     
                     progress['value'] = (layer_num + 1) / len(layer_indices)
         
