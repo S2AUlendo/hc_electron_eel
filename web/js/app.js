@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewMachineParamsButton = document.getElementById('view-machines');
     const spinner = document.getElementById('spinner');
     const idleScreen = document.getElementById('idle-screen');
+    const analysisContainer = document.getElementById('analysis-container');
 
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
@@ -652,6 +653,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function selectFile(file) {
         try {
             idleScreen.style.display = 'none';
+            analysisContainer.style.display = 'none';
             spinner.style.display = "flex";
 
             await eel.compare_cli(file)();
@@ -1021,8 +1023,6 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 optimizedData = createScatterTraces(optimizedGraphData.layers);
             }
-
-            const analysisContainer = document.getElementById('analysis-container');
 
             const layout = {
                 height: analysisContainer.clientHeight * 0.7,
