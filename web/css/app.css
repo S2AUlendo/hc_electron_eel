@@ -408,3 +408,13 @@
 #data_plot {
     display: none;
 }
+
+.instructions {
+    font-size: 0.875rem; /* Smaller font size */
+    color: #6c757d; /* Light gray color */
+    line-height: 1.4;
+  }
+  
+  .instructions p {
+    margin: 0;
+  }
