@@ -99,6 +99,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const spinner = document.getElementById('spinner');
     const idleScreen = document.getElementById('idle-screen');
     const analysisContainer = document.getElementById('analysis-container');
+    const alertStatus = document.getElementById('alert-status');
+    const alertMessage = document.getElementById('alert-message');
+    const legendObj = document.getElementById("LegendComponentId");
 
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
@@ -911,12 +914,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 progress = status.progress * 100;
                 loadingProgress.style.width = progress + '%';
             } else {
+                alertStatus.style.display = 'block';
+                alertMessage.innerText = "Conversion of file complete! Please navigate the file below the Optimization History tab to view the optimized file.";
                 clearInterval(interval);
                 processButton.disabled = false;
                 viewButton.disabled = false;
                 enableMaterialsForm(with_select=true);
                 enableMachinesForm(with_select=true);
-                loadingStatus.innerText = "";
+                loadingStatus.textContent = '';
                 loadingBar.style.display = 'none';
                 await loadFileHistory();
                 await loadMaterials();

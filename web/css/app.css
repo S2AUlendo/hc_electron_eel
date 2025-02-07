@@ -276,7 +276,6 @@
     width: 100%;
     height: 100%;
     background-color: white;
-    border: 1px solid #ddd;
 }
 
 #analysis-container > * {
@@ -417,4 +416,16 @@
   
   .instructions p {
     margin: 0;
+  }
+
+  #help-btn {
+    align-self:flex-end;
+  }
+
+  #collapseContent {
+    font-size: 0.875rem;
+  }
+  
+  #alert-message {
+    font-size: 0.875rem;
   }

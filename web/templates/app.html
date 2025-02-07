@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="../css/all.css">
     <script defer src="../js/all.js"></script>
     <script defer src="../js/plotly.min.js"></script>
+    <script defer src="../js/bootstrap.bundle.min.js"></script>
     <script defer type="text/javascript" src="/eel.js"></script>
     <script defer src="../js/app.js"></script>
 </head>
@@ -22,6 +23,25 @@
             <div class="top-panel">
                 <img src="../public/ulendo_hc_green.png" alt="Ulendo Logo" class="logo">
                 <div class="file-input form-group">
+                    <div class="d-flex justify-content-between align-items-center" id="help-btn">
+                        <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse"
+                            data-bs-target="#collapseContent" aria-expanded="false" aria-controls="collapseContent"
+                            title="Click for help">
+                            Help <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse mt-2" id="collapseContent">
+                        <div class="alert alert-info">
+                            <ul>
+                                <li>Upload a <code>.cli</code> file to get started.</li>
+                                <li>Select the material and machine for optimization.</li>
+                                <li>Click <strong>View</strong> to see the original file's details.</li>
+                                <li>Click <strong>Process</strong> to optimize the file.</li>
+                                <li>Select a file to view its thermal analysis and insights.</li>
+                                <li>Use the directory button to locate the optimized <code>.cli</code> file on your system.</li>
+                            </ul>                            
+                        </div>
+                    </div>
                     <div>
                         <div id="info">Current supported file types: .cli</div>
                         <input type="file" id="cliFile" accept=".cli" class="form-control">
@@ -88,6 +108,10 @@
                                 class="bi bi-gear-fill"></i></button>
                     </div>
                     <div class="loading-status" id="loadingStatus"></div>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="alert-status" style="display: none;">
+                        <span id="alert-message"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     <div class="loading-bar" id="loadingBar">
                         <div class="loading-progress" id="loadingProgress"></div>
                     </div>
