@@ -171,7 +171,7 @@ class ActivationScreen:
         activate_button = tk.Button(
             button_frame,
             text="Request Trial",
-            command=lambda: webbrowser.open("https://ulendo.webflow.io/hc-desktop-trial"),
+            command=lambda: webbrowser.open("https://www.ulendo.io/hc-desktop-trial"),
             bg='#f0f0f0',
             fg='#0078D4',  # Changed to blue color
             font=("Robotica", 10, "underline"),  # Added underline
