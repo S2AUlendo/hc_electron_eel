@@ -1,16 +1,9 @@
 // Modules to control application life and create native browser window
 const path = require('path');
-const fs = require('fs');
 
-const { app, BrowserWindow, Menu, ipcMain, dialog, globalShortcut } = require('electron')
-
-const allMinCSS = path.join(__dirname, "web", "css", "all.min.css");
-const cssContent = fs.readFileSync(allMinCSS, 'utf8');
+const { app, BrowserWindow, Menu, ipcMain, dialog, globalShortcut } = require('electron');
 
 const iconPath = path.join(__dirname, "web", "public", "icon.ico");
-const iconJPGData = fs.readFileSync(iconPath);
-const base64Icon = iconJPGData.toString('base64');
-const iconSrc = `data:image/jpeg;base64,${base64Icon}`;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
