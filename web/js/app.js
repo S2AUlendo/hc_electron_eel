@@ -978,6 +978,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function createScatterTraces(boxes) {
         let rate = 120 / optimizedGraphData.numHatches * 3;
+
+        let legendGroup = {
+            20: {'name': 'very hot', 'isSet': false},
+            40: {'name': 'hot', 'isSet': false},
+            60: {'name': 'warm', 'isSet': false},
+            80: {'name': 'cool', 'isSet': false},
+            100: {'name': 'cold', 'isSet': false},
+            120: {'name': 'very cold', 'isSet': false},
+        }
         return boxes.map((box, index) => {
             const x = box[0];
             const y = box[1];
@@ -985,9 +994,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (radian >= 120) {
                 radian = 120
             }
-            color = `hsl(${radian}, 100%, 50%)`;
-
-            return {
+            let color = `hsl(${radian}, 100%, 50%)`;
+            let assignedGroup = Object.keys(legendGroup).find(key => radian <= key);
+            
+            let trace = {
                 x: x,
                 y: y,
                 type: 'scatter',
@@ -999,9 +1009,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     width: 1,
                     simplify: false // Preserve exact path
                 },
-                showlegend: false,
+                legendgroup: legendGroup[assignedGroup]['name'],
+                name: legendGroup[assignedGroup]['name'],
+                showlegend: !legendGroup[assignedGroup]['isSet'],
                 hoverinfo: 'none'
             };
+            
+            // set the legend isSet to true
+            legendGroup[assignedGroup]['isSet'] = true;
+            return trace;
         });
     }
 
@@ -1045,8 +1061,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding],
                     ticksuffix: "mm"
                 },
-                hovermode: false,
-                showlegend: false
+                hovermode: false
             };
 
             const config = {
@@ -1126,8 +1141,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding],
                         ticksuffix: "mm"
                     },
-                    hovermode: false,
-                    showlegend: false
+                    hovermode: false
                 };
 
                 return layout;
