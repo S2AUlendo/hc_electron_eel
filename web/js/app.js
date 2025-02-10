@@ -977,52 +977,55 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function createScatterTraces(boxes) {
-        let rate = 120 / optimizedGraphData.numHatches * 3;
-
-        let legendGroup = {
-            20: {'name': 'very hot', 'isSet': false},
-            40: {'name': 'hot', 'isSet': false},
-            60: {'name': 'warm', 'isSet': false},
-            80: {'name': 'cool', 'isSet': false},
-            100: {'name': 'cold', 'isSet': false},
-            120: {'name': 'very cold', 'isSet': false},
-        }
+        const maxAge = boxes.length;
+        
         return boxes.map((box, index) => {
-            const x = box[0];
-            const y = box[1];
-            let radian = (boxes.length - index) * rate;
-            if (radian >= 120) {
-                radian = 120
-            }
-            let color = `hsl(${radian}, 100%, 50%)`;
-            let assignedGroup = Object.keys(legendGroup).find(key => radian <= key);
-            
-            let trace = {
-                x: x,
-                y: y,
-                type: 'scatter',
-                mode: 'lines',  // Remove markers, lines only
+            const ageValue = (maxAge - index) / maxAge; // Normalized age (1 = newest, 0 = oldest)
+            const color = interpolateColor(
+                {r: 255, g: 0, b: 0},   // Red (hot)
+                {r: 0, g: 0, b: 255},   // Blue (cold)
+                ageValue
+            );
+    
+            return {
+                x: box[0],
+                y: box[1],
+                mode: 'lines',
                 fill: 'toself',
-                fillcolor: color, // More solid fill
                 line: {
                     color: color,
                     width: 1,
-                    simplify: false // Preserve exact path
+                    simplify: false
                 },
-                legendgroup: legendGroup[assignedGroup]['name'],
-                name: legendGroup[assignedGroup]['name'],
-                showlegend: !legendGroup[assignedGroup]['isSet'],
-                hoverinfo: 'none'
+                fillcolor: color + '80', // Add alpha channel
+                showlegend: false,
+                hoverinfo: 'none',
+                // Connect to color scale through metadata
+                meta: { age: ageValue },
+                // Assign to color axis
+                marker: {
+                    cmax: 1,
+                    cmin: 0,
+                    colorscale: [[0, 'blue'], [1, 'red']],
+                    color: [ageValue],
+                    showscale: false
+                }
             };
-            
-            // set the legend isSet to true
-            legendGroup[assignedGroup]['isSet'] = true;
-            return trace;
         });
+    }
+    
+    function interpolateColor(color1, color2, factor) {
+        const result = {
+            r: Math.round(color1.r + factor * (color2.r - color1.r)),
+            g: Math.round(color1.g + factor * (color2.g - color1.g)),
+            b: Math.round(color1.b + factor * (color2.b - color1.b))
+        };
+        return `rgb(${result.r},${result.g},${result.b})`;
     }
 
     function updateGraph(layerIndex) {
         try {
+            // ... existing padding calculations ...
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
             var optimizedData = [];
@@ -1045,32 +1048,64 @@ document.addEventListener('DOMContentLoaded', function () {
                 optimizedData = createScatterTraces(optimizedGraphData.layers);
             }
 
+            // Create dummy trace for colorbar
+            const heatScaleDummy = {
+                x: [null],
+                y: [null],
+                type: 'scatter',
+                mode: 'markers',
+                marker: {
+                    size: 0,
+                    cmax: 1,
+                    cmin: 0,
+                    colorscale: [[0, 'blue'], [0.5, 'green'], [1, 'red']],
+                    colorbar: {
+                        title: 'Heat Scale',
+                        titleside: 'right',
+                        thickness: 20,
+                        len: 0.6,
+                        yanchor: 'middle',
+                        ticks: 'outside',
+                        tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                        ticktext: ['Oldest', '', '', '', '', 'Newest']
+                    },
+                    showscale: true
+                },
+                showlegend: false,
+                hoverinfo: 'none'
+            };
+    
+            let optiPlotData = [...completeTrace, ...optimizedData, heatScaleDummy];
+    
             const layout = {
                 height: analysisContainer.clientHeight * 0.7,
                 width: analysisContainer.clientWidth,
                 title: `Layer ${layerIndex}`,
+                // ... existing layout settings ...
+                margin: { l: 50, r: 100, t: 50, b: 50 }, // Adjust right margin for colorbar
                 xaxis: {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
                     scaleratio: 1,
                     range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding],
-                    ticksuffix: "mm"
+                    // ... existing xaxis settings ...
+                    fixedrange: false  // Allow colorbar interaction
                 },
                 yaxis: {
                     title: 'Y',
                     range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding],
-                    ticksuffix: "mm"
-                },
-                hovermode: false
+                    ticksuffix: "mm",
+                    // ... existing yaxis settings ...
+                    fixedrange: false
+                }
             };
-
+    
             const config = {
                 responsive: true,
                 displayModeBar: true,
                 scrollZoom: true
             };
-            let optiPlotData = [...completeTrace, ...optimizedData]
-
+            
             Plotly.newPlot('opti_plot', optiPlotData, layout, config);
         } catch (error) {
             console.error('Error updating graph:', error);
