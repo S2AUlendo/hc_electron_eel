@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var playSpeed = 250; // Default 1 second interval
 
     // Analysis Screen
+    const fileInput = document.getElementById('cliFile');
     const layerSlider = document.getElementById('layerSlider');
     const hatchSlider = document.getElementById('hatchSlider');
     const speedRange = document.getElementById('speedRange');
@@ -409,11 +410,20 @@ document.addEventListener('DOMContentLoaded', function () {
         alert(message, status);
     }
 
+    function disableCLIInput() {
+        fileInput.disabled = true;
+    }
+
+    function enableCLIInput() {
+        fileInput.disabled = false;
+    }
+
     function disableMaterialsForm(with_select = false) {
 
         var materialElements;
         if (with_select) {
             materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
+            disableCLIInput();
         } else {
             materialElements = document.querySelectorAll("#materialForm input");
         }
@@ -422,13 +432,13 @@ document.addEventListener('DOMContentLoaded', function () {
             element.disabled = true;
         }
         );
-
     }
 
     function disableMachinesForm(with_select = false) {
         var machineElements = '';
         if (with_select) {
             machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
+            disableCLIInput();
         } else {
             machineElements = document.querySelectorAll("#machineForm input");
         }
@@ -452,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
             element.value = "";
         }
         );
-
+        enableCLIInput();
     }
 
     function enableMachinesForm(with_select = false) {
@@ -469,11 +479,11 @@ document.addEventListener('DOMContentLoaded', function () {
             element.value = "";
         }
         );
+        enableCLIInput();
     }
 
     async function openViewWindow() {
-
-        const fileInput = document.getElementById('cliFile');
+        
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {

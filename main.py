@@ -495,8 +495,8 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
         if type(selected_machine) == str:
             selected_machine = json.loads(selected_machine)
         
-        material_key = "_".join(selected_material["name"].lower().strip().split(" "))
-        machine_key = "_".join(selected_machine["name"].lower().strip().split(" "))
+        material_key = "_".join(selected_material["name"].strip().split(" "))
+        machine_key = "_".join(selected_machine["name"].strip().split(" "))
         if (material_key not in materials[selected_material_category]):
             display_status("Saving Custom Material...")
             store_custom_material(selected_material_category, material_key, selected_material)
