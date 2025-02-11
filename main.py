@@ -88,7 +88,7 @@ terminal_output = []
 is_activated = False
 
 config_defaults = {
-    "Default": {
+    "default": {
         "data": DEFAULT_DATA_DIR,
         "output": DEFAULT_OUTPUT_DIR,
         "license_key": "",
