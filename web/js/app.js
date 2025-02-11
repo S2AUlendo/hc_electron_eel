@@ -999,17 +999,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 fillcolor: color + '80', // Add alpha channel
                 showlegend: false,
-                hoverinfo: 'none',
-                // Connect to color scale through metadata
-                meta: { age: ageValue },
-                // Assign to color axis
-                marker: {
-                    cmax: 1,
-                    cmin: 0,
-                    colorscale: [[0, 'blue'], [1, 'red']],
-                    color: [ageValue],
-                    showscale: false
-                }
+                hoverinfo: 'none'
             };
         });
     }
@@ -1025,7 +1015,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateGraph(layerIndex) {
         try {
-            // ... existing padding calculations ...
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
             var optimizedData = [];
@@ -1058,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     size: 0,
                     cmax: 1,
                     cmin: 0,
-                    colorscale: [[0, 'blue'], [0.5, 'green'], [1, 'red']],
+                    colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
                     colorbar: {
                         title: 'Heat Scale',
                         titleside: 'right',
@@ -1081,21 +1070,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 height: analysisContainer.clientHeight * 0.7,
                 width: analysisContainer.clientWidth,
                 title: `Layer ${layerIndex}`,
-                // ... existing layout settings ...
                 margin: { l: 50, r: 100, t: 50, b: 50 }, // Adjust right margin for colorbar
                 xaxis: {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
                     scaleratio: 1,
                     range: [optimizedGraphData.x_min - xPadding, optimizedGraphData.x_max + xPadding],
-                    // ... existing xaxis settings ...
                     fixedrange: false  // Allow colorbar interaction
                 },
                 yaxis: {
                     title: 'Y',
                     range: [optimizedGraphData.y_min - yPadding, optimizedGraphData.y_max + yPadding],
                     ticksuffix: "mm",
-                    // ... existing yaxis settings ...
                     fixedrange: false
                 }
             };
@@ -1188,8 +1174,34 @@ document.addEventListener('DOMContentLoaded', function () {
                 scrollZoom: true
             };
 
-            let rawPlotData = [...completeTrace, ...rawData]
-            let optiPlotData = [...completeTrace, ...optiData]
+            const heatScaleDummy = {
+                x: [null],
+                y: [null],
+                type: 'scatter',
+                mode: 'markers',
+                marker: {
+                    size: 0,
+                    cmax: 1,
+                    cmin: 0,
+                    colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
+                    colorbar: {
+                        title: 'Heat Scale',
+                        titleside: 'right',
+                        thickness: 20,
+                        len: 0.6,
+                        yanchor: 'middle',
+                        ticks: 'outside',
+                        tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                        ticktext: ['Oldest', '', '', '', '', 'Newest']
+                    },
+                    showscale: true
+                },
+                showlegend: false,
+                hoverinfo: 'none'
+            };
+    
+            let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy]
+            let optiPlotData = [...completeTrace, ...optiData, heatScaleDummy]
             Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), config);
             Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), config);
         } catch (error) {
