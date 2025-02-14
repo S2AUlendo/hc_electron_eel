@@ -29,6 +29,7 @@ class LicenseKey:
                 return self.decrypt_license_key(self.encrypted_key)
             except Exception as e:
                 logger.error(f"Failed to decrypt license key: {e}")
+                raise e
         return None
         
     def _load_or_generate_key(self, key_name, length):
@@ -80,6 +81,7 @@ class LicenseKey:
             print(f"Data successfully written to registry at {key_path}\\{value_name}.")
         except Exception as e:
             print(f"Failed to write to registry: {e}")
+            raise e
 
     def read_from_registry(self, key_path: str, value_name: str) -> bytes:
         try:
@@ -108,6 +110,7 @@ class LicenseKey:
                 self.activated = False
         except Exception as e:
             print(f"Error during activation: {e}")
+            raise e
                 
     def check_license_from_cloud(self):
         payload = {"action": "check", "license_key": self.license_key}
@@ -124,6 +127,7 @@ class LicenseKey:
         except Exception as e:
             print(f"Error during license check: {e}")
             self.activated = False
+            raise e
             
     def get_license_day_remaining(self):
         payload = {"action": "days_remaining", "license_key": self.license_key}
@@ -138,5 +142,6 @@ class LicenseKey:
         except Exception as e:
             print(f"Error during license check: {e}")
             self.days_remaining = 0
+            raise e
             
         

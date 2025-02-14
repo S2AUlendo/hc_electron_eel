@@ -795,18 +795,19 @@ def create_mutex():
 
 if __name__ == '__main__':
     try:
-        # Check for instance then create splash screen first
-        mutex = create_mutex()
-        activation_splash = ActivationScreen(license)
-        activation_splash.run()
-        splash = SplashScreen()
-        
         from multiprocessing import freeze_support
         freeze_support()
         
         # Initialize multiprocessing FIRST
         initialize_multiprocessing()
-
+        
+        # Check for instance then create splash screen first
+        mutex = create_mutex()
+        
+        activation_splash = ActivationScreen(license)
+        activation_splash.run()
+        splash = SplashScreen()
+        
         get_configs()
         
         # Set the feature size limit
