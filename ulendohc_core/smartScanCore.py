@@ -445,6 +445,7 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
 
         T_a = 293
         T_init = 293
+        T_m = 273 + 1427
 
         N_x, N_y, N_z = Sorted_layers.shape    
 
@@ -454,6 +455,8 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
 
         tic = time.perf_counter()    
         StateMatrix, F_z, H, G = SMC.constructStateMatrix(N_x, N_y, N_z, dx * 10**-3, dy * 10**-3, h, kt, rho, cp, vs, P)
+        G = 1000 * G
+        # print("G: ", G)
         StateMatrix = csr_matrix(StateMatrix, (__ssbounds, __ssbounds))
         
         Sorted_layers_T = np.zeros((N_x, N_y, N_z))
@@ -578,7 +581,8 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         Nt = 0
         
         # Create a zeros array for Beq
-        Beq = np.zeros((int(Final_A.shape[0]), int(feature_n)))    
+        Beq = np.zeros((int(Final_A.shape[0]), int(feature_n)))   
+ 
         # debugPrint(f"smartScanCoreCUDA - {Beq.shape} Beq Array Initialized", 2)      
 
         # PRE_COMPUTE
@@ -587,25 +591,24 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         q_factor_3 = np.exp(Rb)
         q_factor_4 = np.exp(np.pi * Rb)
         q_factor_1 = (2 * lambda_val * P)
-        nt_pre = 1 / vs / (dx / vs)
+        nt_pre = 1 / vs / (dx * 10**-3 / vs)
 
         Q = 0
 
         Ab = np.eye(Final_A.shape[0])    
 
         tic = time.perf_counter()
-        
+
         for feature_current in range(total_features):
             numbers = numbers_set[feature_current, :]            
 
-            if feature_current != feature_start:
-                Ab = np.eye(Final_A.shape[0])
-                Bb = np.zeros((Final_A.shape[0], 1))
-                x, y = [], []
-                Nt = 0
-                B = np.zeros((MN.shape[0], MN.shape[1]))
-                A = Final_A
-                feature_start = feature_start + 1  
+            Ab = np.eye(Final_A.shape[0])
+            Bb = np.zeros((Final_A.shape[0], 1))
+            x, y = [], []
+            Nt = 0
+            B = np.zeros((MN.shape[0], MN.shape[1]))
+            A = Final_A
+            feature_start = feature_start + 1  
 
             startPoint = numbers[:2]
             endPoint = numbers[2:4]  
@@ -613,7 +616,6 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
             sqDiff = np.power((endPoint - startPoint), 2)
             distance = np.sqrt(np.sum(sqDiff))
 
-            # nt = distance / vs / (dx / vs)
             nt = distance * nt_pre
             Nt += int(np.floor(nt))
 
@@ -622,33 +624,39 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
             y.extend(np.linspace(startPoint[1], endPoint[1], int(nt)))        
             debugPrint(f"smartScanCore - X: {x} Y: {y}", 2)
 
-            # Energy input at each time step                          
-            for i in range(Nt - int(nt), Nt):                    
-            # def go_fast(i):
-                Posi = np.array([x[i], y[i]])
-                # rb = np.power((MN[:, :, 0] - Posi[0]), 2) + np.power((MN[:, :, 1] - Posi[1]), 2)
-                rb = np.power((MN_SLICE_0 - Posi[0]), 2) + np.power((MN_SLICE_1 - Posi[1]), 2)
-                rb = np.sqrt(rb)
-                q_factor_2 = np.exp(-2 * rb)             
-                Q = q_factor_1 * (q_factor_2 / q_factor_3)  / q_factor_4
-                # Q = Q / np.sum(Q)
-                # Q = np.array(Q)            
-                # B = np.add(B, Q)
-                Q /= np.sum(Q)
-                B += Q
+            # Indices for the last int(nt) steps
+            idx_start = Nt - int(nt)
+
+            positions_x = np.asarray(x[idx_start:Nt])  # shape (steps,)
+            positions_y = np.asarray(y[idx_start:Nt])  # shape (steps,)
+
+            # Make sure MN_SLICE_0 and MN_SLICE_1 are NumPy arrays of shape (M, N)
+            MN0 = np.asarray(MN_SLICE_0)
+            MN1 = np.asarray(MN_SLICE_1)
+
+            distances_all = np.sqrt(
+                (MN0[None, :, :] - positions_x[:, None, None])**2
+                + (MN1[None, :, :] - positions_y[:, None, None])**2
+            )  # shape (steps, M, N)
+
+            # 2) Compute the exponential factor exp(-2*rb) for all steps simultaneously
+            q_factor_2_all = np.exp(-2.0 * distances_all)  # shape (steps, M, N)
+
+            Q_unn = q_factor_1 * (q_factor_2_all / q_factor_3) / q_factor_4  # shape (steps, M, N)
+
+            sum_Q_unn = Q_unn.sum(axis=(1, 2), keepdims=True)   # shape (steps, 1, 1)
+            Q_norm_all = Q_unn / sum_Q_unn                     # shape (steps, M, N)
+
+            B += Q_norm_all.sum(axis=0)  # shape (M, N)
 
             debugPrint(f"smartScanCore - Current Features: {feature_current}", 2)
             
-            # Ab = np.eye(Final_A.shape[0])        
             debugPrint(f"smartScanCore - Ab : {Ab.shape}", 2)
             
-            Bb = np.zeros((Final_A.shape[0], 1))        
             debugPrint(f"smartScanCore - Bb : {Bb.shape}", 2)
 
-            # Ab = Ab ** Nt
             Ab = np.power(Ab, Nt)
 
-            # Ab_1 = Ab @ eigen_vectors.T
             Ab_1 = np.matmul(Ab, eigen_vectors.T)            
             debugPrint(f"smartScanCore - Ab_1 : {Ab_1.shape}", 2)
 
@@ -659,18 +667,25 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
             debugPrint(f"smartScanCore - diag : {diag.shape}", 2)
             
             B_current = B_current[diag[diag < N_x*N_y ]]
-            # debugPrint(f"smartScanCoreCUDA - B_current : {B_current.shape}", 2)
 
             Ab_1 = np.multiply(G, Ab_1)
-            Ab1_temp = np.concatenate((B_current, np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
-            Ab_1 = np.dot(Ab_1, Ab1_temp)
-            Bb = np.add(Bb, Ab_1)
             
-            Beq[:, feature_current] = Bb[0]
+            Ab1_temp = np.concatenate((B_current, np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
+
+            Ab_1 = np.dot(Ab_1, Ab1_temp)
+            # print("Ab1_temp: ", Ab1_temp)
+            # print("Ab_1: ", Ab_1)
+
+            Bb = np.add(Bb, Ab_1)
+
+            
+            
+            
+            Beq[:, feature_current] = Bb[:,0]
             Ab_set[feature_current] = Ab
+        # print(np.sum(Beq, axis=0))
         
 
-        
         # # Initialize Cb matrix    
         Cb_ones = np.ones((reduced_order, reduced_order))/reduced_order
         Cb = np.eye(reduced_order) - Cb_ones
@@ -690,46 +705,53 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         with ThreadPoolExecutor(max_workers=CPU_COUNT) as executor:
             executor.map(__calculateLambda_1, range(1, int(feature_n)))    
 
-        T_opt = np.concatenate((T_init * np.ones(Final_A.shape[0] - 2), [T_a, T_a]))     
+        Tm0 = np.concatenate((T_init * np.ones(Final_A.shape[0] - 2), [T_a, T_a]))     
 
         # set_opt contains the smart scan sequence - save the output
         set_opt = np.array([])
-        debugPrint(f"smartScanCore -lambda_0 {lambda_0.shape} lambda_1: {lambda_1.shape} T_opt: {T_opt.shape}", 2)
+        debugPrint(f"smartScanCore -lambda_0 {lambda_0.shape} lambda_1: {lambda_1.shape} T_opt: {Tm0.shape}", 2)
 
         toc = time.perf_counter()    
         debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", -1)
         
-        T_opt = np.array(T_opt)
-        T_ori = np.array(T_opt)
+        # T_opt = np.array(T_opt)
+    
+        R_opt = []
+        R_ori = []
 
         tic = time.perf_counter()
-        # debugPrint(f"Generating Sequence ", 0)
+        
+        T_ori = Tm0.copy()
+        T_opt = Tm0.copy()
+        subset = numbers_set[:, -1]
+        
         for i in range(total_features):
+            
+            # OG Solution:
             c = lambda_0 + np.dot(lambda_1, T_opt)
             sorted_indices = np.argsort(c)
             indices = sorted_indices[~np.isin(sorted_indices, set_opt)]
             I = int(indices[0])
+            
             T_opt_temp = np.dot(Ab_set[I], T_opt)
             T_opt = np.add(T_opt_temp, Beq[:, I])
-            T_ori = np.add(T_opt_temp, Beq[:, i])
+            
+            T_ori_temp = np.dot(Ab_set[i], T_ori)
+            T_ori = np.add(T_ori_temp, Beq[:, i])
+
+            R_opt.append(np.std(T_opt) / T_m)
+            R_ori.append(np.std(T_ori) / T_m)
             set_opt = np.append(set_opt, I)
 
-
-            if FILE_LOGGING_LEVEL > 2:    
-                np.savetxt("staging/T_opt.txt", T_opt)
-        
-        if FILE_LOGGING_LEVEL > 2:    
-            np.savetxt("staging/setopt.txt", set_opt)
-        
         toc = time.perf_counter()  
-        R_opt = np.std(T_opt)
-        debugPrint(f"R_opt: {R_opt}", -1)
-        R_ori = np.std(T_ori)
-        debugPrint(f"R_ori: {R_ori}", -1)  
-        # debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", -1)
+        # debugPrint(f"R_opt: {R_opt}", -1)
+        # R_opt = np.std(T_opt)
+        # R_ori = np.std(T_ori)
+        debugPrint(f"R_ori:set_opt {R_ori}", -1)  
+        debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", -1)
 
 
-        return set_opt.astype(int), v0_ev, R_opt, R_ori
+        return set_opt.astype(int), v0_ev, np.std(R_opt), np.std(R_ori)
     
     except Exception as e:
         print(traceback.format_exc())
