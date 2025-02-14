@@ -17,6 +17,7 @@ class SplashScreen:
     def __init__(self):
         self.root = tk.Tk()
         self.root.overrideredirect(True)
+        self.root.lift()
         # self.root.attributes('-alpha', 0.95)  # Slight transparency
         
         # Window dimensions
