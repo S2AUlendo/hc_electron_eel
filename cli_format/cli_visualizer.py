@@ -3,6 +3,21 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from matplotlib.patches import Rectangle
 import os
+import re
+
+def extract_array_from_line(line):
+    """
+    Extracts a numerical array from a string line formatted as `//PREFIX/[values]//`.
+    Example: Converts `//R_ORI/[1.04, 2.49, ...]//` to a NumPy array.
+    """
+    # Use regex to find content between [ and ]
+    match = re.search(r'\[(.*?)\]', line)
+    if not match:
+        return np.array([])
+    
+    # Split matched string into numerical values
+    array_str = match.group(1)
+    return np.array([float(x) for x in array_str.split(', ')])
     
 class CLIVisualizer:
     def __init__(self, filename=""):
@@ -12,7 +27,7 @@ class CLIVisualizer:
         self.origin = [0, 0]
         self.fig = None
         self.ax = None
-        self.r_values = []
+        self.r = []
         self.layer_slider = None
         self.hatch_slider = None
         self.current_layer = 0
@@ -54,7 +69,7 @@ class CLIVisualizer:
         except Exception as e:
             raise e
                     
-    def read_cli_file(self, dir, opti=False, data=None):
+    def read_cli_file(self, dir, has_r=False, data=None):
         try:
             if data is None:
                 file_path = os.path.join(dir, self.filename)
@@ -62,7 +77,7 @@ class CLIVisualizer:
                     data = f.readlines()
                     
             layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]
-            r_indices = np.where(np.char.startswith(data, "//R_VALUES/"))[0]
+            r_indices = np.where(np.char.startswith(data, "//R/"))[0]
             hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
             polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
             
@@ -86,10 +101,12 @@ class CLIVisualizer:
                 
                 if layer_hatches:  # Only append if we have data
                     self.layers.append(layer_hatches)  # Store as numpy array
-                    if opti:
-                        r_val = data[r_indices[layer_num]][11:-3].split(',')
-                        self.r_values.append([r_val[0], r_val[1]])  # Store r values
-                        
+                    if has_r:
+                        if len(r_indices) > 0:
+                            r_str = data[r_indices[0]]  # Take the first match
+                            r_array = extract_array_from_line(r_str)
+                            self.r.append(r_array)
+                                    
         except Exception as e:
             raise e
 
@@ -102,8 +119,8 @@ class CLIVisualizer:
         return 0
     
     def get_r_from_layer(self):
-        if 0 <= self.current_layer < len(self.r_values):
-            return self.r_values[self.current_layer]
+        if 0 <= self.current_layer < len(self.r):
+            return self.r[self.current_layer]
         return []
     
     def set_current_layer(self, layer_num):

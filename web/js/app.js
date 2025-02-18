@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', () => {
         if (!selectedFile) return;
 
+        plotRValues();
         if (showOriginal) {
             updateGraphCompare(optimizedGraphData.curLayer)
         } else {
@@ -36,7 +37,8 @@ document.addEventListener('DOMContentLoaded', function () {
         numHatches: 0,
         curLayer: 0,
         curHatch: 0,
-        rValues: [],
+        rOri: [],
+        rOpt: [],
     }
 
     var rawGraphData = {
@@ -45,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
         numHatches: 0,
         curLayer: 0,
         curHatch: 0,
-        rValues: [],
+        rVal: [],
     }
 
     var optimizedGraphData = {
@@ -54,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
         numHatches: 0,
         curLayer: 0,
         curHatch: 0,
-        rValues: [],
+        rVal: [],
     };
 
     var selectedFile;
@@ -76,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const refreshButton = document.getElementById('refreshButton');
     const playButton = document.getElementById('playButton');
     const processButton = document.getElementById('processButton');
-    const rOptimizedLabel = document.getElementById('rOptimized');
+    const rValmizedLabel = document.getElementById('rValmized');
     const rOriginalLabel = document.getElementById('rOriginal');
     const dataPlot = document.getElementById('data_plot');
 
@@ -98,8 +100,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewMaterialParamsButton = document.getElementById('view-materials');
     const viewMachineParamsButton = document.getElementById('view-machines');
     const spinner = document.getElementById('spinner');
-    const idleScreen = document.getElementById('idle-screen');
+    const idleScreen = document.getElementById('idle-container');
     const analysisContainer = document.getElementById('analysis-container');
+    const navContainer = document.getElementById('nav-container');
     const alertStatus = document.getElementById('alert-status');
     const alertMessage = document.getElementById('alert-message');
     const legendObj = document.getElementById("LegendComponentId");
@@ -120,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const itemsPerPage = 5;
 
     window.addEventListener('load', async () => {
-        
+
         await loadFileHistory();
         await loadMaterials();
         await loadMachines();
@@ -164,9 +167,12 @@ document.addEventListener('DOMContentLoaded', function () {
             optimizedGraphData.curHatch = 0;
             optimizedGraphData.curLayer = layerIndex;
 
-            const r_values = await eel.get_r_from_opti_layer()();
-            optimizedGraphData.rValues = r_values;
-            displayRValues();
+            const ori_r_values = await eel.get_r_from_data_layer()();
+            const opt_r_values = await eel.get_r_from_opti_layer()();
+            rawGraphData.rVal = ori_r_values;
+            optimizedGraphData.rVal = opt_r_values;
+
+            plotRValues();
 
             await loadCompleteBoundingBoxes();
             if (showHatchLines) {
@@ -483,15 +489,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function openViewWindow() {
-        
+
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {
                 if (!checkFileType(file.name)) {
                     processButton.disabled = false;
                     viewButton.disabled = false;
-                    enableMaterialsForm(with_select=true);
-                    enableMachinesForm(with_select=true);
+                    enableMaterialsForm(with_select = true);
+                    enableMachinesForm(with_select = true);
                     displayError("Invalid file type! Please attach a .cli file.", "Error");
                     return;
                 }
@@ -532,12 +538,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function isDouble(str) {
         const num = parseFloat(str);
         return !isNaN(num) && isFinite(num);
-    }
-
-    function displayRValues() {
-        r_values = optimizedGraphData.rValues;
-        rOptimizedLabel.textContent = isDouble(r_values[0]) ? r_values[0] : "NaN";
-        rOriginalLabel.textContent = isDouble(r_values[1]) ? r_values[1] : "NaN";
     }
 
     async function retrieveHashLines() {
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function selectFile(file) {
         try {
             idleScreen.style.display = 'none';
-            analysisContainer.style.display = 'none';
+            navContainer.style.display = 'none';
             spinner.style.display = "flex";
 
             await eel.compare_cli(file)();
@@ -702,18 +702,18 @@ document.addEventListener('DOMContentLoaded', function () {
             optimizedGraphData.numHatches = numHatchesOpti;
             optimizedGraphData.curLayer = 0;
 
-            const r_values = await eel.get_r_from_opti_layer()();
-            rawGraphData.rValues = r_values;
-            optimizedGraphData.rValues = r_values;
-
-            displayRValues();
+            const ori_r_values = await eel.get_r_from_data_layer()();
+            const opt_r_values = await eel.get_r_from_opti_layer()();
+            rawGraphData.rVal = ori_r_values;
+            optimizedGraphData.rVal = opt_r_values;
+            plotRValues();
             updateLayerSlider();
             updateHatchSlider();
 
             spinner.style.display = "none";
 
             selectedFile = file;
-            document.getElementById('analysis-container').style.display = 'flex';
+            navContainer.style.display = 'flex';
 
             if (showOriginal) {
                 updateGraphCompare(0);
@@ -874,8 +874,8 @@ document.addEventListener('DOMContentLoaded', function () {
         processButton.disabled = true;
         viewButton.disabled = true;
 
-        disableMaterialsForm(with_select=true);
-        disableMachinesForm(with_select=true);
+        disableMaterialsForm(with_select = true);
+        disableMachinesForm(with_select = true);
         const fileInput = document.getElementById('cliFile');
 
         if (fileInput.files.length > 0) {
@@ -884,8 +884,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!checkFileType(file.name)) {
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm(with_select=true);
-                enableMachinesForm(with_select=true);
+                enableMaterialsForm(with_select = true);
+                enableMachinesForm(with_select = true);
                 displayError("Invalid file type! Please attach a .cli file.", "Error");
                 return;
             }
@@ -906,8 +906,8 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             processButton.disabled = false;
             viewButton.disabled = false;
-            enableMaterialsForm(with_select=true);
-            enableMachinesForm(with_select=true);
+            enableMaterialsForm(with_select = true);
+            enableMachinesForm(with_select = true);
             displayError("Please attached a file to process!", "Error");
         }
     }
@@ -929,8 +929,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 clearInterval(interval);
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm(with_select=true);
-                enableMachinesForm(with_select=true);
+                enableMaterialsForm(with_select = true);
+                enableMachinesForm(with_select = true);
                 loadingStatus.textContent = '';
                 loadingBar.style.display = 'none';
                 await loadFileHistory();
@@ -988,15 +988,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function createScatterTraces(boxes) {
         const maxAge = boxes.length;
-        
+
         return boxes.map((box, index) => {
             const ageValue = (maxAge - index) / maxAge; // Normalized age (1 = newest, 0 = oldest)
             const color = interpolateColor(
-                {r: 255, g: 0, b: 0},   // Red (hot)
-                {r: 0, g: 0, b: 255},   // Blue (cold)
+                { r: 255, g: 0, b: 0 },   // Red (hot)
+                { r: 0, g: 0, b: 255 },   // Blue (cold)
                 ageValue
             );
-    
+
             return {
                 x: box[0],
                 y: box[1],
@@ -1013,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         });
     }
-    
+
     function interpolateColor(color1, color2, factor) {
         const result = {
             r: Math.round(color1.r + factor * (color2.r - color1.r)),
@@ -1073,12 +1073,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 showlegend: false,
                 hoverinfo: 'none'
             };
-    
+
             let optiPlotData = [...completeTrace, ...optimizedData, heatScaleDummy];
-    
+
             const layout = {
-                height: analysisContainer.clientHeight * 0.7,
-                width: analysisContainer.clientWidth,
+                height: navContainer.clientHeight * 0.7,
+                width: navContainer.clientWidth,
                 title: `Layer ${layerIndex}`,
                 margin: { l: 50, r: 100, t: 50, b: 50 }, // Adjust right margin for colorbar
                 xaxis: {
@@ -1095,13 +1095,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     fixedrange: false
                 }
             };
-    
+
             const config = {
                 responsive: true,
                 displayModeBar: true,
                 scrollZoom: true
             };
-            
+
             Plotly.newPlot('opti_plot', optiPlotData, layout, config);
         } catch (error) {
             console.error('Error updating graph:', error);
@@ -1116,8 +1116,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (optimizedGraphData.numLayers != rawGraphData.numLayers) {
                 return;
             }
-
-            const analysisContainer = document.getElementById('analysis-container');
 
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
@@ -1157,8 +1155,8 @@ document.addEventListener('DOMContentLoaded', function () {
             function getLayout(title) {
 
                 const layout = {
-                    height: analysisContainer.clientHeight * 0.7,
-                    width: analysisContainer.clientWidth / 2,
+                    height: navContainer.clientHeight * 0.7,
+                    width: navContainer.clientWidth / 2,
                     title: `${title}\nLayer ${layerIndex}`,
                     xaxis: {
                         title: 'X',
@@ -1209,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 showlegend: false,
                 hoverinfo: 'none'
             };
-    
+
             let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy]
             let optiPlotData = [...completeTrace, ...optiData, heatScaleDummy]
             Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), config);
@@ -1217,6 +1215,62 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
             console.error('Error updating graph:', error);
         }
+    }
+
+    function plotRValues() {
+        
+        const oriRValues = rawGraphData.rVal;
+        const optRValues = optimizedGraphData.rVal;
+
+        if (!oriRValues || !optRValues) {
+            return;
+        }
+        
+        // Generate time steps for the X-axis
+        const timeSteps = Array.from({ length: optRValues.length }, (_, i) => i + 1);
+
+        // Create traces for R_ORI and R_OPT
+        const trace1 = {
+            x: timeSteps,
+            y: oriRValues,
+            mode: 'scatter',
+            name: 'R_ORI',
+            line: {
+                color: 'blue'
+            }
+        };
+
+        const trace2 = {
+            x: timeSteps,
+            y: optRValues,
+            mode: 'scatter',
+            name: 'R_OPT',
+            line: {
+                color: 'red'
+            }
+        };
+
+        // Layout configuration
+        const layout = {
+            height: navContainer.clientHeight * 0.7,
+            width: navContainer.clientWidth / 2,
+            title: `R Chart\nLayer ${optimizedGraphData.curLayer}`,
+            xaxis: {
+                title: 'Time Step',
+                showgrid: true,
+                zeroline: false,
+                ticksuffix: "ms"
+            },
+            yaxis: {
+                title: 'R Value',
+                showgrid: true,
+                zeroline: false
+            },
+            showlegend: true
+        };
+
+        // Plot the chart
+        Plotly.newPlot('r_plot', [trace1, trace2], layout);
     }
 
 });

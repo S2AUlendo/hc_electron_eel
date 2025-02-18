@@ -504,13 +504,9 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
             display_status("Saving Custom Machine...")
             store_custom_machine(machine_key, selected_machine)
         
-        # store original file
-        data_file = os.path.join(data_dir, filename)
-        with open(data_file, "w", newline='') as f:
-            f.write(filecontent)
-        
-        outputname = f"{filename[:-4].strip()}-hc-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
-        DATA_OUTPUT_DICT[outputname] = filename
+        ori_name = f"{filename[:-4].strip()}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
+        output_name = f"{filename[:-4].strip()}-hc-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
+        DATA_OUTPUT_DICT[output_name] = ori_name
         
         with open(persistent_path("dictionary.json"), "w") as file:
             json.dump(DATA_OUTPUT_DICT, file)
@@ -525,8 +521,8 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
             convertDYNCliFile,
             args=(
                 filecontent,
-                filename,
-                outputname,
+                ori_name,
+                output_name,
                 output_dir,
                 progress[filename],  # Pass the shared dict item
                 selected_material,
@@ -617,8 +613,8 @@ def compare_cli(filename):
         data_visualizer = CLIVisualizer(original_file)
         opti_visualizer = CLIVisualizer(filename)
         
-        data_visualizer.read_cli_file(data_dir)
-        opti_visualizer.read_cli_file(output_dir, opti=True)
+        data_visualizer.read_cli_file(data_dir, has_r=True)
+        opti_visualizer.read_cli_file(output_dir, has_r=True)
         return
     except Exception as e:
         eel.displayError(traceback.format_exc(), "Error")
@@ -671,14 +667,16 @@ def get_r_from_opti_layer():
     global opti_visualizer
     if opti_visualizer is None:
         return []
-    return opti_visualizer.get_r_from_layer()
+    r_np = opti_visualizer.get_r_from_layer().tolist()
+    return r_np
 
 @eel.expose
 def get_r_from_data_layer():
     global data_visualizer
     if data_visualizer is None:
         return []
-    return data_visualizer.get_r_from_layer()
+    r_np = data_visualizer.get_r_from_layer().tolist()
+    return r_np
 
 @eel.expose
 def set_current_opti_layer(layer_num):
@@ -807,14 +805,14 @@ if __name__ == '__main__':
         # Set the feature size limit
         if not license.activated:
             sys.exit()
+            
+        # Show splash screen first
+        splash = SplashScreen()
         set_size_limit(license.feature)
         
         # Create communication queue and event flag
         init_queue = Queue()
         init_complete = threading.Event()
-
-        # Show splash screen first
-        splash = SplashScreen()
 
         # Thread worker function
         def initialize_eel():

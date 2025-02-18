@@ -88,7 +88,7 @@ def retrieve_file_data(layer_indices, hatch_indices, polyline_indices, data):
         
     return x_max_value, x_min_value, y_max_value, y_min_value, layer_data, hatch_lines
 
-def optimize_and_write(inputname, outputname, filelocation, progress, layer_data, data, selected_material, selected_machine, layer_indices, hatch_lines):
+def optimize_and_write(ori_filename, opt_filename, filelocation, progress, layer_data, data, selected_material, selected_machine, layer_indices, hatch_lines):
     Sorted_layers = np.array([])
     v0_evInit = None
     totaltracker = 0
@@ -100,15 +100,21 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
         os.makedirs(output_dir)
 
     progress['msg'] = f"Creating output file..."
-    output_file = os.path.join(output_dir, outputname)
+    ori_path = os.path.join("data", ori_filename)
+    output_file = os.path.join(output_dir, opt_filename)
+    
     try:
-        with open(output_file, "+a") as outfile:
+        with open(ori_path, "+a") as ori_file ,open(output_file, "+a") as opt_file:
             for layer_num in range(len(layer_indices)-1):
                 progress['msg'] = f"Processing layer {layer_num}/{len(layer_indices) - 1}"
                 if layer_num == 0: 
-                    outfile.write(f"$$HEADERSTART\n")
-                    outfile.write(f"$$ASCII\n$$UNITS/{units}\n$$VERSION/{version}\n$$DATE/{date}\n$$DIMENSION/{dimension}\n$$LAYERS/{layers}\n$$LABEL/{label}\n")
-                    outfile.write(f"$$HEADEREND\n")
+                    ori_file.write(f"$$HEADERSTART\n")
+                    ori_file.write(f"$$ASCII\n$$UNITS/{units}\n$$VERSION/{version}\n$$DATE/{date}\n$$DIMENSION/{dimension}\n$$LAYERS/{layers}\n$$LABEL/{label}\n")
+                    ori_file.write(f"$$HEADEREND\n")
+                    
+                    opt_file.write(f"$$HEADERSTART\n")
+                    opt_file.write(f"$$ASCII\n$$UNITS/{units}\n$$VERSION/{version}\n$$DATE/{date}\n$$DIMENSION/{dimension}\n$$LAYERS/{layers}\n$$LABEL/{label}\n")
+                    opt_file.write(f"$$HEADEREND\n")
                     
                 if (layer_num in hatch_lines):
                     
@@ -147,21 +153,32 @@ def optimize_and_write(inputname, outputname, filelocation, progress, layer_data
                             R_opt = 0
                             R_ori = 0
                     
-                    outfile.write(f"$$LAYER/{layer_num:.3f}\n")
-                    outfile.write(f"//R_VALUES/{R_opt:.3f}, {R_ori:.3f}//\n")
+                    ori_file.write(f"$$LAYER/{layer_num:.3f}\n")
+                    opt_file.write(f"$$LAYER/{layer_num:.3f}\n")
+                    
+                    R_ori_str = str(R_ori)
+                    R_opt_str = str(R_opt)
+                    
+                    ori_file.write(f"//R/{R_ori_str}//\n")
+                    opt_file.write(f"//R/{R_opt_str}//\n")
                     
                     # Access stored per-layer data
                     layer_info = layer_data[layer_num]
+                    
+                    for ori_seq in hatch_lines[layer_num][:, -1]:
+                        ori_file.write(f"{layer_info['hatch_data'][ori_seq]}\n")
+                        
                     for opt_seq in optimized_Sequence:
-                        outfile.write(f"{layer_info['hatch_data'][opt_seq]}\n")
+                        opt_file.write(f"{layer_info['hatch_data'][opt_seq]}\n")
                         
                     for polyline in layer_info['polyline_feautre_indices']:
-                        outfile.write(f"{data[polyline]}\n")
+                        opt_file.write(f"{data[polyline]}\n")
                     
                     progress['value'] = (layer_num + 1) / len(layer_indices)
         
             progress['msg'] = "Finishing..."
-            outfile.write("$$GEOMETRYEND\n")
+            ori_file.write("$$GEOMETRYEND\n")
+            opt_file.write("$$GEOMETRYEND\n")
     
     except Exception as e:
         print(traceback.format_exc())

@@ -677,9 +677,6 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
             # print("Ab_1: ", Ab_1)
 
             Bb = np.add(Bb, Ab_1)
-
-            
-            
             
             Beq[:, feature_current] = Bb[:,0]
             Ab_set[feature_current] = Ab
@@ -723,7 +720,6 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         
         T_ori = Tm0.copy()
         T_opt = Tm0.copy()
-        subset = numbers_set[:, -1]
         
         for i in range(total_features):
             
@@ -750,8 +746,7 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         debugPrint(f"R_ori:set_opt {R_ori}", -1)  
         debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", -1)
 
-
-        return set_opt.astype(int), v0_ev, np.std(R_opt), np.std(R_ori)
+        return set_opt.astype(int), v0_ev, R_opt, R_ori
     
     except Exception as e:
         print(traceback.format_exc())
