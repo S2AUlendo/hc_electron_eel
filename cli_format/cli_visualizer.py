@@ -89,23 +89,24 @@ class CLIVisualizer:
             for layer_num in range(len(layer_indices)-1):
                 # Find feature indices within the current layer
                 hatch_feature_indices = [i for i in hatch_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
-                polyline_feautre_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
-                
+                polyline_feature_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                  # Store as numpy array
                 layer_hatches = [] 
-                
+                    
+                # Find feature indices within the current layer
+                if len(r_indices) > 0:
+                    r_feature_indices = [i for i in r_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                    r = extract_array_from_line(data[r_feature_indices[0]])
+                    self.r.append(r)
+                    
                 for kk in range(len(hatch_feature_indices)):
                     hatches = data[hatch_feature_indices[kk]]
                     strCell = hatches.split(',')
                     hatch_coords = list(map(float, strCell[2:]))
                     layer_hatches.append(hatch_coords) 
                 
-                if layer_hatches:  # Only append if we have data
-                    self.layers.append(layer_hatches)  # Store as numpy array
-                    if has_r:
-                        if len(r_indices) > 0:
-                            r_str = data[r_indices[0]]  # Take the first match
-                            r_array = extract_array_from_line(r_str)
-                            self.r.append(r_array)
+                if layer_hatches: 
+                    self.layers.append(layer_hatches)
                                     
         except Exception as e:
             raise e

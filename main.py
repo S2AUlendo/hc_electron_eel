@@ -510,7 +510,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
         ori_name = f"{filename[:-4].strip()}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
         output_name = f"{filename[:-4].strip()}-hc-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
         
-        data_output_dict[output_name] = filename
+        data_output_dict[output_name] = ori_name
         
         with open(persistent_path("dictionary.json"), "w") as file:
             json.dump(data_output_dict, file)

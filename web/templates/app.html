@@ -155,22 +155,22 @@
                 <h2><i class="bi bi-bar-chart"></i></h2>
                 <p>Upload or select an optimized .cli file to get started</p>
             </div>
+            <div class="spinner-container" id="spinner">
+                <div class="spinner-border text-ulendo"></div>
+            </div>
             <div id="nav-container">
                 <nav>
                     <div class="nav nav-tabs" id="nav-tab" role="tablist">
                         <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab"
                             data-bs-target="#nav-analysis" type="button" role="tab" aria-controls="nav-home"
-                            aria-selected="true">Analysis</button>
+                            aria-selected="true">Sequence Visualizer</button>
                         <button class="nav-link" id="nav-profile-tab" data-bs-toggle="tab" data-bs-target="#nav-graph"
-                            type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Graph</button>
+                            type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Temperature Uniformity</button>
                     </div>
                 </nav>
                 <div class="tab-content" id="nav-tabContent">
                     <div class="tab-pane fade show active" id="nav-analysis" role="tabpanel"
                         aria-labelledby="nav-analysis-tab" tabindex="0">
-                        <div class="spinner-container" id="spinner">
-                            <div class="spinner-border text-ulendo"></div>
-                        </div>
                         <div id="analysis-container">
                             <div id="plot-container">
                                 <div id="data_plot"></div>
@@ -181,7 +181,7 @@
                             <label for="rOriginal" class="form-label" style="display: none;">R Original: <span
                                     id="rOriginal"></span></label>
                             <div class="slider-container px-3">
-                                <div class="d-flex align-items-center justify-content-evenly mt-3">
+                                <div class="playback-container mt-3">
                                     <button id="playButton" class="btn btn-primary">
                                         <i class="bi bi-play-fill"></i>
                                     </button>
@@ -209,9 +209,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                <label for="layerSlider" class="form-label">Layer: <span
-                                        id="layerValue">0</span></label>
-                                <input type="range" class="form-range" id="layerSlider" value="0">
                                 <label for="hatchSlider" class="form-label">Hatches: <span
                                         id="hatchesValue">0</span></label>
                                 <input type="range" class="form-range" id="hatchSlider" value="0">
@@ -224,15 +221,12 @@
                             <div id="r-plot-container">
                                 <div id="r_plot"></div>
                             </div>
-                            <div class="slider-container px-3">
-                                <label for="layerSliderR" class="form-label">Layer: <span
-                                        id="layerValue">0</span></label>
-                                <input type="range" class="form-range" id="layerSliderR" value="0">
-                                <label for="hatchSliderR" class="form-label">Hatches: <span
-                                        id="hatchesValue">0</span></label>
-                                <input type="range" class="form-range" id="hatchSliderR" value="0">
-                            </div>
                         </div>
+                    </div>
+                    <div class="slider-container px-3">
+                        <label for="layerSlider" class="form-label">Layer: <span
+                                id="layerValue">0</span></label>
+                        <input type="range" class="form-range" id="layerSlider" value="0">
                     </div>
                 </div>
             </div>

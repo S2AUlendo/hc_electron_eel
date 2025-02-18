@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewMachineParamsButton = document.getElementById('view-machines');
     const spinner = document.getElementById('spinner');
     const idleScreen = document.getElementById('idle-container');
-    const analysisContainer = document.getElementById('analysis-container');
     const navContainer = document.getElementById('nav-container');
     const alertStatus = document.getElementById('alert-status');
     const alertMessage = document.getElementById('alert-message');
@@ -172,8 +171,6 @@ document.addEventListener('DOMContentLoaded', function () {
             rawGraphData.rVal = ori_r_values;
             optimizedGraphData.rVal = opt_r_values;
 
-            plotRValues();
-
             await loadCompleteBoundingBoxes();
             if (showHatchLines) {
                 await retrieveHashLines();
@@ -183,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             updateHatchSlider();
 
+            plotRValues();
             if (showOriginal) {
                 updateGraphCompare(layerIndex);
             } else {
@@ -355,6 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
             rightSide.style.pointerEvents = 'none';
 
             if (!selectedFile) return;
+            plotRValues();
 
             if (showOriginal) {
                 updateGraphCompare(optimizedGraphData.curLayer);
@@ -706,15 +705,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const opt_r_values = await eel.get_r_from_opti_layer()();
             rawGraphData.rVal = ori_r_values;
             optimizedGraphData.rVal = opt_r_values;
-            plotRValues();
             updateLayerSlider();
             updateHatchSlider();
 
             spinner.style.display = "none";
 
             selectedFile = file;
-            navContainer.style.display = 'flex';
-
+            navContainer.style.display = 'block';
+            
+            // Call plot only after nav container is displayed
+            plotRValues();
             if (showOriginal) {
                 updateGraphCompare(0);
             } else {
@@ -1249,11 +1249,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 color: 'red'
             }
         };
-
+        console.log(navContainer.clientHeight)
         // Layout configuration
         const layout = {
             height: navContainer.clientHeight * 0.7,
-            width: navContainer.clientWidth / 2,
+            width: navContainer.clientWidth,
             title: `R Chart\nLayer ${optimizedGraphData.curLayer}`,
             xaxis: {
                 title: 'Time Step',
