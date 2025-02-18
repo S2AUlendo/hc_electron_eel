@@ -8,8 +8,8 @@ import traceback
 import sys
 
 from datetime import datetime
-from ulendohc_core.smartScanCore import *
-from ulendohc_core.util import *
+from src.ulendohc_core.smartScanCore import *
+from src.ulendohc_core.util import *
 
 FACTOR = 1 
 LAYER_GROUP = 10

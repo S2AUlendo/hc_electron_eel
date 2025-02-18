@@ -1,0 +1,204 @@
+import eel
+import threading
+import subprocess
+import traceback
+import os
+import sys
+from os import listdir
+from src.core.config_manager import ConfigManager
+from src.core.data_manager import DataManager
+from src.core.processing_manager import ProcessingManager
+from src.cli_format.cli_visualizer import CLIVisualizer
+from src.utils.io_utils import persistent_path, resource_path
+from src.output_capture.output_capture import OutputCapture
+from src.license.license import LicenseKey
+from src.screens.activationScreen import ActivationScreen
+from src.screens.errorWindow import ErrorWindow
+
+class HeatCompensationApp:
+    def __init__(self):
+        self.config = ConfigManager()
+        self.data_manager = DataManager()
+        self.processing = ProcessingManager(self.config, self.data_manager)
+        self.license = LicenseKey()
+        self.activation_splash = None
+        self.opti_visualizer = None
+        self.data_visualizer = None
+        self.output_capture = OutputCapture()
+        
+        self.initialize_eel()
+        self.setup_exposed_functions()
+
+    def initialize_eel(self):
+        eel.init('web', allowed_extensions=['.js', '.html'])
+        eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
+
+    def setup_exposed_functions(self):
+        # Expose all necessary methods to Eel
+        eel.expose(self.get_terminal_output)
+        eel.expose(self.view_processed_files)
+        eel.expose(self.get_r_from_opti_layer)
+        eel.expose(self.get_r_from_data_layer)
+        eel.expose(self.convert_cli_file)
+        eel.expose(self.get_task_status)
+        eel.expose(self.open_file_location)
+        eel.expose(self.read_cli)
+        eel.expose(self.compare_cli)
+        eel.expose(self.set_current_opti_layer)
+        eel.expose(self.set_current_data_layer)
+        eel.expose(self.set_current_opti_hatch)
+        eel.expose(self.set_current_data_hatch)
+        eel.expose(self.retrieve_coords_from_opti_cur)
+        eel.expose(self.retrieve_coords_from_data_cur)
+        eel.expose(self.get_app_info)
+        eel.expose(self.show_activate_screen)
+
+    def gstart(self):
+        try:
+            self.license.get_license_day_remaining()
+            if not self.license.activated:
+                self.show_activate_screen()
+                return
+
+            self.output_capture.start_capture()
+            eel.start('templates/app.html', mode="electron")
+        except Exception as e:
+            self.handle_error(e)
+
+    def show_activate_screen(self):
+        self.activation_splash = ActivationScreen(self.license)
+        self.activation_splash.run()
+
+    def handle_error(self, error):
+        error_screen = ErrorWindow(str(error), traceback.format_exc())
+        sys.exit(1)
+
+    # File operations
+    def convert_cli_file(self, filecontent, filename, material, machine):
+        return self.processing.convert_cli_file(filecontent, filename, material, machine)
+
+    def get_task_status(self, filename):
+        return self.processing.get_task_status(filename)
+
+    def open_file_location(self, filename):
+        try:
+            file_path = os.path.join(self.config.output_dir, filename)
+            if sys.platform == 'win32':
+                subprocess.Popen(f'explorer /select,"{file_path}"')
+            elif sys.platform == 'darwin':
+                subprocess.Popen(['open', '-R', file_path])
+            else:
+                subprocess.Popen(['xdg-open', os.path.dirname(file_path)])
+            return True
+        except Exception as e:
+            eel.displayError(traceback.format_exc(), "Error")
+            return False
+
+    # Visualization methods
+    def read_cli(self, filecontent):
+        try:
+            self.data_visualizer = CLIVisualizer()
+            self.data_visualizer.read_cli(filecontent)
+            return True
+        except Exception as e:
+            eel.displayError(traceback.format_exc(), "Error")
+            return False
+
+    def compare_cli(self, filename):
+        try:
+            original_file = self.processing.data_output_dict[filename]
+            self.data_visualizer = CLIVisualizer(original_file)
+            self.opti_visualizer = CLIVisualizer(filename)
+            
+            self.data_visualizer.read_cli_file(self.config.data_dir, has_r=True)
+            self.opti_visualizer.read_cli_file(self.config.output_dir, has_r=True)
+            return True
+        except Exception as e:
+            eel.displayError(traceback.format_exc(), "Error")
+            return False
+
+    # Data retrieval methods
+    def get_r_from_opti_layer(self):
+        if self.opti_visualizer:
+            return self.opti_visualizer.get_r_from_layer().tolist()
+        return []
+
+    def get_r_from_data_layer(self):
+        if self.data_visualizer:
+            return self.data_visualizer.get_r_from_layer().tolist()
+        return []
+
+    # Layer/hatch control methods
+    def set_current_opti_layer(self, layer_num):
+        if self.opti_visualizer:
+            self.opti_visualizer.set_current_layer(layer_num)
+        
+    def set_current_data_layer(self, layer_num):
+        if self.data_visualizer:
+            self.data_visualizer.set_current_layer(layer_num)
+
+    def set_current_opti_hatch(self, hatch_num):
+        if self.opti_visualizer:
+            self.opti_visualizer.set_current_hatch(hatch_num)
+        
+    def set_current_data_hatch(self, hatch_num):
+        if self.data_visualizer:
+            self.data_visualizer.set_current_hatch(hatch_num)
+
+    # Coordinate retrieval methods
+    def retrieve_coords_from_opti_cur(self):
+        if self.opti_visualizer:
+            coords = self.opti_visualizer.retrieve_hatch_lines_from_layer()
+            return {
+                'x': coords[0],
+                'y': coords[1],
+                'bounds': {
+                    'x_min': self.opti_visualizer.x_min,
+                    'x_max': self.opti_visualizer.x_max,
+                    'y_min': self.opti_visualizer.y_min,
+                    'y_max': self.opti_visualizer.y_max
+                }
+            }
+        return {}
+
+    def retrieve_coords_from_data_cur(self):
+        if self.data_visualizer:
+            coords = self.data_visualizer.retrieve_hatch_lines_from_layer()
+            return {
+                'x': coords[0],
+                'y': coords[1],
+                'bounds': {
+                    'x_min': self.data_visualizer.x_min,
+                    'x_max': self.data_visualizer.x_max,
+                    'y_min': self.data_visualizer.y_min,
+                    'y_max': self.data_visualizer.y_max
+                }
+            }
+        return {}
+
+    # Application info
+    def get_app_info(self):
+        self.license.get_license_day_remaining()
+        return {
+            "version": self.config.VERSION,
+            "activated": self.license.activated,
+            "feature": self.license.feature,
+            "license_key": self.license.license_key,
+            "days_remaining": self.license.days_remaining
+        }
+
+    def get_terminal_output(self):
+        return self.output_capture.get_output()
+
+    def view_processed_files(self):
+        try:
+            output_dir = self.config.output_dir
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                
+            files = [f for f in listdir(output_dir) if f.endswith('.cli')]
+            files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
+            return files
+        except Exception as e:
+            eel.displayError(traceback.format_exc(), "Error")
+            return []

@@ -9,8 +9,8 @@
 #*******************************************************
 
 
-from ulendohc_core.util import *
-import ulendohc_core.stateMatrixConstruction as SMC
+from src.ulendohc_core.util import *
+import src.ulendohc_core.stateMatrixConstruction as SMC
 from numba import jit
 import traceback
 
