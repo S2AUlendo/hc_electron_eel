@@ -805,7 +805,6 @@ if __name__ == '__main__':
         
         activation_splash = ActivationScreen(license)
         activation_splash.run()
-        splash = SplashScreen()
         
         get_configs()
         
