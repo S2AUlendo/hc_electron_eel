@@ -252,32 +252,40 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function createScatterTraces(boxes) {
-        let rate = 120 / rawGraphData.numHatches * 3;
+        const maxAge = boxes.length;
+        
         return boxes.map((box, index) => {
-            const x = box[0];
-            const y = box[1];
-            let radian = (boxes.length - index) * rate
-            if (radian >= 120) {
-                radian = 120
-            }
-            color = `hsl(${radian}, 100%, 50%)`;
-
+            const ageValue = (maxAge - index) / maxAge; // Normalized age (1 = newest, 0 = oldest)
+            const color = interpolateColor(
+                {r: 255, g: 0, b: 0},   // Red (hot)
+                {r: 0, g: 0, b: 255},   // Blue (cold)
+                ageValue
+            );
+    
             return {
-                x: x,
-                y: y,
-                type: 'scatter',
-                mode: 'lines',  // Remove markers, lines only
+                x: box[0],
+                y: box[1],
+                mode: 'lines',
                 fill: 'toself',
-                fillcolor: color, // More solid fill
                 line: {
                     color: color,
                     width: 1,
-                    simplify: false // Preserve exact path
+                    simplify: false
                 },
+                fillcolor: color + '80', // Add alpha channel
                 showlegend: false,
                 hoverinfo: 'none'
             };
         });
+    }
+
+    function interpolateColor(color1, color2, factor) {
+        const result = {
+            r: Math.round(color1.r + factor * (color2.r - color1.r)),
+            g: Math.round(color1.g + factor * (color2.g - color1.g)),
+            b: Math.round(color1.b + factor * (color2.b - color1.b))
+        };
+        return `rgb(${result.r},${result.g},${result.b})`;
     }
 
     function updateGraph(layerIndex) {
@@ -306,6 +314,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const viewContainer = document.getElementById('view-container');
 
+            const heatScaleDummy = {
+                x: [null],
+                y: [null],
+                type: 'scatter',
+                mode: 'markers',
+                marker: {
+                    size: 0,
+                    cmax: 1,
+                    cmin: 0,
+                    colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
+                    colorbar: {
+                        title: 'Heat Scale',
+                        titleside: 'right',
+                        thickness: 20,
+                        len: 0.6,
+                        yanchor: 'middle',
+                        ticks: 'outside',
+                        tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                        ticktext: ['Oldest', '', '', '', '', 'Newest']
+                    },
+                    showscale: true
+                },
+                showlegend: false,
+                hoverinfo: 'none'
+            };
+
             const layout = {
                 height: viewContainer.clientHeight * 0.7,
                 title: `Layer ${layerIndex}`,
@@ -330,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 displayModeBar: true,
                 scrollZoom: true
             };
-            let rawPlotData = [...completeTrace, ...rawData]
+            let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy];
 
             Plotly.newPlot('view-plot', rawPlotData, layout, config);
             window.dispatchEvent(new Event('resize'));

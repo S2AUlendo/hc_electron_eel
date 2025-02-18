@@ -72,9 +72,9 @@ def get_data_output_dict():
                     json.dump(data_output_dict, file)  # Write an empty dictionary to the file
     return data_output_dict
 
-DATA_OUTPUT_DICT = get_data_output_dict()
-DEFAULT_DATA_DIR = get_data_dir()
-DEFAULT_OUTPUT_DIR = get_persistent_output_dir()
+data_output_dict = None
+default_data_dir = None
+default_output_dir = None
 
 output_dir = ""
 data_dir = ""
@@ -89,8 +89,8 @@ is_activated = False
 
 config_defaults = {
     "default": {
-        "data": DEFAULT_DATA_DIR,
-        "output": DEFAULT_OUTPUT_DIR,
+        "data": default_data_dir,
+        "output": default_output_dir,
         "license_key": "",
         "feature": 0,
         "active": True
@@ -365,7 +365,10 @@ def store_custom_machine(machine_key, custom_properties):
         return False
 
 def get_configs():
-    global config, app_config_path, data_dir, output_dir, active_config
+    global config, app_config_path, data_dir, output_dir, active_config, data_output_dict
+    default_data_dir = get_data_dir()
+    data_output_dict = get_data_output_dict()
+    default_output_dir = get_persistent_output_dir()
     app_config_path = persistent_path('config.json')
     
     try:
@@ -380,13 +383,13 @@ def get_configs():
                 break
         
         if active_config:
-            data_dir = active_config.get("data", DEFAULT_DATA_DIR)
-            output_dir = active_config.get("output", DEFAULT_OUTPUT_DIR)
+            data_dir = active_config.get("data", default_data_dir)
+            output_dir = active_config.get("output", default_output_dir)
         else:
             # No active config found, use defaults
             config = config_defaults.copy()
-            data_dir = DEFAULT_DATA_DIR
-            output_dir = DEFAULT_OUTPUT_DIR
+            data_dir = default_data_dir
+            output_dir = default_output_dir
             active_config = config["default"]
             
             # Save default config
@@ -396,8 +399,8 @@ def get_configs():
     except (FileNotFoundError, json.JSONDecodeError):
         # Create new config file with defaults
         config = config_defaults.copy()
-        data_dir = DEFAULT_DATA_DIR
-        output_dir = DEFAULT_OUTPUT_DIR
+        data_dir = default_data_dir
+        output_dir = default_output_dir
         active_config = config["default"]
         
         with open(app_config_path, 'w') as f:
@@ -424,7 +427,7 @@ def change_output_dir(new_path):
         # Initialize custom config if not exists
         if "custom" not in config:
             config["custom"] = {
-                "data": DEFAULT_DATA_DIR,
+                "data": default_data_dir,
                 "output": new_path,
                 "active": True
             }
@@ -488,7 +491,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
     display_status("Starting...")
     global output_dir
     global data_dir
-    global DATA_OUTPUT_DICT
+    global data_output_dict
     try:
         if type(selected_material) == str:
             selected_material = json.loads(selected_material)
@@ -506,10 +509,11 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
         
         ori_name = f"{filename[:-4].strip()}-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
         output_name = f"{filename[:-4].strip()}-hc-{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}.cli"
-        DATA_OUTPUT_DICT[output_name] = ori_name
+        
+        data_output_dict[output_name] = filename
         
         with open(persistent_path("dictionary.json"), "w") as file:
-            json.dump(DATA_OUTPUT_DICT, file)
+            json.dump(data_output_dict, file)
             
         progress[filename] = _manager.dict()
         progress[filename]['value'] = 0
@@ -606,10 +610,10 @@ def compare_cli(filename):
     global opti_visualizer  # Add global keyword
     global data_dir
     global output_dir
-    global DATA_OUTPUT_DICT
+    global data_output_dict
     
     try:
-        original_file = DATA_OUTPUT_DICT[filename]
+        original_file = data_output_dict[filename]
         data_visualizer = CLIVisualizer(original_file)
         opti_visualizer = CLIVisualizer(filename)
         
@@ -796,11 +800,14 @@ if __name__ == '__main__':
         # Initialize multiprocessing FIRST
         initialize_multiprocessing()
         
-        get_configs()
+        # Check for instance then create splash screen first
         mutex = create_mutex()
         
         activation_splash = ActivationScreen(license)
         activation_splash.run()
+        splash = SplashScreen()
+        
+        get_configs()
         
         # Set the feature size limit
         if not license.activated:
