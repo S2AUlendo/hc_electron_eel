@@ -44,11 +44,10 @@ def persistent_path(rel_path):
     return os.path.join(exe_dir, rel_path)
 
 def get_persistent_output_dir():
-    global output_dir
-    output_dir = persistent_path("output")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    return output_dir
+    default_output = persistent_path("output")
+    if not os.path.exists(default_output):
+        os.makedirs(default_output)
+    return default_output
     
 def get_data_dir():
     data_dir = persistent_path("data")
@@ -76,9 +75,7 @@ data_output_dict = None
 default_data_dir = None
 default_output_dir = None
 
-output_dir = ""
-data_dir = ""
-config = ""
+active_config = ""
 
 materials_path = ""
 machines_path = ""
@@ -86,16 +83,6 @@ app_config_path = ""
 
 terminal_output = []
 is_activated = False
-
-config_defaults = {
-    "default": {
-        "data": default_data_dir,
-        "output": default_output_dir,
-        "license_key": "",
-        "feature": 0,
-        "active": True
-    }
-}
 
 material_defaults = {
     "Aluminum": {
@@ -365,85 +352,86 @@ def store_custom_machine(machine_key, custom_properties):
         return False
 
 def get_configs():
-    global config, app_config_path, data_dir, output_dir, active_config, data_output_dict
-    default_data_dir = get_data_dir()
-    data_output_dict = get_data_output_dict()
-    default_output_dir = get_persistent_output_dir()
+    # Initialize paths
+    global active_config
     app_config_path = persistent_path('config.json')
+    default_data_dir = get_data_dir()
+    default_output_dir = get_persistent_output_dir()
     
-    try:
-        # Load existing config
-        with open(app_config_path, 'r') as f:
-            config = json.load(f)
-            
-        # Find active config and set directories
-        for key, item in config.items():
-            if item.get("active", False):
-                active_config = item
-                break
-        
-        if active_config:
-            data_dir = active_config.get("data", default_data_dir)
-            output_dir = active_config.get("output", default_output_dir)
-        else:
-            # No active config found, use defaults
-            config = config_defaults.copy()
-            data_dir = default_data_dir
-            output_dir = default_output_dir
-            active_config = config["default"]
-            
-            # Save default config
-            with open(app_config_path, 'w') as f:
-                json.dump(config, f, indent=4)
-                
-    except (FileNotFoundError, json.JSONDecodeError):
-        # Create new config file with defaults
-        config = config_defaults.copy()
-        data_dir = default_data_dir
-        output_dir = default_output_dir
-        active_config = config["default"]
-        
-        with open(app_config_path, 'w') as f:
-            json.dump(config, f, indent=4)
-    
-    return config
+    # Default configuration template
+    config_defaults = {
+        "default": {
+            "data": default_data_dir,
+            "output": default_output_dir,
+            "license_key": "",
+            "feature": 0,
+            "active": True
+        }
+    }
 
+    try:
+        with open(app_config_path, 'r') as f:
+            configs = json.load(f)
+        active_config = next(
+            (cfg for cfg in configs.values() if cfg.get("active", False)),
+            None
+        )
+    except (FileNotFoundError, json.JSONDecodeError):
+        active_config = config_defaults.copy()
+        active_config = active_config["default"]
+        _save_config(app_config_path, active_config)
+    else:
+        if not active_config:
+            save_cofig = config_defaults.copy()
+            active_config = active_config["default"]
+            _save_config(app_config_path, save_cofig)
+
+    return {
+        "config": active_config,
+        "active_config": active_config,
+        "data_dir": active_config.get("data", default_data_dir),
+        "output_dir": active_config.get("output", default_output_dir),
+        "config_path": app_config_path
+    }
+
+def _save_config(path, config):
+    """Save configuration to file with proper formatting."""
+    with open(path, 'w') as f:
+        json.dump(config, f, indent=4)
+        
 def set_size_limit(feature):
+    app_config_path = persistent_path('config.json')
     if feature == active_config["feature"]:
         return
     active_config["feature"] = feature
     
     # save new config with new feature
     with open(app_config_path, "w") as f:
-        json.dump(config, f, indent=4)
+        json.dump(active_config, f, indent=4)
     
 @eel.expose
 def change_output_dir(new_path):
-    global config, output_dir
+    global active_config
     if new_path:
-        output_dir = new_path
-        config["default"]["active"] = False
+        active_config["default"]["active"] = False
         
         # Initialize custom config if not exists
-        if "custom" not in config:
-            config["custom"] = {
+        if "custom" not in active_config:
+            active_config["custom"] = {
                 "data": default_data_dir,
                 "output": new_path,
                 "active": True
             }
         else:
-            config["custom"]["output"] = new_path
-            config["custom"]["active"] = True
+            active_config["custom"]["output"] = new_path
+            active_config["custom"]["active"] = True
         
         try:
             with open(app_config_path, 'w') as f:
-                json.dump(config, f, indent=4)
+                json.dump(active_config, f, indent=4)
         except Exception as e:
             eel.displayError(traceback.format_exc(), "Error")
             print(f"Error saving config: {e}")
-            return output_dir
-            
-    return output_dir
 
 @eel.expose
 def get_terminal_output():
@@ -489,8 +477,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
         _manager, _pool = initialize_multiprocessing()
     
     display_status("Starting...")
-    global output_dir
-    global data_dir
+    global active_config
     global data_output_dict
     try:
         if type(selected_material) == str:
@@ -508,7 +495,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
             store_custom_machine(machine_key, selected_machine)
         
         # store original file
-        data_file = os.path.join(data_dir, filename)
+        data_file = os.path.join(active_config["default"]["data"], filename)
         with open(data_file, "w", newline='') as f:
             f.write(filecontent)
         
@@ -530,7 +517,7 @@ def convert_cli_file(filecontent, filename, selected_material, selected_material
                 filecontent,
                 filename,
                 outputname,
-                output_dir,
+                active_config["output"],
                 progress[filename],  # Pass the shared dict item
                 selected_material,
                 selected_machine,
@@ -568,14 +555,14 @@ def get_task_status(filename):
 @eel.expose
 def view_processed_files():
     try:
-        global output_dir
+        global active_config
         
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        if not os.path.exists(active_config["output"]):
+            os.makedirs(active_config["output"])
             
-        files = [f for f in listdir(output_dir) if f.endswith('.cli')]
+        files = [f for f in listdir(active_config["output"]) if f.endswith('.cli')]
         
-        files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
+        files.sort(key=lambda x: os.path.getmtime(os.path.join(active_config["output"], x)), reverse=True)
         
         return files
     except Exception as e:
@@ -590,9 +577,9 @@ def plot_with_slider():
 @eel.expose
 def open_file_location(filename):
     try:
-        global output_dir
+        global active_config
         
-        file_path = os.path.join(output_dir, filename)
+        file_path = os.path.join(active_config["output"], filename)
         subprocess.Popen(f'explorer /select,"{file_path}"')
         
     except Exception as e:
@@ -610,9 +597,7 @@ def read_cli(filecontent):
 @eel.expose
 def compare_cli(filename):
     global data_visualizer
-    global opti_visualizer  # Add global keyword
-    global data_dir
-    global output_dir
+    global opti_visualizer
     global data_output_dict
     
     try:
@@ -620,8 +605,8 @@ def compare_cli(filename):
         data_visualizer = CLIVisualizer(original_file)
         opti_visualizer = CLIVisualizer(filename)
         
-        data_visualizer.read_cli_file(data_dir)
-        opti_visualizer.read_cli_file(output_dir, opti=True)
+        data_visualizer.read_cli_file(active_config["data"])
+        opti_visualizer.read_cli_file(active_config["output"], opti=True)
         return
     except Exception as e:
         eel.displayError(traceback.format_exc(), "Error")
@@ -809,7 +794,7 @@ if __name__ == '__main__':
         splash = SplashScreen()
         
         get_configs()
-        
+        print(active_config)
         # Set the feature size limit
         if not license.activated:
             sys.exit()
