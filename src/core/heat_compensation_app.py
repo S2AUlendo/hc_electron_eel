@@ -4,7 +4,9 @@ import subprocess
 import traceback
 import os
 import sys
+import time
 from os import listdir
+from queue import Queue
 from src.core.config_manager import ConfigManager
 from src.core.data_manager import DataManager
 from src.core.processing_manager import ProcessingManager
@@ -14,6 +16,7 @@ from src.output_capture.output_capture import OutputCapture
 from src.license.license import LicenseKey
 from src.screens.activationScreen import ActivationScreen
 from src.screens.errorWindow import ErrorWindow
+from src.screens.splashScreen import SplashScreen
 
 class HeatCompensationApp:
     def __init__(self):
@@ -21,7 +24,11 @@ class HeatCompensationApp:
         self.data_manager = DataManager()
         self.processing = ProcessingManager(self.config, self.data_manager)
         self.license = LicenseKey()
+        self.init_queue = Queue()
+        self.init_complete = threading.Event()
+        self.init_thread = threading.Thread(target=self.initialize_eel)
         self.activation_splash = None
+        self.loading_splash = None
         self.opti_visualizer = None
         self.data_visualizer = None
         self.output_capture = OutputCapture()
@@ -30,8 +37,14 @@ class HeatCompensationApp:
         self.setup_exposed_functions()
 
     def initialize_eel(self):
-        eel.init('web', allowed_extensions=['.js', '.html'])
-        eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
+        try:
+            eel.init('web', allowed_extensions=['.js', '.html'])
+            eel.browsers.set_path('electron', resource_path('electron\electron.exe'))
+            self.init_queue.put(("success", None))
+        except Exception as e:
+            self.init_queue.put(("error", e))
+        finally:
+            self.init_complete.set()
 
     def setup_exposed_functions(self):
         # Expose all necessary methods to Eel
@@ -53,23 +66,43 @@ class HeatCompensationApp:
         eel.expose(self.get_app_info)
         eel.expose(self.show_activate_screen)
 
-    def gstart(self):
+    def start(self):
+        print("starting server...")
         try:
-            self.license.get_license_day_remaining()
-            if not self.license.activated:
-                self.show_activate_screen()
-                return
-
+            self.show_activate_screen()
+            self.show_loading_screen()
+            self.init_thread.start()
             self.output_capture.start_capture()
+            
             eel.start('templates/app.html', mode="electron")
         except Exception as e:
+            print(e)
+            print(str(e))
             self.handle_error(e)
 
     def show_activate_screen(self):
         self.activation_splash = ActivationScreen(self.license)
         self.activation_splash.run()
 
+    def show_loading_screen(self):
+        self.activation_splash = SplashScreen()
+
+    def update_loading_screen(self):
+        while not self.init_complete.is_set():
+            # Update splash with indeterminate progress pattern
+            self.loading_splash.update_progress("Warming up static files...")
+            time.sleep(0.1)  # Faster updates for responsiveness
+
+            # Check for initialization results
+            if not self.init_queue.empty():
+                status, payload = self.init_queue.get()
+                if status == "error":
+                    raise payload
+                
+        self.loading_splash.destroy()
+
     def handle_error(self, error):
+        print(str(error))
         error_screen = ErrorWindow(str(error), traceback.format_exc())
         sys.exit(1)
 
