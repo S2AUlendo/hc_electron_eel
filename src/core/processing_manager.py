@@ -80,7 +80,7 @@ class ProcessingManager:
                     self.progress[filename],
                     selected_material,
                     selected_machine,
-                    self.config_manager.features[self.config_manager.active_feature]
+                    self.config_manager.features[self.config_manager.active_config["feature"]]
                 )
             )
             self.futures[filename] = async_result
