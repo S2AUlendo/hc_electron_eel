@@ -30,7 +30,7 @@ class ProcessingManager:
         with open(persistent_path("dictionary.json"), "w") as file:
             json.dump(self.data_output_dict, file)
 
-    def convert_cli_file(self, filecontent, filename, selected_material, selected_machine):
+    def convert_cli_file(self, filecontent, filename, selected_material, selected_material_category, selected_machine):
         try:
             # Deserialize if needed
             if isinstance(selected_material, str):
@@ -40,9 +40,9 @@ class ProcessingManager:
 
             # Material handling
             material_key = "_".join(selected_material["name"].strip().split())
-            if material_key not in self.data_manager.materials[selected_material['category']]:
+            if material_key not in self.data_manager.materials[selected_material_category]:
                 self.data_manager.store_custom_material(
-                    selected_material['category'],
+                    selected_material_category,
                     material_key,
                     selected_material
                 )
@@ -88,7 +88,8 @@ class ProcessingManager:
 
         except Exception as e:
             error_msg = f"Error starting task: {str(e)}"
-            tb = traceback.format
+            tb = traceback.format_exc()
+            eel.displayError(tb, "Processing Error")
 
     def get_task_status(self, filename):
         if filename not in self.futures:

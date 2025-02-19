@@ -5,6 +5,7 @@ import traceback
 import os
 import sys
 import time
+import json
 from os import listdir
 from queue import Queue
 from src.core.config_manager import ConfigManager
@@ -55,6 +56,8 @@ class HeatCompensationApp:
         eel.expose(self.convert_cli_file)
         eel.expose(self.get_task_status)
         eel.expose(self.open_file_location)
+        eel.expose(self.get_materials)
+        eel.expose(self.get_machines)
         eel.expose(self.read_cli)
         eel.expose(self.compare_cli)
         eel.expose(self.set_current_opti_layer)
@@ -107,15 +110,15 @@ class HeatCompensationApp:
         sys.exit(1)
 
     # File operations
-    def convert_cli_file(self, filecontent, filename, material, machine):
-        return self.processing.convert_cli_file(filecontent, filename, material, machine)
+    def convert_cli_file(self, filecontent, filename, material, material_category, machine):
+        return self.processing.convert_cli_file(filecontent, filename, material, material_category, machine)
 
     def get_task_status(self, filename):
         return self.processing.get_task_status(filename)
 
     def open_file_location(self, filename):
         try:
-            file_path = os.path.join(self.config.output_dir, filename)
+            file_path = os.path.join(self.config.active_config["output"], filename)
             if sys.platform == 'win32':
                 subprocess.Popen(f'explorer /select,"{file_path}"')
             elif sys.platform == 'darwin':
@@ -127,6 +130,19 @@ class HeatCompensationApp:
             eel.displayError(traceback.format_exc(), "Error")
             return False
 
+    # def get_terminal_output():
+    #     return terminal_output
+
+    def get_materials(self):
+        return self.data_manager.materials
+        
+    def display_status(status_message):
+        eel.displayStatus(status_message)
+        print(status_message)
+        
+    def get_machines(self):
+        return self.data_manager.machines
+    
     # Visualization methods
     def read_cli(self, filecontent):
         try:
@@ -143,8 +159,8 @@ class HeatCompensationApp:
             self.data_visualizer = CLIVisualizer(original_file)
             self.opti_visualizer = CLIVisualizer(filename)
             
-            self.data_visualizer.read_cli_file(self.config.data_dir, has_r=True)
-            self.opti_visualizer.read_cli_file(self.config.output_dir, has_r=True)
+            self.data_visualizer.read_cli_file(self.config.active_config["data"], has_r=True)
+            self.opti_visualizer.read_cli_file(self.config.active_config["output"], has_r=True)
             return True
         except Exception as e:
             eel.displayError(traceback.format_exc(), "Error")
@@ -213,7 +229,7 @@ class HeatCompensationApp:
     def get_app_info(self):
         self.license.get_license_day_remaining()
         return {
-            "version": self.config.VERSION,
+            "version": self.config.version,
             "activated": self.license.activated,
             "feature": self.license.feature,
             "license_key": self.license.license_key,
@@ -225,7 +241,7 @@ class HeatCompensationApp:
 
     def view_processed_files(self):
         try:
-            output_dir = self.config.output_dir
+            output_dir = self.config.active_config["output"]
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
                 

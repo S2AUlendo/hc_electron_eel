@@ -10,6 +10,7 @@ class ConfigManager:
         self.data_dir = ""
         self.output_dir = ""
         self.app_config_path = persistent_path('config.json')
+        self.version = ""
         self.load_config()
 
     def load_config(self):
