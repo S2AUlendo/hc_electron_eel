@@ -34,7 +34,6 @@ class HeatCompensationApp:
         self.data_visualizer = None
         self.output_capture = OutputCapture()
         
-        self.initialize_eel()
         self.setup_exposed_functions()
 
     def initialize_eel(self):
@@ -75,6 +74,7 @@ class HeatCompensationApp:
             self.show_activate_screen()
             self.show_loading_screen()
             self.init_thread.start()
+            self.update_loading_screen()
             self.output_capture.start_capture()
             
             eel.start('templates/app.html', mode="electron")
@@ -88,7 +88,7 @@ class HeatCompensationApp:
         self.activation_splash.run()
 
     def show_loading_screen(self):
-        self.activation_splash = SplashScreen()
+        self.loading_splash = SplashScreen()
 
     def update_loading_screen(self):
         while not self.init_complete.is_set():
