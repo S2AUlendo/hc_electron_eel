@@ -116,9 +116,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var versionNumber = "";
     var machines = {};
-    var selectedMaterial = {};
+    var selectedMaterial = {
+        name: "",
+        kt: 0,
+        rho: 0,
+        cp: 0,
+        h: 0
+    };
     var selectedMaterialCategory = "";
-    var selectedMachine = {}
+    var selectedMachine = {
+        name: "",
+        vs: 0,
+        P: 0
+    }
     let currentPage = 1;
     const itemsPerPage = 5;
 
@@ -237,67 +247,71 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         );
 
+        customMaterialConfigInput.forEach(input => {
+            input.required = true;
+            input.addEventListener('input', () => {
+                updateCustomMaterial();
+            });
+        });
+
         materialNameDropdown.addEventListener('change', () => {
             let selectedValue = materialNameDropdown.value;
-            if (selectedValue === 'custom') {
-                enableMaterialsForm();
+            
+            let nameField = document.getElementById('custom-material-name');
+            let ktField = document.getElementById('kt');
+            let rhoField = document.getElementById('rho');
+            let cpField = document.getElementById('cp');
+            let hField = document.getElementById('h');
+            
+            selectedValue = JSON.parse(selectedValue);
+            selectedMaterial = selectedValue;
+            let selectedOption = selectedValue.option;
 
+            nameField.value = selectedValue.name;
+            ktField.value = Number(selectedValue.kt);
+            rhoField.value = Number(selectedValue.rho);
+            cpField.value = Number(selectedValue.cp);
+            hField.value = Number(selectedValue.h);
+
+            if (selectedOption === 'custom') {
+                enableMaterialsForm();
                 customMaterialConfigFields.style.display = 'grid';
-                customMaterialConfigInput.forEach(input => {
-                    input.required = true;
-                    input.addEventListener('input', () => {
-                        updateCustomMaterial();
-                    });
-                });
 
             } else {
-                let nameField = document.getElementById('custom-material-name');
-                let ktField = document.getElementById('kt');
-                let rhoField = document.getElementById('rho');
-                let cpField = document.getElementById('cp');
-                let hField = document.getElementById('h');
-
-                selectedValue = JSON.parse(selectedValue);
-
-                nameField.value = selectedValue.name;
-                ktField.value = Number(selectedValue.kt);
-                rhoField.value = Number(selectedValue.rho);
-                cpField.value = Number(selectedValue.cp);
-                hField.value = Number(selectedValue.h);
-
                 // Get category from parent optgroup
                 const selectedOption = materialNameDropdown.options[materialNameDropdown.selectedIndex];
                 selectedMaterialCategory = selectedOption.parentNode.label; // This gets the category
-
                 disableMaterialsForm(with_select = false);
-                selectedMaterial = materialNameDropdown.value;
             }
+        });
+
+        customMachineConfigInput.forEach(input => {
+            input.required = true;
+            input.addEventListener('input', () => {
+                updateCustomMachine();
+            });
         });
 
         machineNameDropdown.addEventListener('change', () => {
 
-            if (machineNameDropdown.value === 'custom') {
+            let machineValue = machineNameDropdown.value;
+            machineValue = JSON.parse(machineValue);
+            selectedMachine = machineValue;
+
+            let machineOption = machineValue.option;
+            let nameField = document.getElementById('custom-machine-name');
+            let vsField = document.getElementById('vs');
+            let PField = document.getElementById('P');
+
+            nameField.value = machineValue.name;
+            vsField.value = Number(machineValue.vs);
+            PField.value = Number(machineValue.P);
+
+            if (machineOption === 'custom') {
                 enableMachinesForm();
-
                 customMachineConfigFields.style.display = 'grid';
-                customMachineConfigInput.forEach(input => {
-                    input.required = true;
-                    input.addEventListener('input', () => {
-                        updateCustomMachine();
-                    });
-                });
             } else {
-                let nameField = document.getElementById('custom-machine-name');
-                let vsField = document.getElementById('vs');
-                let PField = document.getElementById('P');
-
-                nameField.value = JSON.parse(machineNameDropdown.value).name;
-                vsField.value = Number(JSON.parse(machineNameDropdown.value).vs);
-                PField.value = Number(JSON.parse(machineNameDropdown.value).P);
-
                 disableMachinesForm(with_select = false);
-                // customMachineConfigFields.style.display = 'none';
-                selectedMachine = machineNameDropdown.value;
             }
         });
 
@@ -414,6 +428,7 @@ document.addEventListener('DOMContentLoaded', function () {
     eel.expose(displayError)
     function displayError(message, status) {
         alert(message, status);
+        window.electronAPI.focus();
     }
 
     function disableCLIInput() {
@@ -743,6 +758,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Add materials to category
                 Object.values(materials).forEach(material => {
                     const option = document.createElement('option');
+                    material["option"] = material.name;
                     option.value = JSON.stringify(material);
                     option.textContent = material.name;
                     optgroup.appendChild(option);
@@ -753,7 +769,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Add custom option
             const option = document.createElement('option');
-            option.value = "custom";
+            option.value = JSON.stringify({
+                option: "custom",
+                name: "",
+                kt: 0,
+                rho: 0,
+                cp: 0,
+                h: 0
+            });
             option.textContent = "Add Custom Material";
             materialNameDropdown.appendChild(option);
 
@@ -774,6 +797,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 machines[machine] = machinesObject[machine];
 
                 const option = document.createElement('option');
+                machinesObject[machine].option = "machine";
                 option.value = JSON.stringify(machinesObject[machine]);
                 option.textContent = machine.replace(/_/g, ' ');
                 machineNameDropdown.appendChild(option);
@@ -781,7 +805,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Add custom option last
             const option = document.createElement('option');
-            option.value = "custom";
+            option.value = JSON.stringify({
+                name: "",
+                vs: 0,
+                P: 0,
+                option: "custom"
+            });
             option.textContent = "Add Custom Machine";
             machineNameDropdown.appendChild(option);
 
@@ -873,7 +902,25 @@ document.addEventListener('DOMContentLoaded', function () {
         return validExtensions.includes(extension);
     }
 
+    function checkValidInput() {
+        const checkMaterial = Object.values(selectedMaterial).every(value => {
+            return value !== 0 && value !== '';
+        });
+
+        const checkMachine = Object.values(selectedMachine).every(value => {
+            return value !== 0 && value !== '';
+        });
+
+        return checkMaterial && checkMachine;
+    }
+
     async function processFile() {
+
+        if (!checkValidInput()) {
+            displayError("Please fill in all fields!", "Error");
+            return;
+        }
+
         processButton.disabled = true;
         viewButton.disabled = true;
 

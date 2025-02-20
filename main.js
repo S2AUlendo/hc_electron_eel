@@ -306,3 +306,8 @@ app.on('browser-window-blur', function () {
   globalShortcut.unregister('F5');
   globalShortcut.unregister('F1');
 });
+
+ipcMain.on('focus-fix', () => {
+  mainWindow.blur();
+  mainWindow.focus();
+});

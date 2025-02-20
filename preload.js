@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld(
     'electronAPI', {
     // Expose the function to open new window
     selectDirectory: () => ipcRenderer.invoke('show-directory-dialog'),
+    focus: () => ipcRenderer.send('focus-fix'),
     getAppInfo: (callback) => {
         ipcRenderer.on('get-app-info', () => callback());
     },
