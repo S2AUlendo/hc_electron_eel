@@ -3,14 +3,18 @@ import sys
 import threading
 import io
 import queue
+import time
 import eel
+from multiprocessing import Manager
 
 class OutputCapture:
     def __init__(self):
         self.output_queue = queue.Queue()
+        self._manager = Manager()
+        self.mp_output_queue = self._manager.Queue()
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
-        
+    
     def start_capture(self):
         # Create custom stdout that both prints and captures
         class CustomOutput(io.StringIO):
@@ -44,10 +48,21 @@ class OutputCapture:
     def _monitor_output(self):
         while True:
             try:
-                output = self.output_queue.get()
-                # Send captured output to frontend
-                if output:
-                    eel.update_terminal_output(output)
+                # Process all messages from the multiprocessing queue first
+                while not self.mp_output_queue.empty():
+                    output_mp = self.mp_output_queue.get_nowait()
+                    if output_mp:
+                        eel.update_terminal_output(output_mp)
+
+                # Process all messages from the standard output queue
+                while not self.output_queue.empty():
+                    output_std = self.output_queue.get_nowait()
+                    if output_std:
+                        eel.update_terminal_output(output_std)
+
+                # Short sleep to prevent busy-waiting
+                time.sleep(0.1)
+
             except Exception as e:
                 print(f"Error in output monitoring: {e}")
     

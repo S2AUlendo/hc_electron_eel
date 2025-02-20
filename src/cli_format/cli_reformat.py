@@ -6,230 +6,263 @@
 import os
 import traceback
 import sys
-
+import io
+from src.output_capture.mp_output import CustomMPOutput
 from datetime import datetime
 from src.ulendohc_core.smartScanCore import *
 from src.ulendohc_core.util import *
 
-FACTOR = 1 
-LAYER_GROUP = 10
-
-dx = FACTOR # mm
-dy = FACTOR # mm
+class CLIReformat:
+    def __init__(self, data, output_location, original_name, output_name, progress, selected_material, selected_machine, feature=2000, mp_output_queue=None):
+        # Configuration parameters
+        self.FACTOR = 1
+        self.LAYER_GROUP = 10
+        self.dx = self.FACTOR  # mm
+        self.dy = self.FACTOR  # mm
+        self.feature = feature
         
-def parse_cli_header(data):
-    """Parse CLI file header section"""
-    def extract_value(prefix: str) -> str:
-        for line in data:
-            if line.startswith(prefix):
-                return line.split('/')[1].strip()
-        raise ValueError(f"Missing {prefix} in CLI header")
-
-    # Extract and convert values
-    units = float(extract_value("$$UNITS"))
-    version = int(extract_value("$$VERSION"))
-    date = extract_value("$$DATE")
-    dimensions = extract_value("$$DIMENSION")
-    layers = int(extract_value("$$LAYERS"))
-    label = extract_value("$$LABEL")
-    return [units, version, date, dimensions, layers, label]
-
-def retrieve_file_data(layer_indices, hatch_indices, polyline_indices, data):
-    hatch_lines= {}
-    layer_data = {}
-    
-    x_min_value = []
-    x_max_value = []
-    y_min_value = []
-    y_max_value = []
-    
-    for layer_num in range(len(layer_indices)-1):
-        hatch_data = {}
-        hatch_feature_indices = [i for i in hatch_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
-        polyline_feautre_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+        self.data = data.splitlines()
+        self.filelocation = output_location
+        self.ori_filename = original_name
+        self.opt_filename = output_name
         
-        # Process each feature index
-        for kk in range(len(hatch_feature_indices)):
-            hatches = data[hatch_feature_indices[kk]]
-            hatch_data[kk] = hatches
-            strCell = hatches.split(',')
-            hatches = list(map(float, strCell[2:]))
-            
-            x_max = np.max(hatches[::4])
-            x_min = np.min(hatches[2::4])
-            y_max = np.max(hatches[1::4])
-            y_min = np.min(hatches[3::4])
-            x_min_value.append(x_min)
-            x_max_value.append(x_max)
-            y_min_value.append(y_min)
-            y_max_value.append(y_max)
-            
-            numbers = np.array([])
-            
-            if (numbers.size == 0):
+        # File processing state
+        self.units = 0
+        self.version = 0
+        self.date = ""
+        self.dimension = ""
+        self.layers = 0
+        self.label = ""
+        self.dimension_x = 0
+        self.dimension_y = 0
+        self.build_area = 0
+        
+        # Geometry self.data
+        self.layer_indices = []
+        self.hatch_indices = []
+        self.polyline_indices = []
+        self.hatch_lines = {}
+        self.layer_data = {}
+        self.x_max_values = []
+        self.x_min_values = []
+        self.y_max_values = []
+        self.y_min_values = []
+        
+        # External interfaces
+        self.mp_output_queue = mp_output_queue
+        self.progress = progress
+        self.selected_material = selected_material
+        self.selected_machine = selected_machine
+        
+        self.parse_cli_header()
+        self.retrieve_indices()
+    
+    def retrieve_indices(self):
+        
+        self.layer_indices = np.where(np.char.startswith(self.data, "$$LAYER/"))[0]    
+        self.hatch_indices = np.where(np.char.startswith(self.data, "$$HATCHES/"))[0]
+        self.display_message(f"Hatch Indicies {len(self.hatch_indices)}")
+
+        self.polyline_indices = np.where(np.char.startswith(self.data, "$$POLYLINE/"))[0]
+        self.display_message(f"Polyline Indicies {len(self.polyline_indices)}")
+        
+        self.layer_indices = np.array(self.layer_indices)
+        self.hatch_indices = np.array(self.hatch_indices)
+        self.layer_indices = np.append(self.layer_indices, self.hatch_indices[-1] + 1)
+        self.display_message(f"Layer Indicies {len(self.layer_indices)}") 
+           
+    def parse_cli_header(self):
+        """Parse CLI file header section"""
+        def extract_value(prefix: str) -> str:
+            for line in self.data:
+                if line.startswith(prefix):
+                    return line.split('/')[1].strip()
+            raise ValueError(f"Missing {prefix} in CLI header")
+
+        # Extract and convert values
+        self.units = float(extract_value("$$UNITS"))
+        self.version = int(extract_value("$$VERSION"))
+        self.date = extract_value("$$DATE")
+        self.dimension = extract_value("$$DIMENSION")
+        self.layers = int(extract_value("$$LAYERS"))
+        self.label = extract_value("$$LABEL")
+        
+    def retrieve_file_data(self):
+        for layer_num in range(len(self.layer_indices) - 1):
+            hatch_data = {}
+            hatch_feature_indices = [
+                i for i in self.hatch_indices 
+                if self.layer_indices[layer_num] < i < self.layer_indices[layer_num + 1]
+            ]
+            polyline_feature_indices = [
+                i for i in self.polyline_indices 
+                if self.layer_indices[layer_num] < i < self.layer_indices[layer_num + 1]
+            ]
+
+            for kk, hatch_idx in enumerate(hatch_feature_indices):
+                hatches = self.data[hatch_idx]
+                hatch_data[kk] = hatches
+                str_cell = hatches.split(',')
+                hatches = list(map(float, str_cell[2:]))
+
+                x_max = np.max(hatches[::4])
+                x_min = np.min(hatches[2::4])
+                y_max = np.max(hatches[1::4])
+                y_min = np.min(hatches[3::4])
+
+                self.x_min_values.append(x_min)
+                self.x_max_values.append(x_max)
+                self.y_min_values.append(y_min)
+                self.y_max_values.append(y_max)
+
                 numbers = np.array([x_max, y_max, x_min, y_min, kk])
-            else:                     
-                numbers = np.vstack((numbers, np.array([x_max, y_max, x_min, y_min, kk])))
 
-            if (len(numbers.shape) == 1):
-                numbers = np.reshape(numbers, (-1, 5))
-            
-            if layer_num not in hatch_lines:
-                hatch_lines[layer_num] = numbers
-            else:
-                hatch_lines[layer_num] = np.vstack((hatch_lines[layer_num], numbers))
+                if layer_num not in self.hatch_lines:
+                    self.hatch_lines[layer_num] = numbers
+                else:
+                    self.hatch_lines[layer_num] = np.vstack((self.hatch_lines[layer_num], numbers))
+
+            self.layer_data[layer_num] = {
+                'hatch_data': hatch_data,
+                'hatch_feature_indices': hatch_feature_indices,
+                'polyline_feature_indices': polyline_feature_indices
+            }
+
+    def optimize_and_write(self):
+        Sorted_layers = np.array([])
+        v0_evInit = None
+        totaltracker = 0
+        output_dir = self.filelocation
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        self.progress['msg'] = f"Creating output file..."
+        ori_path = os.path.join("data", self.ori_filename)
+        output_file = os.path.join(output_dir, self.opt_filename)
         
-        # Store per-layer data
-        layer_data[layer_num] = {
-            'hatch_data': hatch_data,
-            'hatch_feature_indices': hatch_feature_indices,
-            'polyline_feautre_indices': polyline_feautre_indices
-        }
-        
-    return x_max_value, x_min_value, y_max_value, y_min_value, layer_data, hatch_lines
-
-def optimize_and_write(ori_filename, opt_filename, filelocation, progress, layer_data, data, selected_material, selected_machine, layer_indices, hatch_lines):
-    Sorted_layers = np.array([])
-    v0_evInit = None
-    totaltracker = 0
-    output_dir = filelocation
-    
-    units, version, date, dimension, layers, label = parse_cli_header(data)
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    progress['msg'] = f"Creating output file..."
-    ori_path = os.path.join("data", ori_filename)
-    output_file = os.path.join(output_dir, opt_filename)
-    
-    try:
-        with open(ori_path, "+a") as ori_file ,open(output_file, "+a") as opt_file:
-            for layer_num in range(len(layer_indices)-1):
-                progress['msg'] = f"Processing layer {layer_num}/{len(layer_indices) - 1}"
-                if layer_num == 0: 
-                    ori_file.write(f"$$HEADERSTART\n")
-                    ori_file.write(f"$$ASCII\n$$UNITS/{units}\n$$VERSION/{version}\n$$DATE/{date}\n$$DIMENSION/{dimension}\n$$LAYERS/{layers}\n$$LABEL/{label}\n")
-                    ori_file.write(f"$$HEADEREND\n")
-                    
-                    opt_file.write(f"$$HEADERSTART\n")
-                    opt_file.write(f"$$ASCII\n$$UNITS/{units}\n$$VERSION/{version}\n$$DATE/{date}\n$$DIMENSION/{dimension}\n$$LAYERS/{layers}\n$$LABEL/{label}\n")
-                    opt_file.write(f"$$HEADEREND\n")
-                    
-                if (layer_num in hatch_lines):
-                    
-                    if hatch_lines[layer_num].shape[0] < 3:
-                        optimized_Sequence = hatch_lines[layer_num][:, -1]
-                        R_opt = 0
-                        R_ori = 0
+        try:
+            with open(ori_path, "+a") as ori_file ,open(output_file, "+a") as opt_file:
+                for layer_num in range(len(self.layer_indices)-1):
+                    self.progress['msg'] = f"Processing layer {layer_num}/{len(self.layer_indices) - 1}"
+                    if layer_num == 0: 
+                        ori_file.write(f"$$HEADERSTART\n")
+                        ori_file.write(f"$$ASCII\n$$UNITS/{self.units}\n$$VERSION/{self.version}\n$$DATE/{self.date}\n$$DIMENSION/{self.dimension}\n$$LAYERS/{self.layers}\n$$LABEL/{self.label}\n")
+                        ori_file.write(f"$$HEADEREND\n")
                         
-                    else:
-                        totaltracker = int(hatch_lines[layer_num].shape[0]) + totaltracker
-                                            
-                        new_layer, x_size, y_size = convert_hatch_to_voxel(hatch_lines[layer_num], 67, 1, 1)   
-                        Objective_layers = 2     
+                        opt_file.write(f"$$HEADERSTART\n")
+                        opt_file.write(f"$$ASCII\n$$UNITS/{self.units}\n$$VERSION/{self.version}\n$$DATE/{self.date}\n$$DIMENSION/{self.dimension}\n$$LAYERS/{self.layers}\n$$LABEL/{self.label}\n")
+                        opt_file.write(f"$$HEADEREND\n")
                         
-                        print(f"Total Hatch Lines {hatch_lines[layer_num].shape}, at layer {layer_num}")
-
-                        Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
-                        print(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
-
-                        try:
-                            optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=hatch_lines[layer_num], 
-                                                                                        Sorted_layers=Sorted_layers, 
-                                                                                        dx=dx, dy=dy, 
-                                                                                        reduced_order=50, 
-                                                                                        kt=float(selected_material['kt']),
-                                                                                        rho=float(selected_material['rho']),
-                                                                                        cp=float(selected_material['cp']),
-                                                                                        vs=float(selected_machine['vs']),
-                                                                                        h=float(selected_material['h']),
-                                                                                        P=float(selected_machine['P']),
-                                                                                        v0_ev=v0_evInit
-                                                                                        )  
-                        except Exception as e:
-                            # if unable to find solution just original sequence
-                            optimized_Sequence = hatch_lines[layer_num][:, -1]
+                    if (layer_num in self.hatch_lines):
+                        
+                        if self.hatch_lines[layer_num].shape[0] < 3:
+                            optimized_Sequence = self.hatch_lines[layer_num][:, -1]
                             R_opt = 0
                             R_ori = 0
-                    
-                    ori_file.write(f"$$LAYER/{layer_num:.3f}\n")
-                    opt_file.write(f"$$LAYER/{layer_num:.3f}\n")
-                    
-                    R_ori_str = str(R_ori)
-                    R_opt_str = str(R_opt)
-                    
-                    ori_file.write(f"//R/{R_ori_str}//\n")
-                    opt_file.write(f"//R/{R_opt_str}//\n")
-                    
-                    # Access stored per-layer data
-                    layer_info = layer_data[layer_num]
-                    
-                    for ori_seq in hatch_lines[layer_num][:, -1]:
-                        ori_file.write(f"{layer_info['hatch_data'][ori_seq]}\n")
+                            
+                        else:
+                            totaltracker = int(self.hatch_lines[layer_num].shape[0]) + totaltracker
+                                                
+                            new_layer, x_size, y_size = convert_hatch_to_voxel(self.hatch_lines[layer_num], 67, 1, 1)   
+                            Objective_layers = 2     
+                            
+                            self.display_message(f"Total Hatch Lines {self.hatch_lines[layer_num].shape}, at layer {layer_num}")
+
+                            Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
+                            self.display_message(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
+
+                            try:
+                                optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=self.hatch_lines[layer_num], 
+                                                                                            Sorted_layers=Sorted_layers, 
+                                                                                            dx=self.dx, dy=self.dy, 
+                                                                                            reduced_order=50, 
+                                                                                            kt=float(self.selected_material['kt']),
+                                                                                            rho=float(self.selected_material['rho']),
+                                                                                            cp=float(self.selected_material['cp']),
+                                                                                            vs=float(self.selected_machine['vs']),
+                                                                                            h=float(self.selected_material['h']),
+                                                                                            P=float(self.selected_machine['P']),
+                                                                                            v0_ev=v0_evInit
+                                                                                            )  
+                            except Exception as e:
+                                # if unable to find solution just original sequence
+                                optimized_Sequence = self.hatch_lines[layer_num][:, -1]
+                                R_opt = 0
+                                R_ori = 0
                         
-                    for opt_seq in optimized_Sequence:
-                        opt_file.write(f"{layer_info['hatch_data'][opt_seq]}\n")
+                        ori_file.write(f"$$LAYER/{layer_num:.3f}\n")
+                        opt_file.write(f"$$LAYER/{layer_num:.3f}\n")
                         
-                    for polyline in layer_info['polyline_feautre_indices']:
-                        opt_file.write(f"{data[polyline]}\n")
-                    
-                    progress['value'] = (layer_num + 1) / len(layer_indices)
-        
-            progress['msg'] = "Finishing..."
-            ori_file.write("$$GEOMETRYEND\n")
-            opt_file.write("$$GEOMETRYEND\n")
-    
-    except Exception as e:
-        print(traceback.format_exc())
-        print(f"Error: {e}")
-        raise e
-    
-def convertDYNCliFile(filecontent, inputname, outputname, filelocation, progress, selected_material, selected_machine, max_size=1250):
-    
-    progress["msg"] = "Retrieving file information..."
-    data = filecontent.splitlines()
-    
-    layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]    
-    hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
-    print(f"Hatch Indicies {len(hatch_indices)}")
-
-    polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
-    print(f"Polyline Indicies {len(polyline_indices)}")
-    
-    layer_indices = np.array(layer_indices)
-    hatch_indices = np.array(hatch_indices)
-    layer_indices = np.append(layer_indices, hatch_indices[-1] + 1)
-    print(f"Layer Indicies {len(layer_indices)}")    
-
-    # Retrieve file data
-    x_max_value, x_min_value, y_max_value, y_min_value, layer_data, hatch_lines = retrieve_file_data(layer_indices, hatch_indices, polyline_indices, data)
-    
-    # Calculate dimensions
-    dimension_x = np.max(x_max_value) - np.min(x_min_value)
-    dimension_y = np.max(y_max_value) - np.min(y_min_value)
-    build_area = dimension_x * dimension_y
-    
-    if build_area < 0:
-        progress["error"] = "Error: Build area is less than 0"
-        return
-    
-    if build_area > max_size:
-        progress["error"] = f"Error: Build area is more than {max_size}!\nPlease navigate to the help menu to upgrade your current license to support a bigger build volume."
-        return
-    
-    # Optimize and write output file
-    optimize_and_write(inputname, outputname, filelocation, progress, layer_data, data, selected_material, selected_machine, layer_indices, hatch_lines)
-    
-    minimum_x = np.min(x_min_value)
-    minimum_y = np.min(y_min_value)
-
-    # Iterate over layers
-    for ii in range(len(layer_indices)-1):
-        if ii in hatch_lines:
-            hatch_lines[ii][:, [0, 2]] = hatch_lines[ii][:, [0, 2]] - minimum_x
-            hatch_lines[ii][:, [1, 3]] = hatch_lines[ii][:, [1, 3]] - minimum_y
+                        R_ori_str = str(R_ori)
+                        R_opt_str = str(R_opt)
+                        
+                        ori_file.write(f"//R/{R_ori_str}//\n")
+                        opt_file.write(f"//R/{R_opt_str}//\n")
+                        
+                        # Access stored per-layer self.data
+                        layer_info = self.layer_data[layer_num]
+                        
+                        for ori_seq in self.hatch_lines[layer_num][:, -1]:
+                            ori_file.write(f"{layer_info['hatch_data'][ori_seq]}\n")
+                            
+                        for opt_seq in optimized_Sequence:
+                            opt_file.write(f"{layer_info['hatch_data'][opt_seq]}\n")
+                            
+                        for polyline in layer_info['polyline_feature_indices']:
+                            opt_file.write(f"{self.data[polyline]}\n")
+                        
+                        self.progress['value'] = (layer_num + 1) / len(self.layer_indices)
             
-    progress["msg"] = "Completed"
-    return hatch_lines, dimension_x, dimension_y
+                self.display_message("Finishing...")
+                ori_file.write("$$GEOMETRYEND\n")
+                opt_file.write("$$GEOMETRYEND\n")
+        
+        except Exception as e:
+            self.display_message(traceback.format_exc())
+            self.display_message(f"Error: {e}")
+            raise e
     
+    def get_and_check_dimensions(self):
+        self.dimension_x = np.max(self.x_max_values) - np.min(self.x_min_values)
+        self.dimension_y = np.max(self.y_max_values) - np.min(self.y_min_values)
+        self.build_area = self.dimension_x * self.dimension_y
+        
+        if self.build_area < 0:
+            self.progress["error"] = "Error: Build area is less than 0"
+            return
+        
+        if self.build_area > self.feature:
+            self.progress["error"] = f"Error: Build area is more than {self.feature}!\nPlease navigate to the help menu to upgrade your current license to support a bigger build volume."
+            return
+    
+    def display_message(self, message):
+        self.progress["msg"] = message
+        print(message)
+        
+    def convert_dync_cli_file(self):
+        sys.stdout = CustomMPOutput(self.mp_output_queue)
+        
+        self.progress["msg"] = "Retrieving file information..."
+
+        # Retrieve file self.data
+        self.retrieve_file_data()
+        
+        # Calculate dimensions
+        self.get_and_check_dimensions()
+        
+        # Optimize and write output file
+        self.optimize_and_write()
+        
+        minimum_x = np.min(self.x_min_values)
+        minimum_y = np.min(self.y_min_values)
+
+        # Iterate over layers
+        for ii in range(len(self.layer_indices)-1):
+            if ii in self.hatch_lines:
+                self.hatch_lines[ii][:, [0, 2]] = self.hatch_lines[ii][:, [0, 2]] - minimum_x
+                self.hatch_lines[ii][:, [1, 3]] = self.hatch_lines[ii][:, [1, 3]] - minimum_y
+                
+        self.progress["msg"] = "Completed"
+        return self.hatch_lines, self.dimension_x, self.dimension_y
+        

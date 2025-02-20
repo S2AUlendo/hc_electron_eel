@@ -21,9 +21,10 @@ from src.screens.splashScreen import SplashScreen
 
 class HeatCompensationApp:
     def __init__(self):
+        self.output_capture = OutputCapture()
         self.config = ConfigManager()
         self.data_manager = DataManager()
-        self.processing = ProcessingManager(self.config, self.data_manager)
+        self.processing = ProcessingManager(self.config, self.data_manager, self.output_capture.mp_output_queue)
         self.license = LicenseKey()
         self.init_queue = Queue()
         self.init_complete = threading.Event()
@@ -32,7 +33,6 @@ class HeatCompensationApp:
         self.loading_splash = None
         self.opti_visualizer = None
         self.data_visualizer = None
-        self.output_capture = OutputCapture()
         
         self.setup_exposed_functions()
 
@@ -67,9 +67,19 @@ class HeatCompensationApp:
         eel.expose(self.retrieve_coords_from_data_cur)
         eel.expose(self.get_app_info)
         eel.expose(self.show_activate_screen)
+        eel.expose(self.display_status)
+        eel.expose(self.retrieve_opti_layers)
+        eel.expose(self.retrieve_data_layers)
+        eel.expose(self.get_num_layers_data)
+        eel.expose(self.get_num_layers_opti)
+        eel.expose(self.get_num_hatches_data)
+        eel.expose(self.get_num_hatches_opti)
+        eel.expose(self.retrieve_full_bounding_box_opti)
+        eel.expose(self.retrieve_full_bounding_box_data)
+        eel.expose(self.retrieve_bounding_box_from_opti_layer)
+        eel.expose(self.retrieve_bounding_box_from_data_layer)
 
     def start(self):
-        print("starting server...")
         try:
             self.show_activate_screen()
             self.show_loading_screen()
@@ -86,6 +96,9 @@ class HeatCompensationApp:
     def show_activate_screen(self):
         self.activation_splash = ActivationScreen(self.license)
         self.activation_splash.run()
+        
+        # set the feature of the license
+        self.config.set_size_limit(self.license.feature)
 
     def show_loading_screen(self):
         self.loading_splash = SplashScreen()
@@ -164,9 +177,38 @@ class HeatCompensationApp:
             return True
         except Exception as e:
             eel.displayError(traceback.format_exc(), "Error")
-            return False
+            return False 
+        
+    def retrieve_opti_layers(self):
+        if self.opti_visualizer is None:
+            return []
+        return self.opti_visualizer.layers
 
-    # Data retrieval methods
+    def retrieve_data_layers(self):
+        if self.data_visualizer is None:
+            return []
+        return self.data_visualizer.layers
+
+    def get_num_layers_data(self):
+        if self.data_visualizer is None:
+            return 0
+        return self.data_visualizer.get_num_layers()
+
+    def get_num_layers_opti(self):
+        if self.opti_visualizer is None:
+            return 0
+        return self.opti_visualizer.get_num_layers()
+    
+    def get_num_hatches_data(self):
+        if self.data_visualizer is None:
+            return 0
+        return self.data_visualizer.get_num_hatches()
+
+    def get_num_hatches_opti(self):
+        if self.opti_visualizer is None:
+            return 0
+        return self.opti_visualizer.get_num_hatches()
+
     def get_r_from_opti_layer(self):
         if self.opti_visualizer:
             return self.opti_visualizer.get_r_from_layer().tolist()
@@ -194,6 +236,30 @@ class HeatCompensationApp:
         if self.data_visualizer:
             self.data_visualizer.set_current_hatch(hatch_num)
 
+    def retrieve_full_bounding_box_opti(self):
+        if self.opti_visualizer is None:
+            return {'x': [], 'y': []}
+        bounding_boxes = self.opti_visualizer.get_full_bounding_boxes_from_layer()
+        return {'bounding_boxes': bounding_boxes, 'x_min': self.opti_visualizer.x_min, 'x_max': self.opti_visualizer.x_max, 'y_min': self.opti_visualizer.y_min, 'y_max': self.opti_visualizer.y_max}
+        
+    def retrieve_full_bounding_box_data(self):
+        if self.data_visualizer is None:
+            return {'x': [], 'y': []}
+        bounding_boxes = self.data_visualizer.get_full_bounding_boxes_from_layer()
+        return {'bounding_boxes': bounding_boxes, 'x_min': self.data_visualizer.x_min, 'x_max': self.data_visualizer.x_max, 'y_min': self.data_visualizer.y_min, 'y_max': self.data_visualizer.y_max}
+        
+    def retrieve_bounding_box_from_opti_layer(self):
+        if self.opti_visualizer is None:
+            return {'x': [], 'y': []}
+        bounding_boxes = self.opti_visualizer.get_bounding_boxes_from_layer()
+        return {'bounding_boxes': bounding_boxes, 'x_min': self.opti_visualizer.x_min, 'x_max': self.opti_visualizer.x_max, 'y_min': self.opti_visualizer.y_min, 'y_max': self.opti_visualizer.y_max}
+
+    def retrieve_bounding_box_from_data_layer(self):
+        if self.data_visualizer is None:
+            return {'x': [], 'y': []}
+        bounding_boxes = self.data_visualizer.get_bounding_boxes_from_layer()
+        return {'bounding_boxes': bounding_boxes, 'x_min': self.data_visualizer.x_min, 'x_max': self.data_visualizer.x_max, 'y_min': self.data_visualizer.y_min, 'y_max': self.data_visualizer.y_max}
+    
     # Coordinate retrieval methods
     def retrieve_coords_from_opti_cur(self):
         if self.opti_visualizer:
