@@ -8,7 +8,7 @@ class ConfigManager:
         self.config = {}
         self.active_config = None
         self.app_config_path = persistent_path('config.json')
-        self.version = ""
+        self.version = "0.2.1"
         self.load_config()
 
     def load_config(self):
