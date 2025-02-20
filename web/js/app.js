@@ -78,8 +78,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const refreshButton = document.getElementById('refreshButton');
     const playButton = document.getElementById('playButton');
     const processButton = document.getElementById('processButton');
-    const rValmizedLabel = document.getElementById('rValmized');
-    const rOriginalLabel = document.getElementById('rOriginal');
     const dataPlot = document.getElementById('data_plot');
 
     // Custom Material
@@ -104,7 +102,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const navContainer = document.getElementById('nav-container');
     const alertStatus = document.getElementById('alert-status');
     const alertMessage = document.getElementById('alert-message');
-    const legendObj = document.getElementById("LegendComponentId");
 
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
@@ -1059,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     cmin: 0,
                     colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
                     colorbar: {
-                        title: 'Heat Scale',
+                        title: 'Temporal Scale',
                         titleside: 'right',
                         thickness: 20,
                         len: 0.6,
@@ -1193,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     cmin: 0,
                     colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
                     colorbar: {
-                        title: 'Heat Scale',
+                        title: 'Temporal Scale',
                         titleside: 'right',
                         thickness: 20,
                         len: 0.6,
@@ -1249,7 +1246,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 color: 'red'
             }
         };
-        console.log(navContainer.clientHeight)
+
         // Layout configuration
         const layout = {
             height: navContainer.clientHeight * 0.7,

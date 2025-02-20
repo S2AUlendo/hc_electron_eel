@@ -104,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function () {
         completeGraphData.y_max = completeCoords.y_max;
 
         completeTrace = createCompleteTrace();
-        console.log('made')
     }
 
     async function readFile(fileContent) {
@@ -325,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     cmin: 0,
                     colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
                     colorbar: {
-                        title: 'Heat Scale',
+                        title: 'Temporal Scale',
                         titleside: 'right',
                         thickness: 20,
                         len: 0.6,
