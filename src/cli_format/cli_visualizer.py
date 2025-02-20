@@ -148,13 +148,13 @@ class CLIVisualizer:
                 y_min = min(y_coords)
                 y_max = max(y_coords)
                 
-                if x_min > self.x_min:
+                if x_min < self.x_min:
                     self.x_min = x_min
-                if x_max < self.x_max:
+                if x_max > self.x_max:
                     self.x_max = x_max
-                if y_min > self.y_min:
+                if y_min < self.y_min:
                     self.y_min = y_min
-                if y_max < self.y_max:
+                if y_max > self.y_max:
                     self.y_max = y_max
             
             return x_coords, y_coords
@@ -178,13 +178,13 @@ class CLIVisualizer:
                     y_min = np.min(y_coords)
                     y_max = np.max(y_coords)
                     
-                    if x_min > self.x_min:
+                    if x_min < self.x_min:
                         self.x_min = x_min
-                    if x_max < self.x_max:
+                    if x_max > self.x_max:
                         self.x_max = x_max
-                    if y_min > self.y_min:
+                    if y_min < self.y_min:
                         self.y_min = y_min
-                    if y_max < self.y_max:
+                    if y_max > self.y_max:
                         self.y_max = y_max
                         
                     bounding_boxes.append([[x_min, x_max, x_max, x_min, x_min], [y_min, y_min, y_max, y_max, y_min]])
@@ -210,13 +210,13 @@ class CLIVisualizer:
                     y_min = np.min(y_coords)
                     y_max = np.max(y_coords)
                     
-                    if x_min > self.x_min:
+                    if x_min < self.x_min:
                         self.x_min = x_min
-                    if x_max < self.x_max:
+                    if x_max > self.x_max:
                         self.x_max = x_max
-                    if y_min > self.y_min:
+                    if y_min < self.y_min:
                         self.y_min = y_min
-                    if y_max < self.y_max:
+                    if y_max > self.y_max:
                         self.y_max = y_max
                         
                     bounding_boxes.append([[x_min, x_max, x_max, x_min, x_min], [y_min, y_min, y_max, y_max, y_min]])
