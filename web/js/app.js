@@ -934,7 +934,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (status["status"] === "error") {
 
                 alertMessage.innerText = status.message;
-                removeClassStartsWith(alertStatus, 'alert-');
+                removeClassStartsWith(alertStatus, 'alert-success');
                 alertStatus.classList.add('alert-danger');
                 alertStatus.style.display = 'block';
                 clearInterval(interval);
@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
 
                 alertMessage.innerText = status.message;
-                removeClassStartsWith(alertStatus, 'alert-');
+                removeClassStartsWith(alertStatus, 'alert-danger');
                 alertStatus.classList.add('alert-success');
                 alertStatus.style.display = 'block';
                 clearInterval(interval);
