@@ -35,6 +35,12 @@ class HeatCompensationApp:
         self.data_visualizer = None
         
         self.setup_exposed_functions()
+        
+    def __del__(self):
+        # self.output_capture.restore()
+        self.opti_visualizer = None
+        self.data_visualizer = None
+        print("App closed.")
 
     def initialize_eel(self):
         try:
@@ -317,3 +323,4 @@ class HeatCompensationApp:
         except Exception as e:
             eel.displayError(traceback.format_exc(), "Error")
             return []
+        

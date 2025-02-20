@@ -31,6 +31,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, true);
 
+    function removeClassStartsWith(element, className) {
+        element.className = element.className.split(" ").filter(c => !c.startsWith(className)).join(" ");
+    }
+
     var completeGraphData = {
         layers: [],
         numLayers: 0,
@@ -709,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             selectedFile = file;
             navContainer.style.display = 'block';
-            
+
             // Call plot only after nav container is displayed
             plotRValues();
             if (showOriginal) {
@@ -808,8 +812,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const fileButton = document.createElement('button');
                 fileButton.type = 'button';
+                fileButton.id = file;
                 fileButton.className = 'btn btn-outline-secondary text-start';
                 fileButton.textContent = file;
+
                 fileButton.onclick = () => {
                     if (activeButton) {
                         activeButton.classList.remove('active');
@@ -916,13 +922,36 @@ document.addEventListener('DOMContentLoaded', function () {
         loadingBar.style.display = 'block';
         const interval = setInterval(async () => {
             const status = await eel.get_task_status(filename)();
+            console.log(status);
+            const currentOutputFile = document.getElementById(status["output"]);
 
-            if ("progress" in status) {
+            if (status["status"] === "running") {
+
                 progress = status.progress * 100;
                 loadingProgress.style.width = progress + '%';
-            } else {
+                currentOutputFile.disabled = true;
+
+            } else if (status["status"] === "error") {
+
+                alertMessage.innerText = status.message;
+                removeClassStartsWith(alertStatus, 'alert-');
+                alertStatus.classList.add('alert-danger');
                 alertStatus.style.display = 'block';
-                alertMessage.innerText = "Conversion of file complete! Please navigate the file below the Optimization History tab to view the optimized file.";
+                clearInterval(interval);
+                processButton.disabled = false;
+                viewButton.disabled = false;
+                enableMaterialsForm(with_select = true);
+                enableMachinesForm(with_select = true);
+                loadingStatus.textContent = '';
+                loadingBar.style.display = 'none';
+                currentOutputFile.disabled = false;
+
+            } else {
+
+                alertMessage.innerText = status.message;
+                removeClassStartsWith(alertStatus, 'alert-');
+                alertStatus.classList.add('alert-success');
+                alertStatus.style.display = 'block';
                 clearInterval(interval);
                 processButton.disabled = false;
                 viewButton.disabled = false;
@@ -933,6 +962,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 await loadFileHistory();
                 await loadMaterials();
                 await loadMachines();
+                currentOutputFile.disabled = false;
+
             }
             return status;
         }, 1000);
@@ -1215,14 +1246,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function plotRValues() {
-        
+
         const oriRValues = rawGraphData.rVal;
         const optRValues = optimizedGraphData.rVal;
 
         if (!oriRValues || !optRValues) {
             return;
         }
-        
+
         // Generate time steps for the X-axis
         const timeSteps = Array.from({ length: optRValues.length }, (_, i) => i + 1);
 
