@@ -7,8 +7,6 @@ class ConfigManager:
     def __init__(self):
         self.config = {}
         self.active_config = None
-        self.data_dir = ""
-        self.output_dir = ""
         self.app_config_path = persistent_path('config.json')
         self.version = ""
         self.load_config()

@@ -10,7 +10,6 @@ if __name__ == '__main__':
         freeze_support()
         
         create_mutex()  # Windows mutex check
-        print("Creating HC App")
         app = HeatCompensationApp()
         print("Starting app")
         app.start()

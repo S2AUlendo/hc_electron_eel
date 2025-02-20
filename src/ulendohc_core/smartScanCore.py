@@ -709,7 +709,7 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         debugPrint(f"smartScanCore -lambda_0 {lambda_0.shape} lambda_1: {lambda_1.shape} T_opt: {Tm0.shape}", 2)
 
         toc = time.perf_counter()    
-        debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", -1)
+        debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", 2)
         
         # T_opt = np.array(T_opt)
     
@@ -743,8 +743,8 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         # debugPrint(f"R_opt: {R_opt}", -1)
         # R_opt = np.std(T_opt)
         # R_ori = np.std(T_ori)
-        debugPrint(f"R_ori:set_opt {R_ori}", -1)  
-        debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", -1)
+        # debugPrint(f"R_ori: {R_ori}", -1)  
+        debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", 2)
 
         return set_opt.astype(int), v0_ev, R_opt, R_ori
     

@@ -1,17 +1,20 @@
 import json
 import eel
 import traceback
+from src.utils.constants import features
 from datetime import datetime
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool, Manager, Queue
 from src.utils.io_utils import persistent_path
-from src.cli_format.cli_reformat import *
+from src.cli_format.cli_reformat import CLIReformat
 
 class ProcessingManager:
-    def __init__(self, config_manager, data_manager):
+    def __init__(self, config_manager, data_manager, mp_output_queue):
         self.config_manager = config_manager
         self.data_manager = data_manager
         self._manager = Manager()
         self._pool = Pool()
+        self.cli_reformat = None
+        self.mp_output_queue = mp_output_queue
         self.futures = {}
         self.progress = {}
         
@@ -69,20 +72,24 @@ class ProcessingManager:
                 'error': ""
             })
 
+            output_location = self.config_manager.active_config["output"]
+            
+            self.cli_reformat = CLIReformat(
+                filecontent,
+                output_location, 
+                ori_name, 
+                output_name, 
+                self.progress[filename], 
+                selected_material, 
+                selected_machine, 
+                features[self.config_manager.active_config["feature"]],
+                self.mp_output_queue
+                )
             # Submit task
             async_result = self._pool.apply_async(
-                convertDYNCliFile,
-                args=(
-                    filecontent,
-                    ori_name,
-                    output_name,
-                    self.config_manager.output_dir,
-                    self.progress[filename],
-                    selected_material,
-                    selected_machine,
-                    self.config_manager.features[self.config_manager.active_config["feature"]]
-                )
+                self.cli_reformat.convert_dync_cli_file
             )
+            
             self.futures[filename] = async_result
             return {"status": "started", "message": "Task started successfully"}
 
