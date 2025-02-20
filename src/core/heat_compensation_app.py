@@ -316,8 +316,8 @@ class HeatCompensationApp:
             output_dir = self.config.active_config["output"]
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
-                
-            files = [f for f in listdir(output_dir) if f.endswith('.cli')]
+            
+            files = [f for f in listdir(output_dir) if f.endswith('.cli') and f in self.processing.data_output_dict]
             files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
             return files
         except Exception as e:
