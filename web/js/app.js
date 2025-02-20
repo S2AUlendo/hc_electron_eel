@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     window.electronAPI.enterNewKey(async () => {
-        await eel.show_activate_screen()();
+        await eel.show_upgrade_screen()();
     });
 
     window.electronAPI.getAppInfo(async () => {
@@ -922,7 +922,6 @@ document.addEventListener('DOMContentLoaded', function () {
         loadingBar.style.display = 'block';
         const interval = setInterval(async () => {
             const status = await eel.get_task_status(filename)();
-            console.log(status);
             const currentOutputFile = document.getElementById(status["output"]);
 
             if (status["status"] === "running") {

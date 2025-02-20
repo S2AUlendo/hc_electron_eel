@@ -72,7 +72,7 @@ class HeatCompensationApp:
         eel.expose(self.retrieve_coords_from_opti_cur)
         eel.expose(self.retrieve_coords_from_data_cur)
         eel.expose(self.get_app_info)
-        eel.expose(self.show_activate_screen)
+        eel.expose(self.show_upgrade_screen)
         eel.expose(self.display_status)
         eel.expose(self.retrieve_opti_layers)
         eel.expose(self.retrieve_data_layers)
@@ -101,6 +101,13 @@ class HeatCompensationApp:
 
     def show_activate_screen(self):
         self.activation_splash = ActivationScreen(self.license)
+        self.activation_splash.run()
+        
+        # set the feature of the license
+        self.config.set_size_limit(self.license.feature)
+    
+    def show_upgrade_screen(self):
+        self.activation_splash = ActivationScreen(self.license, False)
         self.activation_splash.run()
         
         # set the feature of the license
