@@ -6,6 +6,7 @@ import queue
 import time
 import eel
 from multiprocessing import Manager
+import atexit
 
 class OutputCapture:
     def __init__(self):
@@ -14,6 +15,8 @@ class OutputCapture:
         self.mp_output_queue = self._manager.Queue()
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
+        self._monitor_running = threading.Event()
+        atexit.register(self.cleanup)
     
     def start_capture(self):
         # Create custom stdout that both prints and captures
@@ -42,9 +45,9 @@ class OutputCapture:
         sys.stdout = CustomOutput(self.output_queue, self.original_stdout)
         sys.stderr = CustomOutput(self.output_queue, self.original_stderr)
         
-        # Start output monitoring thread
+        self._monitor_running.set()  # <-- Start monitoring
         threading.Thread(target=self._monitor_output, daemon=True).start()
-    
+        
     def _monitor_output(self):
         while True:
             try:
@@ -69,3 +72,18 @@ class OutputCapture:
     def restore(self):
         sys.stdout = self.original_stdout
         sys.stderr = self.original_stderr
+        
+    def cleanup(self):
+        """Full cleanup procedure for exit"""
+        print("Cleaning up output capture...")
+        
+        # 1. Stop monitoring thread
+        self._monitor_running.clear()
+        
+        # 2. Restore original streams
+        self.restore()
+        
+        # 3. Clean up multiprocessing resources
+        self.mp_output_queue.close()
+        self.mp_output_queue.join_thread()
+        self._manager.shutdown()

@@ -237,7 +237,6 @@ class CLIReformat:
             return
     
     def display_message(self, message):
-        self.progress["msg"] = message
         print(message)
         
     def convert_dync_cli_file(self):
