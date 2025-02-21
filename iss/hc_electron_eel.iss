@@ -35,7 +35,13 @@ WizardSmallImageFile=.\assets\ulendo_favi.bmp
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
+Name: "update"; Description: "Update existing installation (recommended)"; GroupDescription: "Installation type:"; Flags: exclusive
+Name: "cleaninstall"; Description: "Full clean installation (removes all existing files)"; GroupDescription: "Installation type:"; Flags: exclusive unchecked
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+
+[InstallDelete]
+; Delete the entire installation directory if clean install is selected
+Type: filesandordirs; Name: "{app}"; Check: IsTaskSelected('cleaninstall')
 
 [Files]
 Source: "..\dist\main\_internal\*"; DestDir: "{app}\_internal\"; Flags: ignoreversion recursesubdirs createallsubdirs
