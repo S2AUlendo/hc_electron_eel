@@ -72,6 +72,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var playInterval = null;
     var playSpeed = 250; // Default 1 second interval
 
+    const chartConfiguration = {
+        responsive: true,
+        displayModeBar: true,
+        scrollZoom: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['select2d','lasso2d','resetScale2d', 'hoverClosestCartesian','hoverCompareCartesian', 'toggleSpikelines']
+    };
+
     // Analysis Screen
     const fileInput = document.getElementById('cliFile');
     const layerSlider = document.getElementById('layerSlider');
@@ -1153,8 +1161,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const layout = {
                 height: navContainer.clientHeight * 0.7,
                 width: navContainer.clientWidth,
-                title: `Layer ${layerIndex}`,
-                margin: { l: 50, r: 100, t: 50, b: 50 }, // Adjust right margin for colorbar
+                title: {
+                    text: `Layer ${layerIndex}`,
+                    font: {
+                        size: 16
+                    },
+                },
                 xaxis: {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
@@ -1170,13 +1182,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             };
 
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                scrollZoom: true
-            };
-
-            Plotly.newPlot('opti_plot', optiPlotData, layout, config);
+            Plotly.newPlot('opti_plot', optiPlotData, layout, chartConfiguration);
         } catch (error) {
             console.error('Error updating graph:', error);
         }
@@ -1231,7 +1237,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 const layout = {
                     height: navContainer.clientHeight * 0.7,
                     width: navContainer.clientWidth / 2,
-                    title: `${title}\nLayer ${layerIndex}`,
+                    title: {
+                        text: `${title} Layer ${layerIndex}`,
+                        font: {
+                            size: 16
+                        }
+                    },
                     xaxis: {
                         title: 'X',
                         scaleanchor: 'y',  // Make axes equal scale
@@ -1250,11 +1261,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return layout;
             }
 
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                scrollZoom: true
-            };
 
             const heatScaleDummy = {
                 x: [null],
@@ -1284,8 +1290,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy]
             let optiPlotData = [...completeTrace, ...optiData, heatScaleDummy]
-            Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), config);
-            Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), config);
+            Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), chartConfiguration);
+            Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), chartConfiguration);
         } catch (error) {
             console.error('Error updating graph:', error);
         }

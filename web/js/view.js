@@ -5,6 +5,14 @@ document.addEventListener('DOMContentLoaded', function () {
         readFile(data);
     });
 
+    const chartConfiguration = {
+        responsive: true,
+        displayModeBar: true,
+        scrollZoom: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['select2d','lasso2d','resetScale2d', 'hoverClosestCartesian','hoverCompareCartesian', 'toggleSpikelines']
+    };
+
     var completeGraphData = {
         layers: [],
         numLayers: 0,
@@ -341,7 +349,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const layout = {
                 height: viewContainer.clientHeight * 0.7,
-                title: `Layer ${layerIndex}`,
+                title: {
+                    text: `Layer ${layerIndex}`,
+                    font: {
+                        size: 16
+                    },
+                },
                 xaxis: {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
@@ -358,14 +371,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 showlegend: false
             };
 
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                scrollZoom: true
-            };
             let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy];
 
-            Plotly.newPlot('view-plot', rawPlotData, layout, config);
+            Plotly.newPlot('view-plot', rawPlotData, layout, chartConfiguration);
             window.dispatchEvent(new Event('resize'));
         } catch (error) {
             console.error('Error updating graph:', error);
