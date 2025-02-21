@@ -174,8 +174,6 @@ def convert_points_to_voxel(exposure_points = np.array([]), bbox= np.array([]), 
         result = pool.map_async (worker, coords, callback=log_result, chunksize=5000)
         result.wait()
             
-               
-
     toc = time.perf_counter()    
     debugPrint(f"Points to voxel time {toc - tic:0.4f} seconds", -1) 
     debugPrint(f"Grid Shape {grid.shape} seconds", -1) 
