@@ -23,7 +23,7 @@ class ActivationScreen:
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
         self.root.iconbitmap(resource_path("web/public/icon.ico"))
         # Configure the main window
-        self.root.title("License Activation")
+        self.root.title("Ulendo HC (Heat Compensation) License Activation")
         self.root.configure(bg='#f0f0f0')
         self.center_window(450, 400)
         
@@ -101,7 +101,7 @@ class ActivationScreen:
         
         title_label = tk.Label(
             title_frame,
-            text="License Activation",
+            text="Ulendo HC (Heat Compensation) License Activation",
             font=("Robotica", 16),
             bg='#f0f0f0'
         )

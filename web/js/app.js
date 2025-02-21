@@ -1238,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     height: navContainer.clientHeight * 0.7,
                     width: navContainer.clientWidth / 2,
                     title: {
-                        text: `${title} Layer ${layerIndex}`,
+                        text: `${title}<br>Layer ${layerIndex}`,
                         font: {
                             size: 16
                         }
@@ -1334,7 +1334,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const layout = {
             height: navContainer.clientHeight * 0.7,
             width: navContainer.clientWidth,
-            title: `R Chart\nLayer ${optimizedGraphData.curLayer}`,
+            title: `Heat Uniformity<br>Layer ${optimizedGraphData.curLayer}`,
             xaxis: {
                 title: 'Time Step',
                 showgrid: true,
