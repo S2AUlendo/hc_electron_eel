@@ -101,7 +101,7 @@ class ActivationScreen:
         
         title_label = tk.Label(
             title_frame,
-            text="Ulendo HC (Heat Compensation) License Activation",
+            text="License Activation",
             font=("Robotica", 16),
             bg='#f0f0f0'
         )
