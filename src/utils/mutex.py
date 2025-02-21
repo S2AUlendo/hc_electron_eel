@@ -1,21 +1,27 @@
+# src/utils/mutex.py
 import sys
+import win32event
+import win32api
+import winerror
 from src.screens.errorWindow import ErrorWindow
 
+_mutex_handle = None  # Global in the module
+
 def create_mutex():
-    """Create a Windows mutex to ensure single instance"""
-    import win32event
-    import win32api
-    import winerror
+    global _mutex_handle  # Critical: Retain handle in the module's scope
     
-    mutex_name = "Global\\UlendoHCAppMutex"  # Choose a unique name
+    mutex_name = "Global\\UlendoHCAppMutex"
     try:
-        handle = win32event.CreateMutex(None, 1, mutex_name)
-        if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-            error_screen = ErrorWindow(
-                "Another instance is already running",
-                "Please close the existing Heat Compensation application before starting a new one."
+        # Use bInitialOwner=False for reliable error checking
+        _mutex_handle = win32event.CreateMutex(None, False, mutex_name)
+        last_error = win32api.GetLastError()
+        
+        if last_error == winerror.ERROR_ALREADY_EXISTS:
+            error_dialog = ErrorWindow(
+                "Another instance is running",
+                "Close the existing instance first."
             )
-            sys.exit(1)
-        return handle
+            sys.exit(1)  # Terminate here to prevent app initialization
+        return _mutex_handle
     except Exception as e:
         raise e
