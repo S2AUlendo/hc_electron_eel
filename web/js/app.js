@@ -522,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var materialElements;
         if (with_select) {
             materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
+            enableCLIInput();
         } else {
             materialElements = document.querySelectorAll("#materialForm input");
         }
@@ -530,7 +531,6 @@ document.addEventListener('DOMContentLoaded', function () {
             element.disabled = false;
         }
         );
-        enableCLIInput();
     }
 
     function enableMachinesForm(with_select = false) {
@@ -538,6 +538,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var machineElements;
         if (with_select) {
             machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
+            enableCLIInput();
         } else {
             machineElements = document.querySelectorAll("#machineForm input");
         }
@@ -546,7 +547,6 @@ document.addEventListener('DOMContentLoaded', function () {
             element.disabled = false;
         }
         );
-        enableCLIInput();
     }
 
     async function openViewWindow() {
