@@ -147,7 +147,7 @@ class ProcessingManager:
             print("Closing processing pool...")
             self._pool.close()
             try:
-                self._pool.join(timeout=5)
+                self._pool.join()
             except Exception as e:
                 print(f"Pool join error: {e}")
             finally:

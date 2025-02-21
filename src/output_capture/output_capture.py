@@ -6,7 +6,7 @@ import queue
 import time
 import eel
 import logging
-from multiprocessing import Manager
+from multiprocessing import Manager, Event
 import atexit
 
 class OutputCapture:
@@ -17,7 +17,7 @@ class OutputCapture:
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
         self._monitor_running = threading.Event()
-        self.event = threading.Event()
+        self.shutdown_event = Event()
         atexit.register(self.cleanup)
     
     def start_capture(self):
@@ -51,7 +51,7 @@ class OutputCapture:
         threading.Thread(target=self._monitor_output, daemon=True).start()
         
     def _monitor_output(self):
-        while True:
+        while True and not self.shutdown_event.is_set():
             try:
                 # Process all messages from the multiprocessing queue first
                 while not self.mp_output_queue.empty():
@@ -76,7 +76,8 @@ class OutputCapture:
         sys.stderr = self.original_stderr
         
     def cleanup(self):
-        self.mp_output_queue.close()
+        print("Cleaning up output capture...")
+        self.shutdown_event.set()
 
         self.restore()
         self._monitor_running.clear()
