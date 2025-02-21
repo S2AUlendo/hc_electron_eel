@@ -70,7 +70,6 @@ class DataManager:
             with open(self.materials_path, 'w') as f:
                 f.write(json.dumps(self.materials))
             
-            print("Material edited")
             return True
 
         except (IOError, json.JSONDecodeError) as e:
