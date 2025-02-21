@@ -1041,7 +1041,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 progress = status.progress * 100;
                 loadingProgress.style.width = progress + '%';
-                currentOutputFile.disabled = true;
+
+                if (currentOutputFile) {
+                    currentOutputFile.disabled = true;
+                }
 
             } else if (status["status"] === "error") {
 
@@ -1056,7 +1059,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 enableMachinesForm(with_select = true);
                 loadingStatus.textContent = '';
                 loadingBar.style.display = 'none';
-                currentOutputFile.disabled = false;
+
+                if (currentOutputFile) {
+                    currentOutputFile.disabled = false;
+                }
 
             } else {
 
@@ -1074,7 +1080,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 await loadFileHistory();
                 await loadMaterials();
                 await loadMachines();
-                currentOutputFile.disabled = false;
+
+                if (currentOutputFile) {
+                    currentOutputFile.disabled = false;
+                }
 
             }
             return status;
