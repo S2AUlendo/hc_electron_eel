@@ -88,6 +88,7 @@ function createViewWindow(windowName) {
     show: false
   })
 
+  viewWindow.setMinimumSize(800, 1024);
   viewWindow.removeMenu();
   viewWindow.loadURL('http://localhost:8000/templates/view.html');
 
