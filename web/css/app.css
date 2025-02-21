@@ -473,3 +473,12 @@
     align-items: center;
     gap: 2rem;
   }
+
+  #materialEditButtonGroup{
+    align-self: flex-end;
+  }
+
+  #machineEditButtonGroup {
+    align-self: flex-end;
+  }
+

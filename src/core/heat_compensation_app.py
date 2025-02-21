@@ -84,6 +84,10 @@ class HeatCompensationApp:
         eel.expose(self.retrieve_full_bounding_box_data)
         eel.expose(self.retrieve_bounding_box_from_opti_layer)
         eel.expose(self.retrieve_bounding_box_from_data_layer)
+        eel.expose(self.edit_material)
+        eel.expose(self.delete_material)
+        eel.expose(self.edit_machine)
+        eel.expose(self.delete_machine)
 
     def start(self):
         try:
@@ -158,7 +162,38 @@ class HeatCompensationApp:
 
     # def get_terminal_output():
     #     return terminal_output
-
+    def edit_material(self, material_category, material_properties):
+        selected_material = material_properties
+        if isinstance(material_properties, str):
+            selected_material = json.loads(selected_material)
+        material_key = selected_material["name"].strip()
+        
+        return self.data_manager.edit_material(material_category, material_key, material_properties)
+    
+    def delete_material(self, material_category, material_properties):
+        selected_material = material_properties
+        if isinstance(material_properties, str):
+            selected_material = json.loads(material_properties)
+        material_key = selected_material["name"].strip()
+        
+        return self.data_manager.delete_material(material_category, material_key)
+    
+    def edit_machine(self, machine_properties):
+        selected_machine = machine_properties
+        if isinstance(machine_properties, str):
+            selected_machine = json.loads(machine_properties)
+        machine_key = selected_machine["name"].strip()
+            
+        return self.data_manager.edit_machine(machine_key, machine_properties)
+    
+    def delete_machine(self, machine_properties):
+        selected_machine = machine_properties
+        if isinstance(machine_properties, str):
+            selected_machine = json.loads(machine_properties)
+        machine_key = selected_machine["name"].strip()
+        
+        return self.data_manager.delete_machine(machine_key)
+    
     def get_materials(self):
         return self.data_manager.materials
         

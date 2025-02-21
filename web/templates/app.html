@@ -79,6 +79,17 @@
                                 <label for="h" class="form-label">Convection Coefficient [W/m²K]</label>
                                 <input type="number" id="h" class="form-control" step="0.01" placeholder="e.g., 20">
                             </div>
+                            <div id="materialEditButtonGroup" class="d-flex gap-2 mt-3">
+                                <button id="editMaterialButton" class="btn btn-secondary hover-effect px-4 py-2">
+                                    <i class="bi bi-pencil-square me-2"></i>Edit
+                                </button>
+                                <button id="deleteMaterialButton" class="btn btn-danger hover-effect px-4 py-2">
+                                    <i class="bi bi-trash3 me-2"></i>Delete
+                                </button>
+                                <button id="saveMaterialButton" class="btn btn-success hover-effect px-4 py-2">
+                                    <i class="bi bi-check-circle me-2"></i>Save
+                                </button>
+                            </div>
                         </div>
                     </form>
                     <form id="machineForm">
@@ -101,6 +112,17 @@
                             <div class="form-group">
                                 <label for="P" class="form-label">Laser Power [W]</label>
                                 <input type="number" id="P" class="form-control" step="1" placeholder="e.g., 150">
+                            </div>
+                            <div id="machineEditButtonGroup" class="d-flex gap-2 mt-3">
+                                <button id="editMachineButton" class="btn btn-secondary hover-effect px-4 py-2">
+                                    <i class="bi bi-pencil-square me-2"></i>Edit
+                                </button>
+                                <button id="deleteMachineButton" class="btn btn-danger hover-effect px-4 py-2">
+                                    <i class="bi bi-trash3 me-2"></i>Delete
+                                </button>
+                                <button id="saveMachineButton" class="btn btn-primary hover-effect px-4 py-2">
+                                    <i class="bi bi-check-circle me-2"></i>Save
+                                </button>
                             </div>
                         </div>
                     </form>

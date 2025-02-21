@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
         displayModeBar: true,
         scrollZoom: true,
         displaylogo: false,
-        modeBarButtonsToRemove: ['select2d','lasso2d','resetScale2d', 'hoverClosestCartesian','hoverCompareCartesian', 'toggleSpikelines']
+        modeBarButtonsToRemove: ['select2d', 'lasso2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian', 'toggleSpikelines']
     };
 
     // Analysis Screen
@@ -117,6 +117,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
+
+    const editMaterialButton = document.getElementById('editMaterialButton');
+    const deleteMaterialButton = document.getElementById('deleteMaterialButton');
+    const saveMaterialButton = document.getElementById('saveMaterialButton');
+    const editMachineButton = document.getElementById('editMachineButton');
+    const deleteMachineButton = document.getElementById('deleteMachineButton');
+    const saveMachineButton = document.getElementById('saveMachineButton');
+
 
     let x = 0;
     let y = 0;
@@ -258,19 +266,20 @@ document.addEventListener('DOMContentLoaded', function () {
         customMaterialConfigInput.forEach(input => {
             input.required = true;
             input.addEventListener('input', () => {
-                updateCustomMaterial();
+                updateMaterialValues();
             });
         });
 
         materialNameDropdown.addEventListener('change', () => {
+
             let selectedValue = materialNameDropdown.value;
-            
+
             let nameField = document.getElementById('custom-material-name');
             let ktField = document.getElementById('kt');
             let rhoField = document.getElementById('rho');
             let cpField = document.getElementById('cp');
             let hField = document.getElementById('h');
-            
+
             selectedValue = JSON.parse(selectedValue);
             selectedMaterial = selectedValue;
             let selectedOption = selectedValue.option;
@@ -283,6 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (selectedOption === 'custom') {
                 enableMaterialsForm();
+                selectedMaterialCategory = "Custom";
                 customMaterialConfigFields.style.display = 'grid';
 
             } else {
@@ -296,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function () {
         customMachineConfigInput.forEach(input => {
             input.required = true;
             input.addEventListener('input', () => {
-                updateCustomMachine();
+                updateMachineValues();
             });
         });
 
@@ -321,6 +331,36 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 disableMachinesForm(with_select = false);
             }
+        });
+
+        editMaterialButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            enableMaterialsForm(with_select = false);
+        });
+
+        editMachineButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            enableMachinesForm(with_select = false);
+        });
+
+        deleteMaterialButton.addEventListener('click', async (e) => {
+            await eel.delete_material(selectedMaterialCategory, selectedMaterial)();
+        });
+
+        deleteMachineButton.addEventListener('click', async (e) => {
+            await eel.delete_machine(selectedMachine)();
+        });
+
+        saveMaterialButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await eel.edit_material(selectedMaterialCategory, selectedMaterial)();
+            await loadMaterials();
+        });
+
+        saveMachineButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await eel.edit_machine(selectedMachine)();
+            await loadMachines();
         });
 
         viewMaterialParamsButton.addEventListener('click', e => openMaterialParams(e));
@@ -488,7 +528,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         materialElements.forEach(element => {
             element.disabled = false;
-            element.value = "";
         }
         );
         enableCLIInput();
@@ -505,7 +544,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         machineElements.forEach(element => {
             element.disabled = false;
-            element.value = "";
         }
         );
         enableCLIInput();
@@ -539,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function updateCustomMaterial() {
+    function updateMaterialValues() {
         selectedMaterial = {
             name: document.getElementById('custom-material-name').value || '',
             kt: parseFloat(document.getElementById('kt').value) || 0,
@@ -547,10 +585,9 @@ document.addEventListener('DOMContentLoaded', function () {
             cp: parseFloat(document.getElementById('cp').value) || 0,
             h: parseFloat(document.getElementById('h').value) || 0
         };
-        selectedMaterialCategory = "Custom";
     }
 
-    function updateCustomMachine() {
+    function updateMachineValues() {
         selectedMachine = {
             name: document.getElementById('custom-machine-name').value || '',
             vs: parseFloat(document.getElementById('vs').value) || 0,
@@ -754,8 +791,8 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadMaterials() {
         try {
             const materialObjects = await eel.get_materials()();
-            const materialNameDropdown = document.getElementById('materialName');
             materialNameDropdown.innerHTML = '';
+            let selectedValue = null; // Store the selected option value
 
             // Iterate through each category
             Object.entries(materialObjects).forEach(([category, materials]) => {
@@ -768,6 +805,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     const option = document.createElement('option');
                     material["option"] = material.name;
                     option.value = JSON.stringify(material);
+
+                    // Selected Material exists (for edit actions)
+                    if (selectedMaterial && selectedMaterial.name === material.name) {
+                        selectedValue = option.value;
+                    }
+
                     option.textContent = material.name;
                     optgroup.appendChild(option);
                 });
@@ -787,6 +830,9 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             option.textContent = "Add Custom Material";
             materialNameDropdown.appendChild(option);
+            if (selectedValue) {
+                materialNameDropdown.value = selectedValue;
+            }
 
             materialNameDropdown.dispatchEvent(new Event('change'));
         } catch (error) {
@@ -798,6 +844,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             // Wait for materials to load
             const machinesObject = await eel.get_machines()();
+            let selectedValue = null;
 
             machineNameDropdown.innerHTML = '';
             // Add material options
@@ -807,6 +854,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 const option = document.createElement('option');
                 machinesObject[machine].option = "machine";
                 option.value = JSON.stringify(machinesObject[machine]);
+
+                // Selected Machine exists (for edit actions)
+                if (selectedMachine && selectedMachine.name === machine) {
+                    selectedValue = option.value;
+                }
+
                 option.textContent = machine.replace(/_/g, ' ');
                 machineNameDropdown.appendChild(option);
             });
@@ -821,6 +874,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             option.textContent = "Add Custom Machine";
             machineNameDropdown.appendChild(option);
+
+            // If found, we set the dropdown (Only after append child)
+            if (selectedValue) {
+                machineNameDropdown.value = selectedValue;
+            }
 
             const event = new Event('change');
             machineNameDropdown.dispatchEvent(event);
