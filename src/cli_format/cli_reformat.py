@@ -11,6 +11,7 @@ from src.output_capture.mp_output import CustomMPOutput
 from datetime import datetime
 from src.ulendohc_core.smartScanCore import *
 from src.ulendohc_core.util import *
+from src.exceptions.exceptions import OverLimitException
 
 class CLIReformat:
     def __init__(self, data, output_location, original_name, output_name, progress, selected_material, selected_machine, feature=2000, mp_output_queue=None):
@@ -230,38 +231,56 @@ class CLIReformat:
         
         if self.build_area < 0:
             self.progress["error"] = "Error: Build area is less than 0"
-            return
+            return False
         
         if self.build_area > self.feature:
             self.progress["error"] = f"Error: Build area is more than {self.feature}!\nPlease navigate to the help menu to upgrade your current license to support a bigger build volume."
-            return
+            return False
+        
+        return True
     
     def display_message(self, message):
         print(message)
         
     def convert_dync_cli_file(self):
-        sys.stdout = CustomMPOutput(self.mp_output_queue)
-        
-        self.progress["msg"] = "Retrieving file information..."
+        try:
+            sys.stdout = CustomMPOutput(self.mp_output_queue)
+            
+            self.progress["msg"] = "Retrieving file information..."
 
-        # Retrieve file self.data
-        self.retrieve_file_data()
-        
-        # Calculate dimensions
-        self.get_and_check_dimensions()
-        
-        # Optimize and write output file
-        self.optimize_and_write()
-        
-        minimum_x = np.min(self.x_min_values)
-        minimum_y = np.min(self.y_min_values)
+            # Retrieve file self.data
+            self.retrieve_file_data()
+            
+            # Calculate dimensions
+            is_valid = self.get_and_check_dimensions()
+            
+            if not is_valid:
+                raise OverLimitException("Build dimensions exceed allowed limits. Please upgrade your license key to increase the build volume limit.")
+            
+            # Optimize and write output file
+            self.optimize_and_write()
+            
+            minimum_x = np.min(self.x_min_values)
+            minimum_y = np.min(self.y_min_values)
 
-        # Iterate over layers
-        for ii in range(len(self.layer_indices)-1):
-            if ii in self.hatch_lines:
-                self.hatch_lines[ii][:, [0, 2]] = self.hatch_lines[ii][:, [0, 2]] - minimum_x
-                self.hatch_lines[ii][:, [1, 3]] = self.hatch_lines[ii][:, [1, 3]] - minimum_y
-                
-        self.progress["msg"] = "Completed"
-        return self.hatch_lines, self.dimension_x, self.dimension_y
+            # Iterate over layers
+            for ii in range(len(self.layer_indices)-1):
+                if ii in self.hatch_lines:
+                    self.hatch_lines[ii][:, [0, 2]] = self.hatch_lines[ii][:, [0, 2]] - minimum_x
+                    self.hatch_lines[ii][:, [1, 3]] = self.hatch_lines[ii][:, [1, 3]] - minimum_y
+                    
+            self.progress["msg"] = "Completed"
+
+        except OverLimitException as e:
+            return {
+                "status": "error",
+                "error_type": "OverLimitException",
+                "message": str(e)
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error_type": "GenericException",
+                "message": str(e)
+            }
         

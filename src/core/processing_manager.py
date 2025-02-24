@@ -103,6 +103,7 @@ class ProcessingManager:
             error_msg = f"Error starting task: {str(e)}"
             tb = traceback.format_exc()
             eel.displayError(tb, "Processing Error")
+            return {"status": "error", "message": error_msg}
 
     def get_task_status(self, filename):
         if filename not in self.futures:
@@ -125,14 +126,22 @@ class ProcessingManager:
             progress_data = dict(self.progress[filename])
             self.temporary_files.remove(self.output_name)
             
-            if progress_data['error']:
-                eel.displayError(progress_data['error'], "Processing Error")
-                return {
-                    "status": "error",
-                    "message": progress_data['error'],
-                    "result": result,
-                    "output": self.output_name
-                }
+            if result.get("status") == "error":
+                if result.get("error_type") == "OverLimitException":
+                    eel.displayError(result["message"], "Build Limit Exceeded")
+                    return {
+                        "status": "Error",
+                        "message": result["message"],
+                        "output": self.output_name
+                    }
+                else:
+                    eel.displayError(result["message"], "Processing Error")
+                    return {
+                        "status": "Error",
+                        "message": result["message"],
+                        "output": self.output_name
+                    }
+
             return {
                 "status": "completed",
                 "message": "Conversion of file complete! Please navigate the file below the Optimization History tab to view the optimized file.",
