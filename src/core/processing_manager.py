@@ -7,6 +7,7 @@ from multiprocessing import Pool, Manager, Queue
 from src.utils.io_utils import persistent_path
 from src.cli_format.cli_reformat import CLIReformat
 import atexit
+import os
 
 class ProcessingManager:
     def __init__(self, config_manager, data_manager, mp_output_queue):
@@ -19,6 +20,8 @@ class ProcessingManager:
         self.mp_output_queue = mp_output_queue
         self.futures = {}
         self.progress = {}
+        self.temporary_files = []
+        self.output_path = self.config_manager.active_config["output"]
 
         # Initialize shared resources
         self.data_output_dict = self.load_data_output_dict()
@@ -65,6 +68,7 @@ class ProcessingManager:
             self.output_name = f"{filename[:-4].strip()}-hc-{timestamp}.cli"
 
             # Update tracking dictionary
+            self.temporary_files.append(self.output_name)
             self.data_output_dict[self.output_name] = ori_name
             self.save_data_output_dict()
 
@@ -76,18 +80,16 @@ class ProcessingManager:
                 'error': ""
             })
 
-            output_location = self.config_manager.active_config["output"]
-
             self.cli_reformat = CLIReformat(
-                filecontent,
-                output_location,
-                ori_name,
-                self.output_name,
-                self.progress[filename],
-                selected_material,
-                selected_machine,
-                features[self.config_manager.active_config["feature"]],
-                self.mp_output_queue
+                data=filecontent,
+                output_location=self.output_path,
+                original_name=ori_name,
+                output_name=self.output_name,
+                progress=self.progress[filename],
+                selected_material=selected_material,
+                selected_machine=selected_machine,
+                feature=features[self.config_manager.active_config["feature"]],
+                mp_output_queue=self.mp_output_queue
             )
             # Submit task
             async_result = self._pool.apply_async(
@@ -121,6 +123,8 @@ class ProcessingManager:
         try:
             result = future.get()
             progress_data = dict(self.progress[filename])
+            self.temporary_files.remove(self.output_name)
+            
             if progress_data['error']:
                 eel.displayError(progress_data['error'], "Processing Error")
                 return {
@@ -145,6 +149,7 @@ class ProcessingManager:
         """Clean up pool resources"""
         if self._pool:
             print("Closing processing pool...")
+            self._pool.terminate()  # Force-stop all workers
             self._pool.close()
             try:
                 self._pool.join()
@@ -152,3 +157,10 @@ class ProcessingManager:
                 print(f"Pool join error: {e}")
             finally:
                 self._pool = None
+                    
+        for temp_file in self.temporary_files:
+            file = os.path.join(self.output_path, temp_file)
+            if os.path.exists(file):
+                os.remove(file)
+                
+        self.temporary_files[:] = []
