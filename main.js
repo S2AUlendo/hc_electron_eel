@@ -212,6 +212,10 @@ ipcMain.on('focus-fix', () => {
   mainWindow.focus();
 });
 
+ipcMain.on('display-error', (event, status, message) => {
+  dialog.showErrorBox(status, message);
+});
+
 const menuTemplate = [
   {
     label: 'File',

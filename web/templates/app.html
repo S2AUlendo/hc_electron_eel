@@ -31,6 +31,13 @@
                             Help <i class="bi bi-chevron-down"></i>
                         </button>
                     </div>
+                    <div class="alert alert-success fade show" role="alert" id="alert-status"
+                        style="display: none;">
+                        <h4 class="alert-heading" id="alert-title"></h4>
+                        <span id="alert-message"></span>
+                        <button type="button" class="btn-close me-3" id="alert-close-btn"
+                            aria-label="Close"></button>
+                    </div>
                     <div class="collapse mt-2" id="collapseContent">
                         <div class="alert alert-info">
                             <ul>
@@ -66,19 +73,19 @@
                             </div>
                             <div class="form-group">
                                 <label for="kt" class="form-label">Thermal Conductivity [W/mK]</label>
-                                <input type="number" id="kt" class="form-control" step="0.01" placeholder="e.g., 7.0">
+                                <input type="number" id="kt" class="form-control" step="0.01" placeholder="e.g., 7.0" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="rho" class="form-label">Density [kg/m³]</label>
-                                <input type="number" id="rho" class="form-control" step="1" placeholder="e.g., 4420">
+                                <input type="number" id="rho" class="form-control" step="1" placeholder="e.g., 4420" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="cp" class="form-label">Heat Capacity [J/kgK]</label>
-                                <input type="number" id="cp" class="form-control" step="1" placeholder="e.g., 560">
+                                <input type="number" id="cp" class="form-control" step="1" placeholder="e.g., 560" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="h" class="form-label">Convection Coefficient [W/m²K]</label>
-                                <input type="number" id="h" class="form-control" step="0.01" placeholder="e.g., 20">
+                                <input type="number" id="h" class="form-control" step="0.01" placeholder="e.g., 20" disabled>
                             </div>
                             <div id="materialEditButtonGroup" class="d-flex gap-2 mt-3">
                                 <button id="editMaterialButton" class="btn btn-secondary hover-effect">
@@ -108,11 +115,11 @@
                             </div>
                             <div class="form-group">
                                 <label for="vs" class="form-label">Scanning Speed [mm/s]</label>
-                                <input type="number" id="vs" class="form-control" step="0.01" placeholder="e.g., 100">
+                                <input type="number" id="vs" class="form-control" step="0.01" placeholder="e.g., 100" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="P" class="form-label">Laser Power [W]</label>
-                                <input type="number" id="P" class="form-control" step="1" placeholder="e.g., 150">
+                                <input type="number" id="P" class="form-control" step="1" placeholder="e.g., 150" disabled>
                             </div>
                             <div id="machineEditButtonGroup" class="d-flex gap-2 mt-3">
                                 <button id="editMachineButton" class="btn btn-secondary hover-effect">
@@ -134,12 +141,6 @@
                                 class="bi bi-gear-fill"></i></button>
                     </div>
                     <div class="loading-status" id="loadingStatus"></div>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="alert-status"
-                        style="display: none;">
-                        <span id="alert-message"></span>
-                        <button type="button" class="btn-close me-3" data-bs-dismiss="alert"
-                            aria-label="Close"></button>
-                    </div>
                     <div class="loading-bar" id="loadingBar">
                         <div class="loading-progress" id="loadingProgress"></div>
                     </div>

@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld(
     sendToView: (data) => ipcRenderer.send('message-to-view', data),
     sendToMain: (data) => ipcRenderer.send('message-to-main', data),
     onReceiveMessage: (callback) => ipcRenderer.on('receive-message', (event, data) => callback(data)),
+    displayError: (status, message) => ipcRenderer.send('display-error', status, message),
     // Other API methods you might need
     minimize: () => ipcRenderer.send('minimize-window'),
     maximize: () => ipcRenderer.send('maximize-window')

@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // now we render about us window
             await window.electronAPI.openAboutWindow(response);
         } catch (error) {
-            alert(`Error getting app info: ${error}`);
+            displayError(`Error getting app info: ${error}`, "App Error");
         }
     });
 
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // now we render about us window
             await window.electronAPI.mpRunningResponse(response);
         } catch (error) {
-            alert(`Error getting app info: ${error}`);
+            displayError(`Error getting app info: ${error}`, "App Error");
         }
     });
 
@@ -104,12 +104,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const dataPlot = document.getElementById('data_plot');
 
     // Custom Material
+    var materialCanEdit = false;
     const materialForm = document.getElementById('materialForm');
     const materialNameDropdown = document.getElementById('materialName');
     const customMaterialConfigFields = document.getElementById('custom-material-config');
     const customMaterialConfigInput = document.querySelectorAll("#custom-material-config input");
 
     // Custom Machine
+    var machineCanEdit = false;
     const machineForm = document.getElementById('machineForm');
     const machineNameDropdown = document.getElementById('machineName');
     const customMachineConfigFields = document.getElementById('custom-machine-config');
@@ -124,7 +126,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const idleScreen = document.getElementById('idle-container');
     const navContainer = document.getElementById('nav-container');
     const alertStatus = document.getElementById('alert-status');
+    const alertTitle = document.getElementById('alert-title');
     const alertMessage = document.getElementById('alert-message');
+    const alertCloseButton = document.getElementById('alert-close-btn');
 
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
@@ -287,6 +291,10 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
+        alertCloseButton.addEventListener('click', () => {
+            alertStatus.style.display = 'none';
+        });
+
         materialNameDropdown.addEventListener('change', () => {
 
             let selectedValue = materialNameDropdown.value;
@@ -310,13 +318,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectedOption === 'custom') {
                 enableMaterialsForm();
                 selectedMaterialCategory = "Custom";
+                deleteMaterialButton.disabled = true;
                 customMaterialConfigFields.style.display = 'grid';
 
             } else {
                 // Get category from parent optgroup
                 const selectedOption = materialNameDropdown.options[materialNameDropdown.selectedIndex];
                 selectedMaterialCategory = selectedOption.parentNode.label; // This gets the category
-                disableMaterialsForm(with_select = false);
+                deleteMaterialButton.disabled = false;
+                disableMaterialsForm();
             }
         });
 
@@ -344,40 +354,54 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (machineOption === 'custom') {
                 enableMachinesForm();
+                deleteMachineButton.disabled = true;
                 customMachineConfigFields.style.display = 'grid';
             } else {
-                disableMachinesForm(with_select = false);
+                disableMachinesForm();
+                deleteMachineButton.disabled = false;
             }
         });
 
         editMaterialButton.addEventListener('click', (e) => {
             e.preventDefault();
-            enableMaterialsForm(with_select = false);
+            if (materialCanEdit) {
+                disableMaterialsForm();
+            } else {
+                enableMaterialsForm();
+            }
         });
 
         editMachineButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            enableMachinesForm(with_select = false);
+            e.preventDefault()
+            if (machineCanEdit) {
+                disableMachinesForm();
+            } else {
+                enableMachinesForm();
+            }
         });
 
         deleteMaterialButton.addEventListener('click', async (e) => {
             await eel.delete_material(selectedMaterialCategory, selectedMaterial)();
+            displayAlert("Material deleted successfully!");
         });
 
         deleteMachineButton.addEventListener('click', async (e) => {
             await eel.delete_machine(selectedMachine)();
+            displayAlert("Machine deleted successfullly!");
         });
 
         saveMaterialButton.addEventListener('click', async (e) => {
             e.preventDefault();
             await eel.edit_material(selectedMaterialCategory, selectedMaterial)();
             await loadMaterials();
+            showSuccessAlert("Success", "Material saved successfullly!");
         });
 
         saveMachineButton.addEventListener('click', async (e) => {
             e.preventDefault();
             await eel.edit_machine(selectedMachine)();
             await loadMachines();
+            showSuccessAlert("Success", "Machine saved successfullly!");
         });
 
         viewMaterialParamsButton.addEventListener('click', e => openMaterialParams(e));
@@ -492,6 +516,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     eel.expose(displayError)
     function displayError(message, status) {
+        window.electronAPI.displayError(status, message);
+        window.electronAPI.focus();
+    }
+
+    function displayAlert(message, status) {
         alert(message, status);
         window.electronAPI.focus();
     }
@@ -504,15 +533,17 @@ document.addEventListener('DOMContentLoaded', function () {
         fileInput.disabled = false;
     }
 
-    function disableMaterialsForm(with_select = false) {
+    function disableMaterialsSelect() {
+        materialNameDropdown.disabled = true;
+    }
 
-        var materialElements;
-        if (with_select) {
-            materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
-            disableCLIInput();
-        } else {
-            materialElements = document.querySelectorAll("#materialForm input");
-        }
+    function disableMachinesSelect() {
+        machineNameDropdown.disabled = true;
+    }
+
+    function disableMaterialsForm() {
+        let materialElements = document.querySelectorAll("#materialForm input");
+        materialCanEdit = false;
 
         materialElements.forEach(element => {
             element.disabled = true;
@@ -520,14 +551,9 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    function disableMachinesForm(with_select = false) {
-        var machineElements = '';
-        if (with_select) {
-            machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
-            disableCLIInput();
-        } else {
-            machineElements = document.querySelectorAll("#machineForm input");
-        }
+    function disableMachinesForm() {
+        let machineElements = document.querySelectorAll("#machineForm input");
+        machineCanEdit = false;
 
         machineElements.forEach(element => {
             element.disabled = true;
@@ -535,14 +561,17 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    function enableMaterialsForm(with_select = false) {
-        var materialElements;
-        if (with_select) {
-            materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
-            enableCLIInput();
-        } else {
-            materialElements = document.querySelectorAll("#materialForm input");
-        }
+    function enableMaterialsSelect() {
+        materialNameDropdown.disabled = false;
+    }
+
+    function enableMachinesSelect() {
+        machineNameDropdown.disabled = false;
+    }
+
+    function enableMaterialsForm() {
+        let materialElements = document.querySelectorAll("#materialForm input");
+        materialCanEdit = true;
 
         materialElements.forEach(element => {
             element.disabled = false;
@@ -550,15 +579,9 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    function enableMachinesForm(with_select = false) {
-
-        var machineElements;
-        if (with_select) {
-            machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
-            enableCLIInput();
-        } else {
-            machineElements = document.querySelectorAll("#machineForm input");
-        }
+    function enableMachinesForm() {
+        let machineElements = document.querySelectorAll("#machineForm input");
+        machineCanEdit = true;
 
         machineElements.forEach(element => {
             element.disabled = false;
@@ -574,9 +597,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!checkFileType(file.name)) {
                     processButton.disabled = false;
                     viewButton.disabled = false;
-                    enableMaterialsForm(with_select = true);
-                    enableMachinesForm(with_select = true);
-                    displayError("Invalid file type! Please attach a .cli file.", "Error");
+                    enableMachinesSelect();
+                    enableMaterialsSelect();
+                    enableCLIInput();
+                    showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
                     return;
                 }
 
@@ -587,10 +611,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 await window.electronAPI.sendToView(fileContent)
                 displayStatus("");
             } catch (error) {
-                console.error('Error opening view:', error);
+                displayError('Error opening view:', error);
             }
         } else {
-            displayError("Please attach a file to view!", "Error");
+            showErrorAlert("Input Type Error", "Please attach a .cli file.");
         }
     }
 
@@ -805,7 +829,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
         } catch (error) {
-            console.error('Error loading file:', error);
+            displayError('Error loading file:', error);
             document.getElementById('analysis-container').style.display = 'none';
         }
     }
@@ -856,9 +880,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 materialNameDropdown.value = selectedValue;
             }
 
+            disableMaterialsForm();
             materialNameDropdown.dispatchEvent(new Event('change'));
         } catch (error) {
-            console.error('Error loading materials:', error);
+            displayError('Error loading materials:', error);
         }
     }
 
@@ -903,9 +928,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const event = new Event('change');
+
+            disableMachinesForm();
             machineNameDropdown.dispatchEvent(event);
         } catch (error) {
-            console.error('Error loading machines:', error);
+            displayError('Error loading machines:', error);
         }
     }
 
@@ -980,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
         } catch (error) {
-            console.error('Error loading file history:', error);
+            displayError('Error loading file history:', error);
         }
     }
 
@@ -1005,15 +1032,17 @@ document.addEventListener('DOMContentLoaded', function () {
     async function processFile() {
 
         if (!checkValidInput()) {
-            displayError("Please fill in all fields!", "Error");
+            showErrorAlert("Input Error", "Please fill in all fields!");
             return;
         }
 
         processButton.disabled = true;
         viewButton.disabled = true;
 
-        disableMaterialsForm(with_select = true);
-        disableMachinesForm(with_select = true);
+        disableMaterialsSelect();
+        disableMachinesSelect();
+        disableCLIInput();
+
         const fileInput = document.getElementById('cliFile');
 
         if (fileInput.files.length > 0) {
@@ -1022,9 +1051,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!checkFileType(file.name)) {
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm(with_select = true);
-                enableMachinesForm(with_select = true);
-                displayError("Invalid file type! Please attach a .cli file.", "Error");
+                enableMaterialsSelect();
+                enableMachinesSelect();
+                enableCLIInput();
+                showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
                 return;
             }
 
@@ -1039,14 +1069,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 checkTaskStatus(file.name);
 
             } catch (error) {
-                console.error('Error processing file:', error);
+                displayError('Error processing file:', error);
             }
         } else {
             processButton.disabled = false;
             viewButton.disabled = false;
-            enableMaterialsForm(with_select = true);
-            enableMachinesForm(with_select = true);
-            displayError("Please attached a file to process!", "Error");
+            enableMachinesSelect();
+            enableMaterialsSelect();
+            enableCLIInput();
+            showErrorAlert("Input Error", "Please attach a .cli file to start.");
         }
     }
 
@@ -1070,15 +1101,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             } else if (status["status"] === "error") {
 
-                alertMessage.innerText = status.message;
-                removeClassStartsWith(alertStatus, 'alert-success');
-                alertStatus.classList.add('alert-danger');
-                alertStatus.style.display = 'block';
+                showErrorAlert("Error", status.message);
                 clearInterval(interval);
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm(with_select = true);
-                enableMachinesForm(with_select = true);
+                enableMachinesSelect();
+                enableMaterialsSelect();
+                enableCLIInput();
                 loadingStatus.textContent = '';
                 loadingBar.style.display = 'none';
 
@@ -1087,16 +1116,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
             } else {
-
-                alertMessage.innerText = status.message;
-                removeClassStartsWith(alertStatus, 'alert-danger');
-                alertStatus.classList.add('alert-success');
-                alertStatus.style.display = 'block';
+                showSuccessAlert("Success", status.message);
                 clearInterval(interval);
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm(with_select = true);
-                enableMachinesForm(with_select = true);
+                enableMachinesSelect();
+                enableMaterialsSelect();
+                enableCLIInput();
                 loadingStatus.textContent = '';
                 loadingBar.style.display = 'none';
                 await loadFileHistory();
@@ -1110,6 +1136,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return status;
         }, 1000);
+    }
+
+    function showErrorAlert(title, message) {
+        alertTitle.innerText = title;
+        alertMessage.innerText = message;
+        removeClassStartsWith(alertStatus, 'alert-success');
+        alertStatus.classList.add('alert-danger', 'show');
+        alertStatus.style.display = 'block';
+    }
+
+    function showSuccessAlert(title, message) {
+        alertTitle.innerText = title;
+        alertMessage.innerText = message;
+        removeClassStartsWith(alertStatus, 'alert-danger');
+        alertStatus.classList.add('alert-success', 'show');
+        alertStatus.style.display = 'block';
     }
 
     function readFileContent(file) {
@@ -1273,7 +1315,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             Plotly.newPlot('opti_plot', optiPlotData, layout, chartConfiguration);
         } catch (error) {
-            console.error('Error updating graph:', error);
+            displayError('Error updating graph:', error);
         }
     }
 
@@ -1382,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', function () {
             Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), chartConfiguration);
             Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), chartConfiguration);
         } catch (error) {
-            console.error('Error updating graph:', error);
+            displayError('Error updating graph:', error);
         }
     }
 

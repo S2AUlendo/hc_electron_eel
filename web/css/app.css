@@ -470,6 +470,11 @@
     font-weight: bold;
   }
 
+  #alert-close-btn {
+    float: inline-end;
+    padding: 0.5rem;
+  }
+
   #nav-tabContent {
     display: flex;
     flex-direction: column;
