@@ -20,6 +20,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    window.electronAPI.checkMpRunning(async () => {
+        try {
+            let response = await eel.is_multiprocessing_running()();
+            // now we render about us window
+            await window.electronAPI.mpRunningResponse(response);
+        } catch (error) {
+            alert(`Error getting app info: ${error}`);
+        }
+    });
+
     window.addEventListener('resize', () => {
         if (!selectedFile) return;
 

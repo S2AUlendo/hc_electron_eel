@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld(
     getAppInfo: (callback) => {
         ipcRenderer.on('get-app-info', () => callback());
     },
+    checkMpRunning: (callback) => {
+        ipcRenderer.on('check-mp-running', () => callback());
+    },
     enterNewKey: (callback) => {
         ipcRenderer.on('enter-new-key', () => callback());
     },
@@ -17,6 +20,7 @@ contextBridge.exposeInMainWorld(
     },
     openViewWindow: (windowName) => ipcRenderer.send('open-view-window', windowName),
     openAboutWindow: (data) => ipcRenderer.send('open-about-window', data),
+    mpRunningResponse: (data) => ipcRenderer.send('mp-running-response', data),
     onAboutData: (callback) => ipcRenderer.on('about-data', (event, data) => callback(data)), // to get data across a callback
     sendToView: (data) => ipcRenderer.send('message-to-view', data),
     sendToMain: (data) => ipcRenderer.send('message-to-main', data),

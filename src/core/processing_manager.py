@@ -145,6 +145,9 @@ class ProcessingManager:
             eel.displayError(tb, "Processing Error")
             return {"status": "error", "message": str(e)}
 
+    def is_running(self):
+        return len(self.temporary_files) != 0
+    
     def cleanup(self):
         """Clean up pool resources"""
         if self._pool:

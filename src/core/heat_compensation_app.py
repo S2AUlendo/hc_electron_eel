@@ -88,6 +88,7 @@ class HeatCompensationApp:
         eel.expose(self.delete_material)
         eel.expose(self.edit_machine)
         eel.expose(self.delete_machine)
+        eel.expose(self.is_multiprocessing_running)
 
     def start(self):
         try:
@@ -139,6 +140,9 @@ class HeatCompensationApp:
         error_screen = ErrorWindow(str(error), traceback.format_exc())
         sys.exit(1)
 
+    def is_multiprocessing_running(self):
+        return self.processing.is_running()
+    
     # File operations
     def convert_cli_file(self, filecontent, filename, material, material_category, machine):
         return self.processing.convert_cli_file(filecontent, filename, material, material_category, machine)
