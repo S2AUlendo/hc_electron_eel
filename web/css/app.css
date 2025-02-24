@@ -459,6 +459,23 @@
     width: 100%;
   }
 
+  #grade-container {
+    display: flex;
+    flex-direction: column; /* Arrange children vertically */
+    align-items: center;
+    justify-content: center;
+  }
+
+  #r-grade {
+    font-weight: bold;
+  }
+
+  #nav-tabContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
   .slider-container {
     display: flex;
     flex-direction: column;

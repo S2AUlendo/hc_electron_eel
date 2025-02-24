@@ -28,6 +28,7 @@ class CLIVisualizer:
         self.fig = None
         self.ax = None
         self.r = []
+        self.mean_r = []
         self.layer_slider = None
         self.hatch_slider = None
         self.current_layer = 0
@@ -98,6 +99,7 @@ class CLIVisualizer:
                     r_feature_indices = [i for i in r_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
                     r = extract_array_from_line(data[r_feature_indices[0]])
                     self.r.append(r)
+                    self.mean_r.append(np.mean(r))
                     
                 for kk in range(len(hatch_feature_indices)):
                     hatches = data[hatch_feature_indices[kk]]
@@ -123,6 +125,11 @@ class CLIVisualizer:
         if 0 <= self.current_layer < len(self.r):
             return self.r[self.current_layer]
         return []
+    
+    def get_r_mean_from_layer(self):
+        if 0 <= self.current_layer < len(self.mean_r):
+            return self.mean_r[self.current_layer]
+        return 0
     
     def set_current_layer(self, layer_num):
         self.current_layer = layer_num
@@ -318,8 +325,3 @@ class CLIVisualizer:
                 padding = 0.1 * max(x_max - x_min, y_max - y_min)
                 self.ax.set_xlim(x_min - padding, x_max + padding)
                 self.ax.set_ylim(y_min - padding, y_max + padding)
-
-
-# visualizer = CLIVisualizer("staging\hatches.cli")
-# visualizer.read_cli_file()
-# visualizer.plot_with_slider()

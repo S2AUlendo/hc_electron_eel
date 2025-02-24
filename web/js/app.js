@@ -51,8 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
         numHatches: 0,
         curLayer: 0,
         curHatch: 0,
-        rOri: [],
-        rOpt: [],
+        rVal: []
     }
 
     var rawGraphData = {
@@ -62,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
         curLayer: 0,
         curHatch: 0,
         rVal: [],
+        rMean: 0
     }
 
     var optimizedGraphData = {
@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
         curLayer: 0,
         curHatch: 0,
         rVal: [],
+        rMean: 0
     };
 
     var selectedFile;
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const deleteMachineButton = document.getElementById('deleteMachineButton');
     const saveMachineButton = document.getElementById('saveMachineButton');
 
+    const rGrade = document.getElementById('r-grade');
 
     let x = 0;
     let y = 0;
@@ -205,8 +207,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const ori_r_values = await eel.get_r_from_data_layer()();
             const opt_r_values = await eel.get_r_from_opti_layer()();
+            const ori_r_mean = await eel.get_r_mean_from_data_layer()();
+            const opt_r_mean = await eel.get_r_mean_from_opti_layer()();
+
             rawGraphData.rVal = ori_r_values;
-            optimizedGraphData.rVal = opt_r_values;
+            optimizedGraphData.rVal = opt_r_values
+            rawGraphData.rMean = ori_r_mean;
+            optimizedGraphData.rMean = opt_r_mean;
 
             await loadCompleteBoundingBoxes();
             if (showHatchLines) {
@@ -774,8 +781,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const ori_r_values = await eel.get_r_from_data_layer()();
             const opt_r_values = await eel.get_r_from_opti_layer()();
+            const ori_r_mean = await eel.get_r_mean_from_data_layer()();
+            const opt_r_mean = await eel.get_r_mean_from_opti_layer()();
             rawGraphData.rVal = ori_r_values;
             optimizedGraphData.rVal = opt_r_values;
+            rawGraphData.rMean = ori_r_mean;
+            optimizedGraphData.rMean = opt_r_mean;
+
             updateLayerSlider();
             updateHatchSlider();
 
@@ -1391,7 +1403,7 @@ document.addEventListener('DOMContentLoaded', function () {
             x: timeSteps,
             y: oriRValues,
             mode: 'scatter',
-            name: 'R_ORI',
+            name: 'Original Sequence',
             line: {
                 color: 'blue'
             }
@@ -1401,11 +1413,18 @@ document.addEventListener('DOMContentLoaded', function () {
             x: timeSteps,
             y: optRValues,
             mode: 'scatter',
-            name: 'R_OPT',
+            name: 'Optimized Sequence',
             line: {
                 color: 'red'
             }
         };
+
+        // Get R Grade
+        let rScoreObject = getRScore();
+        let rScore = rScoreObject.grade;
+        let rColor = rScoreObject.color;
+        rGrade.innerText = rScore;
+        rGrade.style.color = rColor;
 
         // Layout configuration
         const layout = {
@@ -1419,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ticksuffix: "ms"
             },
             yaxis: {
-                title: 'R Value',
+                title: 'Heat Deviation',
                 showgrid: true,
                 zeroline: false
             },
@@ -1430,4 +1449,42 @@ document.addEventListener('DOMContentLoaded', function () {
         Plotly.newPlot('r_plot', [trace1, trace2], layout);
     }
 
+    function getRScore() {
+        let grade_scale = {
+            2: {
+                "grade": "F",
+                "color": "red"
+            },
+            5: {
+                "grade": "E",
+                "color": "red"
+            },
+            10: {
+                "grade": "D",
+                "color": "orange"
+            },
+            15: {
+                "grade": "C",
+                "color": "orange"
+            },
+            20: {
+                "grade": "B",
+                "color": "green"
+            },
+            30: {
+                "grade": "A",
+                "color": "green"
+            }
+        };
+
+        let score = (rawGraphData.rMean - optimizedGraphData.rMean) / rawGraphData.rMean * 100;
+        console.log(score);
+
+        let grade_key = Object.keys(grade_scale)
+            .map(Number) // Convert keys to numbers
+            .sort((a, b) => a - b) // Ensure they are sorted in ascending order
+            .find(key => score < key) || 80;
+
+        return grade_scale[grade_key];
+    }
 });

@@ -89,6 +89,8 @@ class HeatCompensationApp:
         eel.expose(self.edit_machine)
         eel.expose(self.delete_machine)
         eel.expose(self.is_multiprocessing_running)
+        eel.expose(self.get_r_mean_from_data_layer)
+        eel.expose(self.get_r_mean_from_opti_layer)
 
     def start(self):
         try:
@@ -271,6 +273,16 @@ class HeatCompensationApp:
             return self.data_visualizer.get_r_from_layer().tolist()
         return []
 
+    def get_r_mean_from_opti_layer(self):
+        if self.opti_visualizer:
+            return self.opti_visualizer.get_r_mean_from_layer()
+        return 0
+    
+    def get_r_mean_from_data_layer(self):
+        if self.data_visualizer:
+            return self.data_visualizer.get_r_mean_from_layer()
+        return 0
+    
     # Layer/hatch control methods
     def set_current_opti_layer(self, layer_num):
         if self.opti_visualizer:
