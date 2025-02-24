@@ -8,7 +8,7 @@
 # For more information contact info@ulendo.io
 #*******************************************************
 
-from ulendohc_core.util import *
+from src.ulendohc_core.util import *
 
 # Chuan He
 # Generate the state matrix, A, without boundary conditions considered

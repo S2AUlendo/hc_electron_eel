@@ -1,14 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-import sys
-import os
-
-def resource_path(rel_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
+from src.utils.io_utils import resource_path
         
 class ErrorWindow:
     def __init__(self, error_message, traceback_info):

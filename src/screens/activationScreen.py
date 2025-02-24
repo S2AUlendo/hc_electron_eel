@@ -6,14 +6,7 @@ import sys
 import traceback
 import webbrowser
 import eel
-
-def resource_path(rel_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, rel_path)
+from src.utils.io_utils import resource_path
 
 class ActivationScreen:
     def __init__    (self, license, preload=True):
@@ -30,7 +23,7 @@ class ActivationScreen:
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
         self.root.iconbitmap(resource_path("web/public/icon.ico"))
         # Configure the main window
-        self.root.title("License Activation")
+        self.root.title("Ulendo HC (Heat Compensation) License Activation")
         self.root.configure(bg='#f0f0f0')
         self.center_window(450, 400)
         

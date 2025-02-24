@@ -9,8 +9,8 @@
 #*******************************************************
 
 
-from ulendohc_core.util import *
-import ulendohc_core.stateMatrixConstruction as SMC
+from src.ulendohc_core.util import *
+import src.ulendohc_core.stateMatrixConstruction as SMC
 from numba import jit
 import traceback
 
@@ -174,8 +174,6 @@ def convert_points_to_voxel(exposure_points = np.array([]), bbox= np.array([]), 
         result = pool.map_async (worker, coords, callback=log_result, chunksize=5000)
         result.wait()
             
-               
-
     toc = time.perf_counter()    
     debugPrint(f"Points to voxel time {toc - tic:0.4f} seconds", -1) 
     debugPrint(f"Grid Shape {grid.shape} seconds", -1) 
@@ -677,9 +675,6 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
             # print("Ab_1: ", Ab_1)
 
             Bb = np.add(Bb, Ab_1)
-
-            
-            
             
             Beq[:, feature_current] = Bb[:,0]
             Ab_set[feature_current] = Ab
@@ -712,7 +707,7 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         debugPrint(f"smartScanCore -lambda_0 {lambda_0.shape} lambda_1: {lambda_1.shape} T_opt: {Tm0.shape}", 2)
 
         toc = time.perf_counter()    
-        debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", -1)
+        debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", 2)
         
         # T_opt = np.array(T_opt)
     
@@ -723,7 +718,6 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         
         T_ori = Tm0.copy()
         T_opt = Tm0.copy()
-        subset = numbers_set[:, -1]
         
         for i in range(total_features):
             
@@ -747,11 +741,10 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         # debugPrint(f"R_opt: {R_opt}", -1)
         # R_opt = np.std(T_opt)
         # R_ori = np.std(T_ori)
-        debugPrint(f"R_ori:set_opt {R_ori}", -1)  
-        debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", -1)
+        # debugPrint(f"R_ori: {R_ori}", -1)  
+        debugPrint(f"smartScanCore - End sort time {toc - tic:0.4f} seconds", 2)
 
-
-        return set_opt.astype(int), v0_ev, np.std(R_opt), np.std(R_ori)
+        return set_opt.astype(int), v0_ev, R_opt, R_ori
     
     except Exception as e:
         print(traceback.format_exc())

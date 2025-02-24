@@ -29,14 +29,35 @@ function createWindow() {
   // mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
-  mainWindow.on('closed', function () {
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
+  mainWindow.on('close', async (e) => {
+    e.preventDefault(); // Always prevent immediate close
+
+    try {
+      const isRunning = await new Promise((resolve) => {
+        ipcMain.once('mp-running-response', (_, status) => resolve(status))
+        mainWindow.webContents.send('check-mp-running')
+      });
+
+      if (isRunning) {
+        const choice = dialog.showMessageBoxSync(mainWindow, {
+          type: 'warning',
+          title: 'Warning',
+          message: 'You have a file currently being processed, are you sure you want to quit?',
+          buttons: ['Yes', 'No'],
+          defaultId: 1
+        });
+
+        console.log("choice", choice)
+        if (choice === 1) return; // Cancel close
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
     if (terminalWindow) {
       terminalWindow.close();
     }
-    
+
     if (viewWindow) {
       viewWindow.close();
     }
@@ -44,9 +65,13 @@ function createWindow() {
     if (aboutWindow) {
       aboutWindow.close();
     }
+    mainWindow.destroy();
+  });
 
+  // Emitted when the window is closed.
+  mainWindow.on('closed', () => {
     mainWindow = null
-  })
+  });
 }
 
 let terminalWindow
@@ -88,6 +113,7 @@ function createViewWindow(windowName) {
     show: false
   })
 
+  viewWindow.setMinimumSize(800, 1024);
   viewWindow.removeMenu();
   viewWindow.loadURL('http://localhost:8000/templates/view.html');
 
@@ -110,7 +136,7 @@ function createViewWindow(windowName) {
 
 let aboutWindow;
 
-function createAboutWindow(data){
+function createAboutWindow(data) {
   aboutWindow = new BrowserWindow({
     title: 'About',
     width: 800,
@@ -125,7 +151,7 @@ function createAboutWindow(data){
 
   aboutWindow.setMinimumSize(500, 600);
   aboutWindow.removeMenu();
-  
+
   // Load HTML directly using data URL
   aboutWindow.loadURL('http://localhost:8000/templates/about.html');
 
@@ -135,14 +161,14 @@ function createAboutWindow(data){
 
   aboutWindow.webContents.on('did-finish-load', () => {
     aboutWindow.webContents.send('about-data', {
-        version: data.version,
-        electronVersion: process.versions.electron,
-        nodeVersion: process.versions.node,
-        chromiumVersion: process.versions.chrome,
-        license_key: data.license_key,
-        activated: data.activated,
-        feature: data.feature,
-        days_remaining: data.days_remaining
+      version: data.version,
+      electronVersion: process.versions.electron,
+      nodeVersion: process.versions.node,
+      chromiumVersion: process.versions.chrome,
+      license_key: data.license_key,
+      activated: data.activated,
+      feature: data.feature,
+      days_remaining: data.days_remaining
     });
     aboutWindow.show();
   });
@@ -176,9 +202,18 @@ ipcMain.on('open-view-window', (event, data) => {
 
 ipcMain.handle('show-directory-dialog', async () => {
   const result = await dialog.showOpenDialog({
-      properties: ['openDirectory']
+    properties: ['openDirectory']
   });
   return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.on('focus-fix', () => {
+  mainWindow.blur();
+  mainWindow.focus();
+});
+
+ipcMain.on('display-error', (event, status, message) => {
+  dialog.showErrorBox(status, message);
 });
 
 const menuTemplate = [
@@ -256,7 +291,7 @@ const menuTemplate = [
       },
       {
         label: 'About app',
-        click: async() => {
+        click: async () => {
           mainWindow.webContents.send('get-app-info');
         }
       }
@@ -291,10 +326,10 @@ app.on('activate', function () {
 // disable refreshing
 app.on('browser-window-focus', function () {
   globalShortcut.register("CommandOrControl+R", () => {
-      console.log("CommandOrControl+R is pressed: Shortcut Disabled");
+    console.log("CommandOrControl+R is pressed: Shortcut Disabled");
   });
   globalShortcut.register("F5", () => {
-      console.log("F5 is pressed: Shortcut Disabled");
+    console.log("F5 is pressed: Shortcut Disabled");
   });
   globalShortcut.register("F1", () => {
     require('electron').shell.openExternal('https://s2aulendo.github.io/HeatCompensation-Docs/');

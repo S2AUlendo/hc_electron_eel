@@ -3,6 +3,21 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from matplotlib.patches import Rectangle
 import os
+import re
+
+def extract_array_from_line(line):
+    """
+    Extracts a numerical array from a string line formatted as `//PREFIX/[values]//`.
+    Example: Converts `//R_ORI/[1.04, 2.49, ...]//` to a NumPy array.
+    """
+    # Use regex to find content between [ and ]
+    match = re.search(r'\[(.*?)\]', line)
+    if not match:
+        return np.array([])
+    
+    # Split matched string into numerical values
+    array_str = match.group(1)
+    return np.array([float(x) for x in array_str.split(', ')])
     
 class CLIVisualizer:
     def __init__(self, filename=""):
@@ -12,7 +27,8 @@ class CLIVisualizer:
         self.origin = [0, 0]
         self.fig = None
         self.ax = None
-        self.r_values = []
+        self.r = []
+        self.mean_r = []
         self.layer_slider = None
         self.hatch_slider = None
         self.current_layer = 0
@@ -54,7 +70,7 @@ class CLIVisualizer:
         except Exception as e:
             raise e
                     
-    def read_cli_file(self, dir, opti=False, data=None):
+    def read_cli_file(self, dir, has_r=False, data=None):
         try:
             if data is None:
                 file_path = os.path.join(dir, self.filename)
@@ -62,7 +78,7 @@ class CLIVisualizer:
                     data = f.readlines()
                     
             layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]
-            r_indices = np.where(np.char.startswith(data, "//R_VALUES/"))[0]
+            r_indices = np.where(np.char.startswith(data, "//R/"))[0]
             hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
             polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
             
@@ -74,22 +90,26 @@ class CLIVisualizer:
             for layer_num in range(len(layer_indices)-1):
                 # Find feature indices within the current layer
                 hatch_feature_indices = [i for i in hatch_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
-                polyline_feautre_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
-                
+                polyline_feature_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                  # Store as numpy array
                 layer_hatches = [] 
-                
+                    
+                # Find feature indices within the current layer
+                if len(r_indices) > 0:
+                    r_feature_indices = [i for i in r_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                    r = extract_array_from_line(data[r_feature_indices[0]])
+                    self.r.append(r)
+                    self.mean_r.append(np.mean(r))
+                    
                 for kk in range(len(hatch_feature_indices)):
                     hatches = data[hatch_feature_indices[kk]]
                     strCell = hatches.split(',')
                     hatch_coords = list(map(float, strCell[2:]))
                     layer_hatches.append(hatch_coords) 
                 
-                if layer_hatches:  # Only append if we have data
-                    self.layers.append(layer_hatches)  # Store as numpy array
-                    if opti:
-                        r_val = data[r_indices[layer_num]][11:-3].split(',')
-                        self.r_values.append([r_val[0], r_val[1]])  # Store r values
-                        
+                if layer_hatches: 
+                    self.layers.append(layer_hatches)
+                                    
         except Exception as e:
             raise e
 
@@ -102,9 +122,14 @@ class CLIVisualizer:
         return 0
     
     def get_r_from_layer(self):
-        if 0 <= self.current_layer < len(self.r_values):
-            return self.r_values[self.current_layer]
+        if 0 <= self.current_layer < len(self.r):
+            return self.r[self.current_layer]
         return []
+    
+    def get_r_mean_from_layer(self):
+        if 0 <= self.current_layer < len(self.mean_r):
+            return self.mean_r[self.current_layer]
+        return 0
     
     def set_current_layer(self, layer_num):
         self.current_layer = layer_num
@@ -130,13 +155,13 @@ class CLIVisualizer:
                 y_min = min(y_coords)
                 y_max = max(y_coords)
                 
-                if x_min > self.x_min:
+                if x_min < self.x_min:
                     self.x_min = x_min
-                if x_max < self.x_max:
+                if x_max > self.x_max:
                     self.x_max = x_max
-                if y_min > self.y_min:
+                if y_min < self.y_min:
                     self.y_min = y_min
-                if y_max < self.y_max:
+                if y_max > self.y_max:
                     self.y_max = y_max
             
             return x_coords, y_coords
@@ -160,13 +185,13 @@ class CLIVisualizer:
                     y_min = np.min(y_coords)
                     y_max = np.max(y_coords)
                     
-                    if x_min > self.x_min:
+                    if x_min < self.x_min:
                         self.x_min = x_min
-                    if x_max < self.x_max:
+                    if x_max > self.x_max:
                         self.x_max = x_max
-                    if y_min > self.y_min:
+                    if y_min < self.y_min:
                         self.y_min = y_min
-                    if y_max < self.y_max:
+                    if y_max > self.y_max:
                         self.y_max = y_max
                         
                     bounding_boxes.append([[x_min, x_max, x_max, x_min, x_min], [y_min, y_min, y_max, y_max, y_min]])
@@ -192,13 +217,13 @@ class CLIVisualizer:
                     y_min = np.min(y_coords)
                     y_max = np.max(y_coords)
                     
-                    if x_min > self.x_min:
+                    if x_min < self.x_min:
                         self.x_min = x_min
-                    if x_max < self.x_max:
+                    if x_max > self.x_max:
                         self.x_max = x_max
-                    if y_min > self.y_min:
+                    if y_min < self.y_min:
                         self.y_min = y_min
-                    if y_max < self.y_max:
+                    if y_max > self.y_max:
                         self.y_max = y_max
                         
                     bounding_boxes.append([[x_min, x_max, x_max, x_min, x_min], [y_min, y_min, y_max, y_max, y_min]])
@@ -300,8 +325,3 @@ class CLIVisualizer:
                 padding = 0.1 * max(x_max - x_min, y_max - y_min)
                 self.ax.set_xlim(x_min - padding, x_max + padding)
                 self.ax.set_ylim(y_min - padding, y_max + padding)
-
-
-# visualizer = CLIVisualizer("staging\hatches.cli")
-# visualizer.read_cli_file()
-# visualizer.plot_with_slider()

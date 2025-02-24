@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Heat Compensation Tool</title>
+    <title>Ulendo HC (Heat
+        Compensation)</title>
     <link rel="shortcut icon" type="image/x-icon" href="../public/ulendo_favi.jpg">
     <link rel="stylesheet" href="../css/bootstrap.min.css">
     <link rel="stylesheet" href="../css/app.css">
@@ -30,16 +31,26 @@
                             Help <i class="bi bi-chevron-down"></i>
                         </button>
                     </div>
+                    <div class="alert alert-success fade show" role="alert" id="alert-status"
+                        style="display: none;">
+                        <h4 class="alert-heading" id="alert-title"></h4>
+                        <span id="alert-message"></span>
+                        <button type="button" class="btn-close me-3" id="alert-close-btn"
+                            aria-label="Close"></button>
+                    </div>
                     <div class="collapse mt-2" id="collapseContent">
                         <div class="alert alert-info">
                             <ul>
                                 <li>Upload a <code>.cli</code> file to get started.</li>
                                 <li>Select the material and machine for optimization.</li>
                                 <li>Click <strong>View</strong> to see the original file's details.</li>
-                                <li>Click <strong>Process</strong> to optimize the file.</li>
+                                <li>Click <strong>Optimize</strong> to optimize the file.</li>
                                 <li>Select a file to view its thermal analysis and insights.</li>
-                                <li>Use the directory button to locate the optimized <code>.cli</code> file on your system.</li>
-                            </ul>                            
+                                <li>Use the directory button to locate the optimized <code>.cli</code> file on your
+                                    system.</li>
+                                <li>For support, please email <a href="mailto:support@ulendo.io">support@ulendo.io</a>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                     <div>
@@ -56,25 +67,36 @@
                                 class="bi bi-chevron-down"></i></button>
                         <div id="custom-material-config" class="custom-material-config my-3" style="display: none;">
                             <div class="form-group">
-                                <label for="custom-material-name" class="form-label">Custom Material Name:</label>
+                                <label for="custom-material-name" class="form-label">Material Name:</label>
                                 <input id="custom-material-name" class="form-control"
                                     placeholder="e.g., Custom Material">
                             </div>
                             <div class="form-group">
                                 <label for="kt" class="form-label">Thermal Conductivity [W/mK]</label>
-                                <input type="number" id="kt" class="form-control" step="0.01" placeholder="e.g., 7.0">
+                                <input type="number" id="kt" class="form-control" step="0.01" placeholder="e.g., 7.0" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="rho" class="form-label">Density [kg/m³]</label>
-                                <input type="number" id="rho" class="form-control" step="1" placeholder="e.g., 4420">
+                                <input type="number" id="rho" class="form-control" step="1" placeholder="e.g., 4420" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="cp" class="form-label">Heat Capacity [J/kgK]</label>
-                                <input type="number" id="cp" class="form-control" step="1" placeholder="e.g., 560">
+                                <input type="number" id="cp" class="form-control" step="1" placeholder="e.g., 560" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="h" class="form-label">Convection Coefficient [W/m²K]</label>
-                                <input type="number" id="h" class="form-control" step="0.01" placeholder="e.g., 20">
+                                <input type="number" id="h" class="form-control" step="0.01" placeholder="e.g., 20" disabled>
+                            </div>
+                            <div id="materialEditButtonGroup" class="d-flex gap-2 mt-3">
+                                <button id="editMaterialButton" class="btn btn-secondary hover-effect">
+                                    <i class="bi bi-pencil-square me-2"></i>Edit
+                                </button>
+                                <button id="deleteMaterialButton" class="btn btn-danger hover-effect">
+                                    <i class="bi bi-trash3 me-2"></i>Delete
+                                </button>
+                                <button id="saveMaterialButton" class="btn btn-primary hover-effect">
+                                    <i class="bi bi-check-circle me-2"></i>Save
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -88,16 +110,27 @@
                                 class="bi bi-chevron-down"></i></button>
                         <div id="custom-machine-config" class="custom-machine-config my-3" style="display: none;">
                             <div class="form-group">
-                                <label for="custom-machine-name" class="form-label">Custom Machine Name:</label>
+                                <label for="custom-machine-name" class="form-label">Machine Name:</label>
                                 <input id="custom-machine-name" class="form-control" placeholder="e.g., Custom Machine">
                             </div>
                             <div class="form-group">
-                                <label for="vs" class="form-label">Scanning Speed [m/s]</label>
-                                <input type="number" id="vs" class="form-control" step="0.01" placeholder="e.g., 100">
+                                <label for="vs" class="form-label">Scanning Speed [mm/s]</label>
+                                <input type="number" id="vs" class="form-control" step="0.01" placeholder="e.g., 100" disabled>
                             </div>
                             <div class="form-group">
                                 <label for="P" class="form-label">Laser Power [W]</label>
-                                <input type="number" id="P" class="form-control" step="1" placeholder="e.g., 150">
+                                <input type="number" id="P" class="form-control" step="1" placeholder="e.g., 150" disabled>
+                            </div>
+                            <div id="machineEditButtonGroup" class="d-flex gap-2 mt-3">
+                                <button id="editMachineButton" class="btn btn-secondary hover-effect">
+                                    <i class="bi bi-pencil-square me-2"></i>Edit
+                                </button>
+                                <button id="deleteMachineButton" class="btn btn-danger hover-effect">
+                                    <i class="bi bi-trash3 me-2"></i>Delete
+                                </button>
+                                <button id="saveMachineButton" class="btn btn-primary hover-effect">
+                                    <i class="bi bi-check-circle me-2"></i>Save
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -108,10 +141,6 @@
                                 class="bi bi-gear-fill"></i></button>
                     </div>
                     <div class="loading-status" id="loadingStatus"></div>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert" id="alert-status" style="display: none;">
-                        <span id="alert-message"></span>
-                        <button type="button" class="btn-close me-3" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
                     <div class="loading-bar" id="loadingBar">
                         <div class="loading-progress" id="loadingProgress"></div>
                     </div>
@@ -149,52 +178,86 @@
         </div>
         <div class="resizer" id="dragMe"></div>
         <div class="right-panel">
-            <div class="idle-container" id="idle-screen">
+            <div id="idle-container">
                 <h2><i class="bi bi-bar-chart"></i></h2>
                 <p>Upload or select an optimized .cli file to get started</p>
             </div>
             <div class="spinner-container" id="spinner">
                 <div class="spinner-border text-ulendo"></div>
             </div>
-            <div id="analysis-container" style="display: none;">
-                <div id="plot-container">
-                    <div id="data_plot"></div>
-                    <div id="opti_plot"></div>
-                </div>
-                <label for="rOptimized" class="form-label" style="display: none;">R Optimal: <span
-                        id="rOptimized"></span></label>
-                <label for="rOriginal" class="form-label" style="display: none;">R Original: <span
-                        id="rOriginal"></span></label>
-                <div class="slider-container px-3">
-                    <div class="d-flex align-items-center justify-content-evenly mt-3">
-                        <button id="playButton" class="btn btn-primary">
-                            <i class="bi bi-play-fill"></i>
-                        </button>
-                        <div class="ms-2">
-                            <label for="speedRange" class="form-label">Speed: <span id="speedValue">1x</span></label>
-                            <input type="range" class="form-range" id="speedRange" min="0.5" max="2" step="0.5"
-                                value="1">
-                        </div>
-                        <div class="d-flex flex-column justify-content-evenly align-items-stretch"
-                            id="analysis-options">
-                            <div>
-                                <input class="form-check-input" type="checkbox" value="" id="showOriginalCheckbox">
-                                <label class="form-check-label" for="showOriginalCheckbox">
-                                    Show Original
-                                </label>
+            <div id="nav-container">
+                <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab"
+                            data-bs-target="#nav-analysis" type="button" role="tab" aria-controls="nav-home"
+                            aria-selected="true">Sequence Visualizer</button>
+                        <button class="nav-link" id="nav-profile-tab" data-bs-toggle="tab" data-bs-target="#nav-graph"
+                            type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Temperature
+                            Uniformity</button>
+                    </div>
+                </nav>
+                <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade show active" id="nav-analysis" role="tabpanel"
+                        aria-labelledby="nav-analysis-tab" tabindex="0">
+                        <div id="analysis-container">
+                            <div id="plot-container">
+                                <div id="data_plot"></div>
+                                <div id="opti_plot"></div>
                             </div>
-                            <div>
-                                <input class="form-check-input" type="checkbox" value="" id="showHatchCheckbox">
-                                <label class="form-check-label" for="showHatchCheckbox">
-                                    Show Hatch Lines
-                                </label>
+                            <label for="rOptimized" class="form-label" style="display: none;">R Optimal: <span
+                                    id="rOptimized"></span></label>
+                            <label for="rOriginal" class="form-label" style="display: none;">R Original: <span
+                                    id="rOriginal"></span></label>
+                            <div class="slider-container px-3">
+                                <div class="playback-container mt-3">
+                                    <button id="playButton" class="btn btn-primary">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                    <div class="ms-2">
+                                        <label for="speedRange" class="form-label">Speed: <span
+                                                id="speedValue">1x</span></label>
+                                        <input type="range" class="form-range" id="speedRange" min="0.5" max="2"
+                                            step="0.5" value="1">
+                                    </div>
+                                    <div class="d-flex flex-column justify-content-evenly align-items-stretch"
+                                        id="analysis-options">
+                                        <div>
+                                            <input class="form-check-input" type="checkbox" value=""
+                                                id="showOriginalCheckbox">
+                                            <label class="form-check-label" for="showOriginalCheckbox">
+                                                Show Original
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input class="form-check-input" type="checkbox" value=""
+                                                id="showHatchCheckbox">
+                                            <label class="form-check-label" for="showHatchCheckbox">
+                                                Show Hatch Lines
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <label for="hatchSlider" class="form-label">Hatches: <span
+                                        id="hatchesValue">0</span></label>
+                                <input type="range" class="form-range" id="hatchSlider" value="0">
                             </div>
                         </div>
                     </div>
-                    <label for="layerSlider" class="form-label">Layer: <span id="layerValue">0</span></label>
-                    <input type="range" class="form-range" id="layerSlider" value="0">
-                    <label for="hatchSlider" class="form-label">Hatches: <span id="hatchesValue">0</span></label>
-                    <input type="range" class="form-range" id="hatchSlider" value="0">
+                    <div class="tab-pane fade" id="nav-graph" role="tabpanel" aria-labelledby="nav-graph-tab"
+                        tabindex="0">
+                        <div class="r-container" id="r-screen">
+                            <div id="r-plot-container">
+                                <div id="r_plot"></div>
+                            </div>
+                            <div id="grade-container">
+                                <label for="r-grade" class="form-label">Grade: <span id="r-grade"></span></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slider-container px-3">
+                        <label for="layerSlider" class="form-label">Layer: <span id="layerValue">0</span></label>
+                        <input type="range" class="form-range" id="layerSlider" value="0">
+                    </div>
                 </div>
             </div>
         </div>

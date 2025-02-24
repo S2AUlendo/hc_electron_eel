@@ -4,14 +4,7 @@ from PIL import Image, ImageTk
 import time
 import os
 import sys
-
-def resource_path(rel_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, rel_path)
+from src.utils.io_utils import resource_path
 
 class SplashScreen:
     def __init__(self):

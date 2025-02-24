@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     window.electronAPI.enterNewKey(async () => {
-        await eel.show_activate_screen()();
+        await eel.show_upgrade_screen()();
     });
 
     window.electronAPI.getAppInfo(async () => {
@@ -16,13 +16,24 @@ document.addEventListener('DOMContentLoaded', function () {
             // now we render about us window
             await window.electronAPI.openAboutWindow(response);
         } catch (error) {
-            alert(`Error getting app info: ${error}`);
+            displayError(`Error getting app info: ${error}`, "App Error");
+        }
+    });
+
+    window.electronAPI.checkMpRunning(async () => {
+        try {
+            let response = await eel.is_multiprocessing_running()();
+            // now we render about us window
+            await window.electronAPI.mpRunningResponse(response);
+        } catch (error) {
+            displayError(`Error getting app info: ${error}`, "App Error");
         }
     });
 
     window.addEventListener('resize', () => {
         if (!selectedFile) return;
 
+        plotRValues();
         if (showOriginal) {
             updateGraphCompare(optimizedGraphData.curLayer)
         } else {
@@ -30,13 +41,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, true);
 
+    function removeClassStartsWith(element, className) {
+        element.className = element.className.split(" ").filter(c => !c.startsWith(className)).join(" ");
+    }
+
     var completeGraphData = {
         layers: [],
         numLayers: 0,
         numHatches: 0,
         curLayer: 0,
         curHatch: 0,
-        rValues: [],
+        rVal: []
     }
 
     var rawGraphData = {
@@ -45,7 +60,8 @@ document.addEventListener('DOMContentLoaded', function () {
         numHatches: 0,
         curLayer: 0,
         curHatch: 0,
-        rValues: [],
+        rVal: [],
+        rMean: 0
     }
 
     var optimizedGraphData = {
@@ -54,7 +70,8 @@ document.addEventListener('DOMContentLoaded', function () {
         numHatches: 0,
         curLayer: 0,
         curHatch: 0,
-        rValues: [],
+        rVal: [],
+        rMean: 0
     };
 
     var selectedFile;
@@ -66,6 +83,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var playInterval = null;
     var playSpeed = 250; // Default 1 second interval
 
+    const chartConfiguration = {
+        responsive: true,
+        displayModeBar: true,
+        scrollZoom: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['select2d', 'lasso2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian', 'toggleSpikelines']
+    };
+
     // Analysis Screen
     const fileInput = document.getElementById('cliFile');
     const layerSlider = document.getElementById('layerSlider');
@@ -76,17 +101,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const refreshButton = document.getElementById('refreshButton');
     const playButton = document.getElementById('playButton');
     const processButton = document.getElementById('processButton');
-    const rOptimizedLabel = document.getElementById('rOptimized');
-    const rOriginalLabel = document.getElementById('rOriginal');
     const dataPlot = document.getElementById('data_plot');
 
     // Custom Material
+    var materialCanEdit = false;
     const materialForm = document.getElementById('materialForm');
     const materialNameDropdown = document.getElementById('materialName');
     const customMaterialConfigFields = document.getElementById('custom-material-config');
     const customMaterialConfigInput = document.querySelectorAll("#custom-material-config input");
 
     // Custom Machine
+    var machineCanEdit = false;
     const machineForm = document.getElementById('machineForm');
     const machineNameDropdown = document.getElementById('machineName');
     const customMachineConfigFields = document.getElementById('custom-machine-config');
@@ -98,14 +123,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewMaterialParamsButton = document.getElementById('view-materials');
     const viewMachineParamsButton = document.getElementById('view-machines');
     const spinner = document.getElementById('spinner');
-    const idleScreen = document.getElementById('idle-screen');
-    const analysisContainer = document.getElementById('analysis-container');
+    const idleScreen = document.getElementById('idle-container');
+    const navContainer = document.getElementById('nav-container');
     const alertStatus = document.getElementById('alert-status');
+    const alertTitle = document.getElementById('alert-title');
     const alertMessage = document.getElementById('alert-message');
-    const legendObj = document.getElementById("LegendComponentId");
+    const alertCloseButton = document.getElementById('alert-close-btn');
 
     const leftSide = resizer.previousElementSibling;
     const rightSide = resizer.nextElementSibling;
+
+    const editMaterialButton = document.getElementById('editMaterialButton');
+    const deleteMaterialButton = document.getElementById('deleteMaterialButton');
+    const saveMaterialButton = document.getElementById('saveMaterialButton');
+    const editMachineButton = document.getElementById('editMachineButton');
+    const deleteMachineButton = document.getElementById('deleteMachineButton');
+    const saveMachineButton = document.getElementById('saveMachineButton');
+
+    const rGrade = document.getElementById('r-grade');
 
     let x = 0;
     let y = 0;
@@ -113,14 +148,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var versionNumber = "";
     var machines = {};
-    var selectedMaterial = {};
+    var selectedMaterial = {
+        name: "",
+        kt: 0,
+        rho: 0,
+        cp: 0,
+        h: 0
+    };
     var selectedMaterialCategory = "";
-    var selectedMachine = {}
+    var selectedMachine = {
+        name: "",
+        vs: 0,
+        P: 0
+    }
     let currentPage = 1;
     const itemsPerPage = 5;
 
     window.addEventListener('load', async () => {
-        
+
         await loadFileHistory();
         await loadMaterials();
         await loadMachines();
@@ -164,9 +209,15 @@ document.addEventListener('DOMContentLoaded', function () {
             optimizedGraphData.curHatch = 0;
             optimizedGraphData.curLayer = layerIndex;
 
-            const r_values = await eel.get_r_from_opti_layer()();
-            optimizedGraphData.rValues = r_values;
-            displayRValues();
+            const ori_r_values = await eel.get_r_from_data_layer()();
+            const opt_r_values = await eel.get_r_from_opti_layer()();
+            const ori_r_mean = await eel.get_r_mean_from_data_layer()();
+            const opt_r_mean = await eel.get_r_mean_from_opti_layer()();
+
+            rawGraphData.rVal = ori_r_values;
+            optimizedGraphData.rVal = opt_r_values
+            rawGraphData.rMean = ori_r_mean;
+            optimizedGraphData.rMean = opt_r_mean;
 
             await loadCompleteBoundingBoxes();
             if (showHatchLines) {
@@ -177,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             updateHatchSlider();
 
+            plotRValues();
             if (showOriginal) {
                 updateGraphCompare(layerIndex);
             } else {
@@ -232,68 +284,124 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         );
 
-        materialNameDropdown.addEventListener('change', () => {
-            let selectedValue = materialNameDropdown.value;
-            if (selectedValue === 'custom') {
-                enableMaterialsForm();
+        customMaterialConfigInput.forEach(input => {
+            input.required = true;
+            input.addEventListener('input', () => {
+                updateMaterialValues();
+            });
+        });
 
+        alertCloseButton.addEventListener('click', () => {
+            alertStatus.style.display = 'none';
+        });
+
+        materialNameDropdown.addEventListener('change', () => {
+
+            let selectedValue = materialNameDropdown.value;
+
+            let nameField = document.getElementById('custom-material-name');
+            let ktField = document.getElementById('kt');
+            let rhoField = document.getElementById('rho');
+            let cpField = document.getElementById('cp');
+            let hField = document.getElementById('h');
+
+            selectedValue = JSON.parse(selectedValue);
+            selectedMaterial = selectedValue;
+            let selectedOption = selectedValue.option;
+
+            nameField.value = selectedValue.name;
+            ktField.value = Number(selectedValue.kt);
+            rhoField.value = Number(selectedValue.rho);
+            cpField.value = Number(selectedValue.cp);
+            hField.value = Number(selectedValue.h);
+
+            if (selectedOption === 'custom') {
+                enableMaterialsForm();
+                selectedMaterialCategory = "Custom";
+                deleteMaterialButton.disabled = true;
                 customMaterialConfigFields.style.display = 'grid';
-                customMaterialConfigInput.forEach(input => {
-                    input.required = true;
-                    input.addEventListener('input', () => {
-                        updateCustomMaterial();
-                    });
-                });
 
             } else {
-                let nameField = document.getElementById('custom-material-name');
-                let ktField = document.getElementById('kt');
-                let rhoField = document.getElementById('rho');
-                let cpField = document.getElementById('cp');
-                let hField = document.getElementById('h');
-
-                selectedValue = JSON.parse(selectedValue);
-
-                nameField.value = selectedValue.name;
-                ktField.value = Number(selectedValue.kt);
-                rhoField.value = Number(selectedValue.rho);
-                cpField.value = Number(selectedValue.cp);
-                hField.value = Number(selectedValue.h);
-
                 // Get category from parent optgroup
                 const selectedOption = materialNameDropdown.options[materialNameDropdown.selectedIndex];
                 selectedMaterialCategory = selectedOption.parentNode.label; // This gets the category
-
-                disableMaterialsForm(with_select = false);
-                selectedMaterial = materialNameDropdown.value;
+                deleteMaterialButton.disabled = false;
+                disableMaterialsForm();
             }
+        });
+
+        customMachineConfigInput.forEach(input => {
+            input.required = true;
+            input.addEventListener('input', () => {
+                updateMachineValues();
+            });
         });
 
         machineNameDropdown.addEventListener('change', () => {
 
-            if (machineNameDropdown.value === 'custom') {
+            let machineValue = machineNameDropdown.value;
+            machineValue = JSON.parse(machineValue);
+            selectedMachine = machineValue;
+
+            let machineOption = machineValue.option;
+            let nameField = document.getElementById('custom-machine-name');
+            let vsField = document.getElementById('vs');
+            let PField = document.getElementById('P');
+
+            nameField.value = machineValue.name;
+            vsField.value = Number(machineValue.vs);
+            PField.value = Number(machineValue.P);
+
+            if (machineOption === 'custom') {
                 enableMachinesForm();
-
+                deleteMachineButton.disabled = true;
                 customMachineConfigFields.style.display = 'grid';
-                customMachineConfigInput.forEach(input => {
-                    input.required = true;
-                    input.addEventListener('input', () => {
-                        updateCustomMachine();
-                    });
-                });
             } else {
-                let nameField = document.getElementById('custom-machine-name');
-                let vsField = document.getElementById('vs');
-                let PField = document.getElementById('P');
-
-                nameField.value = JSON.parse(machineNameDropdown.value).name;
-                vsField.value = Number(JSON.parse(machineNameDropdown.value).vs);
-                PField.value = Number(JSON.parse(machineNameDropdown.value).P);
-
-                disableMachinesForm(with_select = false);
-                // customMachineConfigFields.style.display = 'none';
-                selectedMachine = machineNameDropdown.value;
+                disableMachinesForm();
+                deleteMachineButton.disabled = false;
             }
+        });
+
+        editMaterialButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (materialCanEdit) {
+                disableMaterialsForm();
+            } else {
+                enableMaterialsForm();
+            }
+        });
+
+        editMachineButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            if (machineCanEdit) {
+                disableMachinesForm();
+            } else {
+                enableMachinesForm();
+            }
+        });
+
+        deleteMaterialButton.addEventListener('click', async (e) => {
+            await eel.delete_material(selectedMaterialCategory, selectedMaterial)();
+            displayAlert("Material deleted successfully!");
+        });
+
+        deleteMachineButton.addEventListener('click', async (e) => {
+            await eel.delete_machine(selectedMachine)();
+            displayAlert("Machine deleted successfullly!");
+        });
+
+        saveMaterialButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await eel.edit_material(selectedMaterialCategory, selectedMaterial)();
+            await loadMaterials();
+            showSuccessAlert("Success", "Material saved successfullly!");
+        });
+
+        saveMachineButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await eel.edit_machine(selectedMachine)();
+            await loadMachines();
+            showSuccessAlert("Success", "Machine saved successfullly!");
         });
 
         viewMaterialParamsButton.addEventListener('click', e => openMaterialParams(e));
@@ -349,6 +457,7 @@ document.addEventListener('DOMContentLoaded', function () {
             rightSide.style.pointerEvents = 'none';
 
             if (!selectedFile) return;
+            plotRValues();
 
             if (showOriginal) {
                 updateGraphCompare(optimizedGraphData.curLayer);
@@ -407,7 +516,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     eel.expose(displayError)
     function displayError(message, status) {
+        window.electronAPI.displayError(status, message);
+        window.electronAPI.focus();
+    }
+
+    function displayAlert(message, status) {
         alert(message, status);
+        window.electronAPI.focus();
     }
 
     function disableCLIInput() {
@@ -418,15 +533,17 @@ document.addEventListener('DOMContentLoaded', function () {
         fileInput.disabled = false;
     }
 
-    function disableMaterialsForm(with_select = false) {
+    function disableMaterialsSelect() {
+        materialNameDropdown.disabled = true;
+    }
 
-        var materialElements;
-        if (with_select) {
-            materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
-            disableCLIInput();
-        } else {
-            materialElements = document.querySelectorAll("#materialForm input");
-        }
+    function disableMachinesSelect() {
+        machineNameDropdown.disabled = true;
+    }
+
+    function disableMaterialsForm() {
+        let materialElements = document.querySelectorAll("#materialForm input");
+        materialCanEdit = false;
 
         materialElements.forEach(element => {
             element.disabled = true;
@@ -434,14 +551,9 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    function disableMachinesForm(with_select = false) {
-        var machineElements = '';
-        if (with_select) {
-            machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
-            disableCLIInput();
-        } else {
-            machineElements = document.querySelectorAll("#machineForm input");
-        }
+    function disableMachinesForm() {
+        let machineElements = document.querySelectorAll("#machineForm input");
+        machineCanEdit = false;
 
         machineElements.forEach(element => {
             element.disabled = true;
@@ -449,50 +561,46 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    function enableMaterialsForm(with_select = false) {
-        var materialElements;
-        if (with_select) {
-            materialElements = document.querySelectorAll("#materialForm input, #materialForm select");
-        } else {
-            materialElements = document.querySelectorAll("#materialForm input");
-        }
+    function enableMaterialsSelect() {
+        materialNameDropdown.disabled = false;
+    }
+
+    function enableMachinesSelect() {
+        machineNameDropdown.disabled = false;
+    }
+
+    function enableMaterialsForm() {
+        let materialElements = document.querySelectorAll("#materialForm input");
+        materialCanEdit = true;
 
         materialElements.forEach(element => {
             element.disabled = false;
-            element.value = "";
         }
         );
-        enableCLIInput();
     }
 
-    function enableMachinesForm(with_select = false) {
-
-        var machineElements;
-        if (with_select) {
-            machineElements = document.querySelectorAll("#machineForm input, #machineForm select");
-        } else {
-            machineElements = document.querySelectorAll("#machineForm input");
-        }
+    function enableMachinesForm() {
+        let machineElements = document.querySelectorAll("#machineForm input");
+        machineCanEdit = true;
 
         machineElements.forEach(element => {
             element.disabled = false;
-            element.value = "";
         }
         );
-        enableCLIInput();
     }
 
     async function openViewWindow() {
-        
+
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {
                 if (!checkFileType(file.name)) {
                     processButton.disabled = false;
                     viewButton.disabled = false;
-                    enableMaterialsForm(with_select=true);
-                    enableMachinesForm(with_select=true);
-                    displayError("Invalid file type! Please attach a .cli file.", "Error");
+                    enableMachinesSelect();
+                    enableMaterialsSelect();
+                    enableCLIInput();
+                    showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
                     return;
                 }
 
@@ -503,14 +611,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 await window.electronAPI.sendToView(fileContent)
                 displayStatus("");
             } catch (error) {
-                console.error('Error opening view:', error);
+                displayError('Error opening view:', error);
             }
         } else {
-            displayError("Please attach a file to view!", "Error");
+            showErrorAlert("Input Type Error", "Please attach a .cli file.");
         }
     }
 
-    function updateCustomMaterial() {
+    function updateMaterialValues() {
         selectedMaterial = {
             name: document.getElementById('custom-material-name').value || '',
             kt: parseFloat(document.getElementById('kt').value) || 0,
@@ -518,10 +626,9 @@ document.addEventListener('DOMContentLoaded', function () {
             cp: parseFloat(document.getElementById('cp').value) || 0,
             h: parseFloat(document.getElementById('h').value) || 0
         };
-        selectedMaterialCategory = "Custom";
     }
 
-    function updateCustomMachine() {
+    function updateMachineValues() {
         selectedMachine = {
             name: document.getElementById('custom-machine-name').value || '',
             vs: parseFloat(document.getElementById('vs').value) || 0,
@@ -532,12 +639,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function isDouble(str) {
         const num = parseFloat(str);
         return !isNaN(num) && isFinite(num);
-    }
-
-    function displayRValues() {
-        r_values = optimizedGraphData.rValues;
-        rOptimizedLabel.textContent = isDouble(r_values[0]) ? r_values[0] : "NaN";
-        rOriginalLabel.textContent = isDouble(r_values[1]) ? r_values[1] : "NaN";
     }
 
     async function retrieveHashLines() {
@@ -666,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function selectFile(file) {
         try {
             idleScreen.style.display = 'none';
-            analysisContainer.style.display = 'none';
+            navContainer.style.display = 'none';
             spinner.style.display = "flex";
 
             await eel.compare_cli(file)();
@@ -702,19 +803,25 @@ document.addEventListener('DOMContentLoaded', function () {
             optimizedGraphData.numHatches = numHatchesOpti;
             optimizedGraphData.curLayer = 0;
 
-            const r_values = await eel.get_r_from_opti_layer()();
-            rawGraphData.rValues = r_values;
-            optimizedGraphData.rValues = r_values;
+            const ori_r_values = await eel.get_r_from_data_layer()();
+            const opt_r_values = await eel.get_r_from_opti_layer()();
+            const ori_r_mean = await eel.get_r_mean_from_data_layer()();
+            const opt_r_mean = await eel.get_r_mean_from_opti_layer()();
+            rawGraphData.rVal = ori_r_values;
+            optimizedGraphData.rVal = opt_r_values;
+            rawGraphData.rMean = ori_r_mean;
+            optimizedGraphData.rMean = opt_r_mean;
 
-            displayRValues();
             updateLayerSlider();
             updateHatchSlider();
 
             spinner.style.display = "none";
 
             selectedFile = file;
-            document.getElementById('analysis-container').style.display = 'flex';
+            navContainer.style.display = 'block';
 
+            // Call plot only after nav container is displayed
+            plotRValues();
             if (showOriginal) {
                 updateGraphCompare(0);
             } else {
@@ -722,7 +829,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
         } catch (error) {
-            console.error('Error loading file:', error);
+            displayError('Error loading file:', error);
             document.getElementById('analysis-container').style.display = 'none';
         }
     }
@@ -730,8 +837,8 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadMaterials() {
         try {
             const materialObjects = await eel.get_materials()();
-            const materialNameDropdown = document.getElementById('materialName');
             materialNameDropdown.innerHTML = '';
+            let selectedValue = null; // Store the selected option value
 
             // Iterate through each category
             Object.entries(materialObjects).forEach(([category, materials]) => {
@@ -742,7 +849,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Add materials to category
                 Object.values(materials).forEach(material => {
                     const option = document.createElement('option');
+                    material["option"] = material.name;
                     option.value = JSON.stringify(material);
+
+                    // Selected Material exists (for edit actions)
+                    if (selectedMaterial && selectedMaterial.name === material.name) {
+                        selectedValue = option.value;
+                    }
+
                     option.textContent = material.name;
                     optgroup.appendChild(option);
                 });
@@ -752,13 +866,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Add custom option
             const option = document.createElement('option');
-            option.value = "custom";
+            option.value = JSON.stringify({
+                option: "custom",
+                name: "",
+                kt: 0,
+                rho: 0,
+                cp: 0,
+                h: 0
+            });
             option.textContent = "Add Custom Material";
             materialNameDropdown.appendChild(option);
+            if (selectedValue) {
+                materialNameDropdown.value = selectedValue;
+            }
 
+            disableMaterialsForm();
             materialNameDropdown.dispatchEvent(new Event('change'));
         } catch (error) {
-            console.error('Error loading materials:', error);
+            displayError('Error loading materials:', error);
         }
     }
 
@@ -766,6 +891,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             // Wait for materials to load
             const machinesObject = await eel.get_machines()();
+            let selectedValue = null;
 
             machineNameDropdown.innerHTML = '';
             // Add material options
@@ -773,21 +899,40 @@ document.addEventListener('DOMContentLoaded', function () {
                 machines[machine] = machinesObject[machine];
 
                 const option = document.createElement('option');
+                machinesObject[machine].option = "machine";
                 option.value = JSON.stringify(machinesObject[machine]);
+
+                // Selected Machine exists (for edit actions)
+                if (selectedMachine && selectedMachine.name === machine) {
+                    selectedValue = option.value;
+                }
+
                 option.textContent = machine.replace(/_/g, ' ');
                 machineNameDropdown.appendChild(option);
             });
 
             // Add custom option last
             const option = document.createElement('option');
-            option.value = "custom";
+            option.value = JSON.stringify({
+                name: "",
+                vs: 0,
+                P: 0,
+                option: "custom"
+            });
             option.textContent = "Add Custom Machine";
             machineNameDropdown.appendChild(option);
 
+            // If found, we set the dropdown (Only after append child)
+            if (selectedValue) {
+                machineNameDropdown.value = selectedValue;
+            }
+
             const event = new Event('change');
+
+            disableMachinesForm();
             machineNameDropdown.dispatchEvent(event);
         } catch (error) {
-            console.error('Error loading machines:', error);
+            displayError('Error loading machines:', error);
         }
     }
 
@@ -811,8 +956,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const fileButton = document.createElement('button');
                 fileButton.type = 'button';
+                fileButton.id = file;
                 fileButton.className = 'btn btn-outline-secondary text-start';
                 fileButton.textContent = file;
+
                 fileButton.onclick = () => {
                     if (activeButton) {
                         activeButton.classList.remove('active');
@@ -860,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
         } catch (error) {
-            console.error('Error loading file history:', error);
+            displayError('Error loading file history:', error);
         }
     }
 
@@ -870,12 +1017,32 @@ document.addEventListener('DOMContentLoaded', function () {
         return validExtensions.includes(extension);
     }
 
+    function checkValidInput() {
+        const checkMaterial = Object.values(selectedMaterial).every(value => {
+            return value !== 0 && value !== '';
+        });
+
+        const checkMachine = Object.values(selectedMachine).every(value => {
+            return value !== 0 && value !== '';
+        });
+
+        return checkMaterial && checkMachine;
+    }
+
     async function processFile() {
+
+        if (!checkValidInput()) {
+            showErrorAlert("Input Error", "Please fill in all fields!");
+            return;
+        }
+
         processButton.disabled = true;
         viewButton.disabled = true;
 
-        disableMaterialsForm(with_select=true);
-        disableMachinesForm(with_select=true);
+        disableMaterialsSelect();
+        disableMachinesSelect();
+        disableCLIInput();
+
         const fileInput = document.getElementById('cliFile');
 
         if (fileInput.files.length > 0) {
@@ -884,9 +1051,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!checkFileType(file.name)) {
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm(with_select=true);
-                enableMachinesForm(with_select=true);
-                displayError("Invalid file type! Please attach a .cli file.", "Error");
+                enableMaterialsSelect();
+                enableMachinesSelect();
+                enableCLIInput();
+                showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
                 return;
             }
 
@@ -901,14 +1069,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 checkTaskStatus(file.name);
 
             } catch (error) {
-                console.error('Error processing file:', error);
+                displayError('Error processing file:', error);
             }
         } else {
             processButton.disabled = false;
             viewButton.disabled = false;
-            enableMaterialsForm(with_select=true);
-            enableMachinesForm(with_select=true);
-            displayError("Please attached a file to process!", "Error");
+            enableMachinesSelect();
+            enableMaterialsSelect();
+            enableCLIInput();
+            showErrorAlert("Input Error", "Please attach a .cli file to start.");
         }
     }
 
@@ -919,26 +1088,70 @@ document.addEventListener('DOMContentLoaded', function () {
         loadingBar.style.display = 'block';
         const interval = setInterval(async () => {
             const status = await eel.get_task_status(filename)();
+            const currentOutputFile = document.getElementById(status["output"]);
 
-            if ("progress" in status) {
+            if (status["status"] === "running") {
+
                 progress = status.progress * 100;
                 loadingProgress.style.width = progress + '%';
-            } else {
-                alertStatus.style.display = 'block';
-                alertMessage.innerText = "Conversion of file complete! Please navigate the file below the Optimization History tab to view the optimized file.";
+
+                if (currentOutputFile) {
+                    currentOutputFile.disabled = true;
+                }
+
+            } else if (status["status"] === "error") {
+
+                showErrorAlert("Error", status.message);
                 clearInterval(interval);
                 processButton.disabled = false;
                 viewButton.disabled = false;
-                enableMaterialsForm(with_select=true);
-                enableMachinesForm(with_select=true);
+                enableMachinesSelect();
+                enableMaterialsSelect();
+                enableCLIInput();
+                loadingStatus.textContent = '';
+                loadingBar.style.display = 'none';
+
+                if (currentOutputFile) {
+                    currentOutputFile.disabled = false;
+                }
+
+            } else {
+                showSuccessAlert("Success", status.message);
+                clearInterval(interval);
+                processButton.disabled = false;
+                viewButton.disabled = false;
+                enableMachinesSelect();
+                enableMaterialsSelect();
+                enableCLIInput();
                 loadingStatus.textContent = '';
                 loadingBar.style.display = 'none';
                 await loadFileHistory();
                 await loadMaterials();
                 await loadMachines();
+
+                if (currentOutputFile) {
+                    currentOutputFile.disabled = false;
+                }
+
             }
             return status;
         }, 1000);
+    }
+
+    function showErrorAlert(title, message) {
+        alertTitle.innerText = title;
+        alertMessage.innerText = message;
+        removeClassStartsWith(alertStatus, 'alert-success');
+        alertStatus.classList.add('alert-danger', 'show');
+        alertStatus.style.display = 'block';
+    }
+
+    function showSuccessAlert(title, message) {
+        alertTitle.innerText = title;
+        alertMessage.innerText = message;
+        removeClassStartsWith(alertStatus, 'alert-danger');
+        alertStatus.classList.add('alert-success', 'show');
+        alertStatus.style.display = 'block';
     }
 
     function readFileContent(file) {
@@ -988,15 +1201,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function createScatterTraces(boxes) {
         const maxAge = boxes.length;
-        
+
         return boxes.map((box, index) => {
             const ageValue = (maxAge - index) / maxAge; // Normalized age (1 = newest, 0 = oldest)
             const color = interpolateColor(
-                {r: 255, g: 0, b: 0},   // Red (hot)
-                {r: 0, g: 0, b: 255},   // Blue (cold)
+                { r: 255, g: 0, b: 0 },   // Red (hot)
+                { r: 0, g: 0, b: 255 },   // Blue (cold)
                 ageValue
             );
-    
+
             return {
                 x: box[0],
                 y: box[1],
@@ -1013,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         });
     }
-    
+
     function interpolateColor(color1, color2, factor) {
         const result = {
             r: Math.round(color1.r + factor * (color2.r - color1.r)),
@@ -1059,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     cmin: 0,
                     colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
                     colorbar: {
-                        title: 'Heat Scale',
+                        title: 'Temporal Scale',
                         titleside: 'right',
                         thickness: 20,
                         len: 0.6,
@@ -1073,14 +1286,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 showlegend: false,
                 hoverinfo: 'none'
             };
-    
+
             let optiPlotData = [...completeTrace, ...optimizedData, heatScaleDummy];
-    
+
             const layout = {
-                height: analysisContainer.clientHeight * 0.7,
-                width: analysisContainer.clientWidth,
-                title: `Layer ${layerIndex}`,
-                margin: { l: 50, r: 100, t: 50, b: 50 }, // Adjust right margin for colorbar
+                height: navContainer.clientHeight * 0.7,
+                width: navContainer.clientWidth,
+                title: {
+                    text: `Layer ${layerIndex}`,
+                    font: {
+                        size: 16
+                    },
+                },
                 xaxis: {
                     title: 'X',
                     scaleanchor: 'y',  // Make axes equal scale
@@ -1095,16 +1312,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     fixedrange: false
                 }
             };
-    
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                scrollZoom: true
-            };
-            
-            Plotly.newPlot('opti_plot', optiPlotData, layout, config);
+
+            Plotly.newPlot('opti_plot', optiPlotData, layout, chartConfiguration);
         } catch (error) {
-            console.error('Error updating graph:', error);
+            displayError('Error updating graph:', error);
         }
     }
 
@@ -1116,8 +1327,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (optimizedGraphData.numLayers != rawGraphData.numLayers) {
                 return;
             }
-
-            const analysisContainer = document.getElementById('analysis-container');
 
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
@@ -1157,9 +1366,14 @@ document.addEventListener('DOMContentLoaded', function () {
             function getLayout(title) {
 
                 const layout = {
-                    height: analysisContainer.clientHeight * 0.7,
-                    width: analysisContainer.clientWidth / 2,
-                    title: `${title}\nLayer ${layerIndex}`,
+                    height: navContainer.clientHeight * 0.7,
+                    width: navContainer.clientWidth / 2,
+                    title: {
+                        text: `${title}<br>Layer ${layerIndex}`,
+                        font: {
+                            size: 16
+                        }
+                    },
                     xaxis: {
                         title: 'X',
                         scaleanchor: 'y',  // Make axes equal scale
@@ -1178,11 +1392,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return layout;
             }
 
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                scrollZoom: true
-            };
 
             const heatScaleDummy = {
                 x: [null],
@@ -1195,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     cmin: 0,
                     colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
                     colorbar: {
-                        title: 'Heat Scale',
+                        title: 'Temporal Scale',
                         titleside: 'right',
                         thickness: 20,
                         len: 0.6,
@@ -1209,14 +1418,115 @@ document.addEventListener('DOMContentLoaded', function () {
                 showlegend: false,
                 hoverinfo: 'none'
             };
-    
+
             let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy]
             let optiPlotData = [...completeTrace, ...optiData, heatScaleDummy]
-            Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), config);
-            Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), config);
+            Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), chartConfiguration);
+            Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), chartConfiguration);
         } catch (error) {
-            console.error('Error updating graph:', error);
+            displayError('Error updating graph:', error);
         }
     }
 
+    function plotRValues() {
+
+        const oriRValues = rawGraphData.rVal;
+        const optRValues = optimizedGraphData.rVal;
+
+        if (!oriRValues || !optRValues) {
+            return;
+        }
+
+        // Generate time steps for the X-axis
+        const timeSteps = Array.from({ length: optRValues.length }, (_, i) => i + 1);
+
+        // Create traces for R_ORI and R_OPT
+        const trace1 = {
+            x: timeSteps,
+            y: oriRValues,
+            mode: 'scatter',
+            name: 'Original Sequence',
+            line: {
+                color: 'blue'
+            }
+        };
+
+        const trace2 = {
+            x: timeSteps,
+            y: optRValues,
+            mode: 'scatter',
+            name: 'Optimized Sequence',
+            line: {
+                color: 'red'
+            }
+        };
+
+        // Get R Grade
+        let rScoreObject = getRScore();
+        let rScore = rScoreObject.grade;
+        let rColor = rScoreObject.color;
+        rGrade.innerText = rScore;
+        rGrade.style.color = rColor;
+
+        // Layout configuration
+        const layout = {
+            height: navContainer.clientHeight * 0.7,
+            width: navContainer.clientWidth,
+            title: `Heat Uniformity<br>Layer ${optimizedGraphData.curLayer}`,
+            xaxis: {
+                title: 'Time Step',
+                showgrid: true,
+                zeroline: false,
+                ticksuffix: "ms"
+            },
+            yaxis: {
+                title: 'Heat Deviation',
+                showgrid: true,
+                zeroline: false
+            },
+            showlegend: true
+        };
+
+        // Plot the chart
+        Plotly.newPlot('r_plot', [trace1, trace2], layout);
+    }
+
+    function getRScore() {
+        let grade_scale = {
+            2: {
+                "grade": "F",
+                "color": "red"
+            },
+            5: {
+                "grade": "E",
+                "color": "red"
+            },
+            10: {
+                "grade": "D",
+                "color": "orange"
+            },
+            15: {
+                "grade": "C",
+                "color": "orange"
+            },
+            20: {
+                "grade": "B",
+                "color": "green"
+            },
+            30: {
+                "grade": "A",
+                "color": "green"
+            }
+        };
+
+        let score = (rawGraphData.rMean - optimizedGraphData.rMean) / rawGraphData.rMean * 100;
+        console.log(score);
+
+        let grade_key = Object.keys(grade_scale)
+            .map(Number) // Convert keys to numbers
+            .sort((a, b) => a - b) // Ensure they are sorted in ascending order
+            .find(key => score < key) || 80;
+
+        return grade_scale[grade_key];
+    }
 });

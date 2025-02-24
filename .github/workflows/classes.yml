@@ -1,0 +1,98 @@
+name: Build Installer
+
+on:
+  push:
+    branches:
+      - classes  # Adjust the branch name as needed
+
+jobs:
+  build:
+    name: HC Tool CICD including Pyinstaller, ISS and Code-signing
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'  # Adjust the Python version as needed
+
+      # Step 3: Create and activate a virtual environment
+      - name: Create virtual environment
+        run: |
+          python -m venv venv
+          .\venv\Scripts\activate
+
+      # Step 4: Install dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller  # Ensure PyInstaller is installed in the virtual environment
+
+      # Step 5: Download electron
+      - name: Download File
+        run: |
+          curl -L -o file.zip "https://github.com/electron/electron/releases/download/v33.3.2/electron-v33.3.2-win32-x64.zip"
+
+      # Step 6: Unzip the electron file
+      - name: Unzip File
+        run: |
+          unzip file.zip -d electron
+          
+      # Step 7: Run PyInstaller with your main.spec
+      - name: Run PyInstaller
+        run: |
+          .\venv\Scripts\activate
+          pyinstaller main.spec
+          
+      # Step 8: Sign the pyinstaller exe
+      - name: Azure Trusted Signing
+        uses: azure/trusted-signing-action@v0.3.16
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          code-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          
+          # Sign all exes inside the folder
+          file-digest: SHA256
+          files-folder: dist/main/  # Adjust the folder where PyInstaller outputs the .exe files
+          files-folder-filter: exe
+          
+      # Step 9: Compile .ISS to .EXE Installer using Inno Setup
+      - name: Compile .ISS to .EXE Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: iss/hc_electron_eel.iss  # Adjust the path to your .iss file
+          options: /O+
+
+      # Step 10: Sign the iss exe
+      - name: Azure Trusted Signing
+        uses: azure/trusted-signing-action@v0.3.16
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          code-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          
+          # Sign all exes inside the folder
+          file-digest: SHA256
+          files-folder: iss/output/
+          files-folder-filter: exe
+
+      # Step 10: Upload the .exe file as an artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: iss/output/ulendohctool_setup.exe
+      
