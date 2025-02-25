@@ -15,8 +15,11 @@ def extract_array_from_line(line):
     if not match:
         return np.array([])
     
+    array_str = match.group(1).strip()
+    if not array_str:
+        return np.array([])
+    
     # Split matched string into numerical values
-    array_str = match.group(1)
     return np.array([float(x) for x in array_str.split(', ')])
     
 class CLIVisualizer:
