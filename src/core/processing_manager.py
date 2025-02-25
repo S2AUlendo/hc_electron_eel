@@ -130,14 +130,14 @@ class ProcessingManager:
                 if result.get("error_type") == "OverLimitException":
                     eel.displayError(result["message"], "Build Limit Exceeded")
                     return {
-                        "status": "Error",
+                        "status": "error",
                         "message": result["message"],
                         "output": self.output_name
                     }
                 else:
                     eel.displayError(result["message"], "Processing Error")
                     return {
-                        "status": "Error",
+                        "status": "error",
                         "message": result["message"],
                         "output": self.output_name
                     }

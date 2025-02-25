@@ -39,6 +39,7 @@ class CLIReformat:
         self.build_area = 0
         
         # Geometry self.data
+        self.end_file_indice = 0
         self.layer_indices = []
         self.hatch_indices = []
         self.polyline_indices = []
@@ -67,10 +68,14 @@ class CLIReformat:
         self.polyline_indices = np.where(np.char.startswith(self.data, "$$POLYLINE/"))[0]
         self.display_message(f"Polyline Indicies {len(self.polyline_indices)}")
         
-        self.layer_indices = np.array(self.layer_indices)
         self.hatch_indices = np.array(self.hatch_indices)
-        self.layer_indices = np.append(self.layer_indices, self.hatch_indices[-1] + 1)
+        
+        self.end_file_indices = np.where(np.char.startswith(self.data, "$$GEOMETRYEND"))[0]
+        
         self.display_message(f"Layer Indicies {len(self.layer_indices)}") 
+        self.layer_indices = np.array(self.layer_indices)
+        # Add the last index of file as a dummy layer
+        self.layer_indices = np.append(self.layer_indices, self.end_file_indices)
            
     def parse_cli_header(self):
         """Parse CLI file header section"""
@@ -143,7 +148,7 @@ class CLIReformat:
         output_file = os.path.join(output_dir, self.opt_filename)
         
         try:
-            with open(ori_path, "+a") as ori_file ,open(output_file, "+a") as opt_file:
+            with open(ori_path, "w") as ori_file ,open(output_file, "w") as opt_file:
                 for layer_num in range(len(self.layer_indices)-1):
                     self.progress['msg'] = f"Processing layer {layer_num}/{len(self.layer_indices) - 1}"
                     if layer_num == 0: 
@@ -154,13 +159,20 @@ class CLIReformat:
                         opt_file.write(f"$$HEADERSTART\n")
                         opt_file.write(f"$$ASCII\n$$UNITS/{self.units}\n$$VERSION/{self.version}\n$$DATE/{self.date}\n$$DIMENSION/{self.dimension}\n$$LAYERS/{self.layers}\n$$LABEL/{self.label}\n")
                         opt_file.write(f"$$HEADEREND\n")
-                        
+                                
                     if (layer_num in self.hatch_lines):
+                        self.display_message(f"Total Hatch Lines {self.hatch_lines[layer_num].shape}, at layer {layer_num}")
+                        self.display_message(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
                         
-                        if self.hatch_lines[layer_num].shape[0] < 3:
+                        if self.hatch_lines[layer_num].ndim == 1:
+                            optimized_Sequence = self.hatch_lines[layer_num]
+                            R_opt = []
+                            R_ori = []
+                            
+                        elif self.hatch_lines[layer_num].shape[0] < 3:
                             optimized_Sequence = self.hatch_lines[layer_num][:, -1]
-                            R_opt = 0
-                            R_ori = 0
+                            R_opt = []
+                            R_ori = []
                             
                         else:
                             totaltracker = int(self.hatch_lines[layer_num].shape[0]) + totaltracker
@@ -168,10 +180,8 @@ class CLIReformat:
                             new_layer, x_size, y_size = convert_hatch_to_voxel(self.hatch_lines[layer_num], 67, 1, 1)   
                             Objective_layers = 2     
                             
-                            self.display_message(f"Total Hatch Lines {self.hatch_lines[layer_num].shape}, at layer {layer_num}")
 
                             Sorted_layers = stack_layers(new_layer, Sorted_layers, Objective_layers)
-                            self.display_message(f"Matrix shape {Sorted_layers.shape}, at layer {layer_num}")
 
                             try:
                                 optimized_Sequence, v0_evInit, R_opt, R_ori = smartScanCore(numbers_set=self.hatch_lines[layer_num], 
@@ -204,14 +214,21 @@ class CLIReformat:
                         # Access stored per-layer self.data
                         layer_info = self.layer_data[layer_num]
                         
-                        for ori_seq in self.hatch_lines[layer_num][:, -1]:
-                            ori_file.write(f"{layer_info['hatch_data'][ori_seq]}\n")
+                        if self.hatch_lines[layer_num].ndim == 1:
+                            ori_file.write(f"{layer_info['hatch_data'][0]}\n")
+                            opt_file.write(f"{layer_info['hatch_data'][0]}\n")
+                            ori_file.write(f"{self.data[layer_info['polyline_feature_indices'][0]]}\n")
+                            opt_file.write(f"{self.data[layer_info['polyline_feature_indices'][0]]}\n")
+                        else: 
+                            for ori_seq in self.hatch_lines[layer_num][:, -1]:
+                                ori_file.write(f"{layer_info['hatch_data'][ori_seq]}\n")
                             
-                        for opt_seq in optimized_Sequence:
-                            opt_file.write(f"{layer_info['hatch_data'][opt_seq]}\n")
+                            for opt_seq in optimized_Sequence:
+                                opt_file.write(f"{layer_info['hatch_data'][opt_seq]}\n")
                             
-                        for polyline in layer_info['polyline_feature_indices']:
-                            opt_file.write(f"{self.data[polyline]}\n")
+                            for polyline in layer_info['polyline_feature_indices']:
+                                ori_file.write(f"{self.data[polyline]}\n")
+                                opt_file.write(f"{self.data[polyline]}\n")
                         
                         self.progress['value'] = (layer_num + 1) / len(self.layer_indices)
             
@@ -222,7 +239,7 @@ class CLIReformat:
         except Exception as e:
             self.display_message(traceback.format_exc())
             self.display_message(f"Error: {e}")
-            raise e
+            raise Exception(traceback.format_exc()) from e
     
     def get_and_check_dimensions(self):
         self.dimension_x = np.max(self.x_max_values) - np.min(self.x_min_values)
@@ -266,21 +283,32 @@ class CLIReformat:
             # Iterate over layers
             for ii in range(len(self.layer_indices)-1):
                 if ii in self.hatch_lines:
-                    self.hatch_lines[ii][:, [0, 2]] = self.hatch_lines[ii][:, [0, 2]] - minimum_x
-                    self.hatch_lines[ii][:, [1, 3]] = self.hatch_lines[ii][:, [1, 3]] - minimum_y
+                    if self.hatch_lines[ii].ndim == 1:
+                        self.hatch_lines[ii][[0, 2]] = self.hatch_lines[ii][[0, 2]] - minimum_x
+                        self.hatch_lines[ii][[1, 3]] = self.hatch_lines[ii][[1, 3]] - minimum_y
+                    else:
+                        self.hatch_lines[ii][:, [0, 2]] = self.hatch_lines[ii][:, [0, 2]] - minimum_x
+                        self.hatch_lines[ii][:, [1, 3]] = self.hatch_lines[ii][:, [1, 3]] - minimum_y
                     
             self.progress["msg"] = "Completed"
+            
+            return {
+                "status": "success",
+                "output": self.opt_filename
+            }
 
         except OverLimitException as e:
+            self.display_message(traceback.format_exc())
             return {
                 "status": "error",
                 "error_type": "OverLimitException",
                 "message": str(e)
             }
         except Exception as e:
+            self.display_message(traceback.format_exc())
             return {
                 "status": "error",
-                "error_type": "GenericException",
+                "error_type": "GeneralError",
                 "message": str(e)
             }
         
