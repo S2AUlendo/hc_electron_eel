@@ -1,7 +1,6 @@
 // In your about window's renderer script (about.js)
 window.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onAboutData((data) => {
-        console.log(data)
         // Application Details
         document.querySelector('.app-version').textContent = data.version;
         document.querySelector('.electron-version').textContent = data.electronVersion;

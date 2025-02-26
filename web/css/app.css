@@ -237,7 +237,6 @@
     background-color: #eee;
     border-radius: 10px;
     overflow: hidden;
-    display: none;
 }
 
 .loading-progress {
@@ -504,3 +503,16 @@
     align-self: flex-end;
   }
 
+
+  #progress-container {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    gap: 1rem;
+  }
+
+  #cancelButton {
+    align-self: flex-end;
+  }

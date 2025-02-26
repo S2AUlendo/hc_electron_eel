@@ -91,6 +91,7 @@ class HeatCompensationApp:
         eel.expose(self.is_multiprocessing_running)
         eel.expose(self.get_r_mean_from_data_layer)
         eel.expose(self.get_r_mean_from_opti_layer)
+        eel.expose(self.cancel_task)
 
     def start(self):
         try:
@@ -152,6 +153,9 @@ class HeatCompensationApp:
     def get_task_status(self, filename):
         return self.processing.get_task_status(filename)
 
+    def cancel_task(self, filename):
+        return self.processing.cancel_processing(filename)
+    
     def open_file_location(self, filename):
         try:
             file_path = os.path.join(self.config.active_config["output"], filename)

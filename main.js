@@ -47,7 +47,6 @@ function createWindow() {
           defaultId: 1
         });
 
-        console.log("choice", choice)
         if (choice === 1) return; // Cancel close
       }
     } catch (error) {

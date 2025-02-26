@@ -117,7 +117,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const customMachineConfigFields = document.getElementById('custom-machine-config');
     const customMachineConfigInput = document.querySelectorAll("#custom-machine-config input");
 
+    // Progress Container
     const loadingStatus = document.getElementById('loadingStatus');
+    const loadingBar = document.getElementById('loadingBar');
+    const loadingProgress = document.getElementById('loadingProgress');
+    const progressContainer = document.getElementById('progress-container');
+    const cancelButton = document.getElementById('cancelButton');
+
     const resizer = document.getElementById('dragMe');
     const viewButton = document.getElementById('viewButton');
     const viewMaterialParamsButton = document.getElementById('view-materials');
@@ -595,11 +601,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const file = fileInput.files[0];
             try {
                 if (!checkFileType(file.name)) {
-                    processButton.disabled = false;
-                    viewButton.disabled = false;
-                    enableMachinesSelect();
-                    enableMaterialsSelect();
-                    enableCLIInput();
+                    enableAllCoreForms();
                     showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
                     return;
                 }
@@ -1029,6 +1031,41 @@ document.addEventListener('DOMContentLoaded', function () {
         return checkMaterial && checkMachine;
     }
 
+    async function cancelTask(filename) {
+        const response = await eel.cancel_task(filename)();
+        const status = response.status;
+        const message = response.message;
+
+        if (status != "error") {
+            progressContainer.style.display = 'none';
+        }
+
+        if (status === "success") {
+            showSuccessAlert("Success", message);
+            enableAllCoreForms();
+        } else if (status == "not_found") {
+            showErrorAlert("Not Found", message);
+        } else {
+            showErrorAlert("Error", message);
+        }
+    }
+
+    function enableAllCoreForms() {
+        enableMaterialsSelect();
+        enableMachinesSelect();
+        enableCLIInput();
+        processButton.disabled = false;
+        viewButton.disabled = false;
+    }
+
+    function disableAllCoreForms() {
+        disableMaterialsSelect();
+        disableMachinesSelect();
+        disableCLIInput();
+        processButton.disabled = true;
+        viewButton.disabled = true;
+    }
+
     async function processFile() {
 
         if (!checkValidInput()) {
@@ -1036,12 +1073,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        processButton.disabled = true;
-        viewButton.disabled = true;
-
-        disableMaterialsSelect();
-        disableMachinesSelect();
-        disableCLIInput();
+        disableAllCoreForms();
 
         const fileInput = document.getElementById('cliFile');
 
@@ -1049,16 +1081,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const file = fileInput.files[0];
 
             if (!checkFileType(file.name)) {
-                processButton.disabled = false;
-                viewButton.disabled = false;
-                enableMaterialsSelect();
-                enableMachinesSelect();
-                enableCLIInput();
+                enableAllCoreForms();
                 showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
                 return;
             }
 
             try {
+                progressContainer.style.display = 'flex';
                 // Read file content
                 displayStatus("Reading file...");
                 const fileContent = await readFileContent(file);
@@ -1072,20 +1101,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 displayError('Error processing file:', error);
             }
         } else {
-            processButton.disabled = false;
-            viewButton.disabled = false;
-            enableMachinesSelect();
-            enableMaterialsSelect();
-            enableCLIInput();
+            enableAllCoreForms();
             showErrorAlert("Input Error", "Please attach a .cli file to start.");
         }
     }
 
+    let cancelController = null;
+
     async function checkTaskStatus(filename) {
-        const loadingBar = document.getElementById('loadingBar');
-        const loadingProgress = document.getElementById('loadingProgress');
+        if (cancelController) {
+            cancelController.abort();
+        }
+        cancelController = new AbortController();
+
         let progress = 0;
-        loadingBar.style.display = 'block';
+        loadingProgress.style.width = 0 + '%';
+        cancelButton.disabled = false;
+
         const interval = setInterval(async () => {
             const status = await eel.get_task_status(filename)();
             const currentOutputFile = document.getElementById(status["output"]);
@@ -1103,13 +1135,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 showErrorAlert("Error", status.message);
                 clearInterval(interval);
-                processButton.disabled = false;
-                viewButton.disabled = false;
-                enableMachinesSelect();
-                enableMaterialsSelect();
-                enableCLIInput();
+                enableAllCoreForms();
                 loadingStatus.textContent = '';
-                loadingBar.style.display = 'none';
+                progressContainer.style.display = 'none';
 
                 if (currentOutputFile) {
                     currentOutputFile.disabled = false;
@@ -1118,13 +1146,9 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 showSuccessAlert("Success", status.message);
                 clearInterval(interval);
-                processButton.disabled = false;
-                viewButton.disabled = false;
-                enableMachinesSelect();
-                enableMaterialsSelect();
-                enableCLIInput();
+                enableAllCoreForms();
                 loadingStatus.textContent = '';
-                loadingBar.style.display = 'none';
+                progressContainer.style.display = 'none';
                 await loadFileHistory();
                 await loadMaterials();
                 await loadMachines();
@@ -1136,12 +1160,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return status;
         }, 1000);
+
+        cancelButton.addEventListener('click', () => {
+            clearInterval(interval);
+            cancelTask(filename);
+            cancelButton.disabled = true;
+        }, {
+            once: true, // Automatically remove after firing
+            signal: cancelController.signal
+        });
     }
 
     function showErrorAlert(title, message) {
         alertTitle.innerText = title;
         alertMessage.innerText = message;
         removeClassStartsWith(alertStatus, 'alert-success');
+        removeClassStartsWith(alertStatus, 'alert-warning');
         alertStatus.classList.add('alert-danger', 'show');
         alertStatus.style.display = 'block';
     }
@@ -1150,7 +1184,17 @@ document.addEventListener('DOMContentLoaded', function () {
         alertTitle.innerText = title;
         alertMessage.innerText = message;
         removeClassStartsWith(alertStatus, 'alert-danger');
+        removeClassStartsWith(alertStatus, 'alert-warning');
         alertStatus.classList.add('alert-success', 'show');
+        alertStatus.style.display = 'block';
+    }
+
+    function showWarningAlert(title, message) {
+        alertTitle.innerText = title;
+        alertMessage.innerText = message;
+        removeClassStartsWith(alertStatus, 'alert-danger');
+        removeClassStartsWith(alertStatus, 'alert-success');
+        alertStatus.classList.add('alert-warning', 'show');
         alertStatus.style.display = 'block';
     }
 
@@ -1444,7 +1488,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const trace1 = {
             x: timeSteps,
             y: oriRValues,
-            mode: 'markers+lines',  
+            mode: 'markers+lines',
             name: 'Original Sequence',
             line: {
                 color: 'blue'
@@ -1454,7 +1498,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const trace2 = {
             x: timeSteps,
             y: optRValues,
-            mode: 'markers+lines', 
+            mode: 'markers+lines',
             name: 'Optimized Sequence',
             line: {
                 color: 'red'
@@ -1525,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .map(Number) // Convert keys to numbers
             .sort((a, b) => a - b) // Ensure they are sorted in ascending order
             .find(key => score < key) || 30;
-            
+
         return grade_scale[grade_key];
     }
 });
