@@ -292,9 +292,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         customMaterialConfigInput.forEach(input => {
             input.required = true;
-            input.addEventListener('input', () => {
-                updateMaterialValues();
-            });
         });
 
         alertCloseButton.addEventListener('click', () => {
@@ -371,8 +368,11 @@ document.addEventListener('DOMContentLoaded', function () {
         editMaterialButton.addEventListener('click', (e) => {
             e.preventDefault();
             if (materialCanEdit) {
+                editMaterialButton.innerHTML = '<i class="bi bi-pencil-square me-2"></i> Edit';
+                resetMaterialFormValue();
                 disableMaterialsForm();
             } else {
+                editMaterialButton.innerHTML = '<i class="bi bi-x-lg me-2"></i> Cancel Edit';
                 enableMaterialsForm();
             }
         });
@@ -380,8 +380,11 @@ document.addEventListener('DOMContentLoaded', function () {
         editMachineButton.addEventListener('click', (e) => {
             e.preventDefault()
             if (machineCanEdit) {
+                editMachineButton.innerHTML = '<i class="bi bi-pencil-square me-2"></i> Edit';
+                resetMachineFormValue();
                 disableMachinesForm();
             } else {
+                editMachineButton.innerHTML = '<i class="bi bi-x-lg me-2"></i> Cancel Edit';
                 enableMachinesForm();
             }
         });
@@ -398,6 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         saveMaterialButton.addEventListener('click', async (e) => {
             e.preventDefault();
+            updateMaterialValues();
             await eel.edit_material(selectedMaterialCategory, selectedMaterial)();
             await loadMaterials();
             showSuccessAlert("Success", "Material saved successfullly!");
@@ -405,6 +409,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         saveMachineButton.addEventListener('click', async (e) => {
             e.preventDefault();
+            updateMachineValues();
             await eel.edit_machine(selectedMachine)();
             await loadMachines();
             showSuccessAlert("Success", "Machine saved successfullly!");
@@ -555,6 +560,20 @@ document.addEventListener('DOMContentLoaded', function () {
             element.disabled = true;
         }
         );
+    }
+
+    function resetMaterialFormValue(){
+        document.getElementById('custom-material-name').value = selectedMaterial.name;
+        document.getElementById('kt').value = selectedMaterial.kt;
+        document.getElementById('rho').value = selectedMaterial.rho;
+        document.getElementById('cp').value = selectedMaterial.cp;
+        document.getElementById('h').value = selectedMaterial.h;
+    }
+
+    function resetMachineFormValue() {
+        document.getElementById('custom-machine-name').value = selectedMachine.name;
+        document.getElementById('vs').value = selectedMachine.vs;
+        document.getElementById('P').value = selectedMachine.P;
     }
 
     function disableMachinesForm() {
@@ -1065,11 +1084,16 @@ document.addEventListener('DOMContentLoaded', function () {
         processButton.disabled = true;
         viewButton.disabled = true;
     }
-
+    
     async function processFile() {
 
         if (!checkValidInput()) {
             showErrorAlert("Input Error", "Please fill in all fields!");
+            return;
+        }
+
+        if (materialCanEdit || machineCanEdit){
+            showErrorAlert("Input Error", "Please save or cancel your changes before processing.");
             return;
         }
 
