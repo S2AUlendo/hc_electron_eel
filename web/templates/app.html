@@ -24,19 +24,14 @@
             <div class="top-panel">
                 <img src="../public/ulendo_hc_green.png" alt="Ulendo Logo" class="logo">
                 <div class="file-input form-group">
-                    <div class="d-flex justify-content-between align-items-center" id="help-btn">
+                    <div class="d-flex justify-content-between align-items-center" id="help-btn-processing">
                         <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse"
-                            data-bs-target="#collapseContent" aria-expanded="false" aria-controls="collapseContent"
+                            data-bs-target="#collapseContentProcessing" aria-expanded="false" aria-controls="collapseContentProcessing"
                             title="Click for help">
                             Help <i class="bi bi-chevron-down"></i>
                         </button>
                     </div>
-                    <div class="alert alert-success fade show" role="alert" id="alert-status" style="display: none;">
-                        <h4 class="alert-heading" id="alert-title"></h4>
-                        <span id="alert-message"></span>
-                        <button type="button" class="btn-close me-3" id="alert-close-btn" aria-label="Close"></button>
-                    </div>
-                    <div class="collapse mt-2" id="collapseContent">
+                    <div class="collapse mt-2" id="collapseContentProcessing">
                         <div class="alert alert-info">
                             <ul>
                                 <li>Upload a <code>.cli</code> file to get started.</li>
@@ -50,6 +45,11 @@
                                 </li>
                             </ul>
                         </div>
+                    </div>
+                    <div class="alert alert-success fade show" role="alert" id="alert-status" style="display: none;">
+                        <h4 class="alert-heading" id="alert-title"></h4>
+                        <span id="alert-message"></span>
+                        <button type="button" class="btn-close me-3" id="alert-close-btn" aria-label="Close"></button>
                     </div>
                     <div>
                         <div id="info">Current supported file types: .cli</div>
@@ -210,14 +210,32 @@
                     <div class="tab-pane fade show active" id="nav-analysis" role="tabpanel"
                         aria-labelledby="nav-analysis-tab" tabindex="0">
                         <div id="analysis-container">
+                            <div class="d-flex justify-content-between align-items-center mt-3 mb-2" id="help-btn-analysis">
+                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseContentAnalysis" aria-expanded="false"
+                                    aria-controls="collapseContentAnalysis" title="Click for help">
+                                    Help <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </div>
+                            <div class="collapse mt-2 text-start" id="collapseContentAnalysis">
+                                <div class="alert alert-info">
+                                    <ul>
+                                        <li>The singular plot shows the HC optimized hatch sequence of the layer.</li>
+                                        <li>Enable the <strong>Show Original</strong> checkbox to compare the original
+                                            and optimized hatch sequences side by side.</li>
+                                        <li>Enable the <strong>Show Hatch Lines</strong> checkbox to visualize the
+                                            detailed hatch lines of the layer.</li>
+                                        <li>Use the playback controls to animate the hatch sequence, and speed slider to
+                                            adjust the animation speed.</li>
+                                        <li>Use the layer slider to navigate through the layers.</li>
+                                        <li>Use the hatch slider to control the number of hatches displayed.</li>
+                                    </ul>
+                                </div>
+                            </div>
                             <div id="plot-container">
                                 <div id="data_plot"></div>
                                 <div id="opti_plot"></div>
                             </div>
-                            <label for="rOptimized" class="form-label" style="display: none;">R Optimal: <span
-                                    id="rOptimized"></span></label>
-                            <label for="rOriginal" class="form-label" style="display: none;">R Original: <span
-                                    id="rOriginal"></span></label>
                             <div class="slider-container px-3">
                                 <div class="playback-container mt-3">
                                     <button id="playButton" class="btn btn-primary">
@@ -265,7 +283,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slider-container px-3">
+                    <div class="slider-container px-3 mb-5">
                         <label for="layerSlider" class="form-label">Layer: <span id="layerValue">0</span></label>
                         <input type="range" class="form-range" id="layerSlider" value="0">
                     </div>
