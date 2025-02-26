@@ -1488,7 +1488,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         // Plot the chart
-        Plotly.newPlot('r_plot', [trace1, trace2], layout);
+        Plotly.newPlot('r_plot', [trace1, trace2], layout, chartConfiguration);
     }
 
     function getRScore() {
