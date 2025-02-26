@@ -335,9 +335,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         customMachineConfigInput.forEach(input => {
             input.required = true;
-            input.addEventListener('input', () => {
-                updateMachineValues();
-            });
         });
 
         machineNameDropdown.addEventListener('change', () => {
@@ -1084,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', function () {
         processButton.disabled = true;
         viewButton.disabled = true;
     }
-    
+
     async function processFile() {
 
         if (!checkValidInput()) {
