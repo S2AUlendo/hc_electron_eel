@@ -1444,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const trace1 = {
             x: timeSteps,
             y: oriRValues,
-            mode: 'scatter',
+            mode: 'markers+lines',  
             name: 'Original Sequence',
             line: {
                 color: 'blue'
@@ -1454,7 +1454,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const trace2 = {
             x: timeSteps,
             y: optRValues,
-            mode: 'scatter',
+            mode: 'markers+lines', 
             name: 'Optimized Sequence',
             line: {
                 color: 'red'
@@ -1520,13 +1520,12 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         let score = (rawGraphData.rMean - optimizedGraphData.rMean) / rawGraphData.rMean * 100;
-        console.log(score);
 
         let grade_key = Object.keys(grade_scale)
             .map(Number) // Convert keys to numbers
             .sort((a, b) => a - b) // Ensure they are sorted in ascending order
-            .find(key => score < key) || 80;
-
+            .find(key => score < key) || 30;
+            
         return grade_scale[grade_key];
     }
 });
