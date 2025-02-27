@@ -1,6 +1,4 @@
 :root {
-    --left-panel-width: 50%;
-    --right-panel-width: 50%;
     --ulendo-green: #17A78E;
     --ulendo-green-hover: #138570;
     --ulendo-green-active: #0f6b5a;
@@ -123,15 +121,11 @@
 }
 
 .spinner-container {
-    position: fixed;
-    top: 0;
-    left: 0;
     width: 100%;
-    height: 100vh;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    display: none;
 }
 
 #view-container {

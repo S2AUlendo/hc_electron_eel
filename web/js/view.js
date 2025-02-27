@@ -1,12 +1,15 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-    window.electronAPI.onReceiveMessage((data) => {
+    window.electronAPI.onReceiveMessage((inputFile) => {
         spinner.style.display = "flex";
-        readFile(data);
+        readFileFromPath(inputFile.path);
     });
 
+    window.addEventListener('resize', () => {
+        updateGraph(rawGraphData.curLayer);
+    }, true);
+
     const chartConfiguration = {
-        responsive: true,
         displayModeBar: true,
         scrollZoom: true,
         displaylogo: false,
@@ -42,8 +45,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const speedRange = document.getElementById('view-speedRange');
     const showHatchLinesCheckbox = document.getElementById('view-showHatchCheckbox');
     const playButton = document.getElementById('view-playButton');
-    const rOriginalLabel = document.getElementById('view-rOriginal');
     const spinner = document.getElementById('view-spinner');
+    const viewContainer = document.getElementById('view-container');
 
     if (layerSlider && hatchSlider && speedRange && showHatchLinesCheckbox) {
         layerSlider.addEventListener('input', async (event) => {
@@ -69,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         hatchSlider.addEventListener('input', async (event) => {
             const hatchIndex = parseInt(event.target.value);
-            document.getElementById('view-hatchesValue').textContent = event.target.value;
+            hatchSlider.textContent = event.target.value;
             await eel.set_current_data_hatch(hatchIndex)();
 
             rawGraphData.curHatch = hatchIndex;
@@ -114,6 +117,11 @@ document.addEventListener('DOMContentLoaded', function () {
         completeTrace = createCompleteTrace();
     }
 
+    async function readFileFromPath(filepath) {
+        await eel.read_cli_from_path(filepath)();
+        await viewFile();
+    }
+
     async function readFile(fileContent) {
         await eel.read_cli(fileContent)();
         await viewFile();
@@ -138,17 +146,8 @@ document.addEventListener('DOMContentLoaded', function () {
         updateHatchSlider();
 
         spinner.style.display = "none";
-        document.getElementById('view-container').style.display = 'flex';
+        viewContainer.style.display = 'flex';
         updateGraph(0);
-    }
-
-    function isDouble(str) {
-        const num = parseFloat(str);
-        return !isNaN(num) && isFinite(num);
-    }
-
-    function displayRValues() {
-        rOriginalLabel.textContent = isDouble(r_values[1]) ? r_values[1] : "NaN";
     }
 
     async function retrieveHashLines() {
@@ -274,6 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 y: box[1],
                 mode: 'lines',
                 fill: 'toself',
+                type: 'scattergl',
                 line: {
                     color: color,
                     width: 1,
@@ -295,60 +295,73 @@ document.addEventListener('DOMContentLoaded', function () {
         return `rgb(${result.r},${result.g},${result.b})`;
     }
 
+    function getRawHatchData() {
+        const xCoordsRaw = [];
+        const yCoordsRaw = [];
+
+        // Combine all hatch lines into a single trace with null separators
+        for (let i = 0; i < rawGraphData.layers.x.length; i += 2) {
+            xCoordsRaw.push(rawGraphData.layers.x[i], rawGraphData.layers.x[i + 1], null);
+            yCoordsRaw.push(rawGraphData.layers.y[i], rawGraphData.layers.y[i + 1], null);
+        }
+        xCoordsRaw.pop(); // Remove trailing null
+        yCoordsRaw.pop();
+        let data = {
+            x: xCoordsRaw,
+            y: yCoordsRaw,
+            mode: 'lines',
+            type: 'scattergl',
+            line: { width: 1, color: 'green' },
+            showlegend: false
+        };
+
+        return data;
+    }
+
+    const heatScaleDummy = {
+        x: [null],
+        y: [null],
+        type: 'scatter',
+        mode: 'markers',
+        marker: {
+            size: 0,
+            cmax: 1,
+            cmin: 0,
+            colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
+            colorbar: {
+                title: 'Temporal Scale',
+                titleside: 'right',
+                thickness: 20,
+                len: 0.6,
+                yanchor: 'middle',
+                ticks: 'outside',
+                tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                ticktext: ['Oldest', '', '', '', '', 'Newest']
+            },
+            showscale: true
+        },
+        showlegend: false,
+        hoverinfo: 'none'
+    };
+
     function updateGraph(layerIndex) {
         try {
             const xPadding = (rawGraphData.x_max - rawGraphData.x_min) * 0.1;
             const yPadding = (rawGraphData.y_max - rawGraphData.y_min) * 0.1;
             var rawData = [];
+            let rawPlotData = [];
 
             if (showHatchLines) {
-                for (let i = 0; i < rawGraphData.layers.x.length; i += 2) {
-                    rawData.push({
-                        x: [rawGraphData.layers.x[i], rawGraphData.layers.x[i + 1]],
-                        y: [rawGraphData.layers.y[i], rawGraphData.layers.y[i + 1]],
-                        mode: 'lines',
-                        type: 'scattergl',
-                        line: {
-                            width: 1,
-                            color: 'blue'
-                        },
-                        showlegend: false
-                    });
-                }
+                rawData = getRawHatchData();
+                rawPlotData = [...completeTrace, rawData, heatScaleDummy];
             } else {
                 rawData = createScatterTraces(rawGraphData.layers);
+                rawPlotData = [...completeTrace, ...rawData, heatScaleDummy];
             }
-
-            const viewContainer = document.getElementById('view-container');
-
-            const heatScaleDummy = {
-                x: [null],
-                y: [null],
-                type: 'scatter',
-                mode: 'markers',
-                marker: {
-                    size: 0,
-                    cmax: 1,
-                    cmin: 0,
-                    colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
-                    colorbar: {
-                        title: 'Temporal Scale',
-                        titleside: 'right',
-                        thickness: 20,
-                        len: 0.6,
-                        yanchor: 'middle',
-                        ticks: 'outside',
-                        tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
-                        ticktext: ['Oldest', '', '', '', '', 'Newest']
-                    },
-                    showscale: true
-                },
-                showlegend: false,
-                hoverinfo: 'none'
-            };
 
             const layout = {
                 height: viewContainer.clientHeight * 0.7,
+                width: viewContainer.clientWidth,
                 title: {
                     text: `Layer ${layerIndex}`,
                     font: {
@@ -371,10 +384,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 showlegend: false
             };
 
-            let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy];
 
-            Plotly.newPlot('view-plot', rawPlotData, layout, chartConfiguration);
-            window.dispatchEvent(new Event('resize'));
+            Plotly.react('view-plot', rawPlotData, layout, chartConfiguration);
         } catch (error) {
             console.error('Error updating graph:', error);
         }
