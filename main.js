@@ -215,6 +215,13 @@ ipcMain.on('display-error', (event, status, message) => {
   dialog.showErrorBox(status, message);
 });
 
+ipcMain.handle('open-file', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile']
+  });
+  return result.canceled ? null : result;
+});
+
 const menuTemplate = [
   {
     label: 'File',

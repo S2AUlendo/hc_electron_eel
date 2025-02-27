@@ -72,7 +72,49 @@ class CLIVisualizer:
                     
         except Exception as e:
             raise e
+    
+    def read_cli_filepath(self, filepath, has_r=False, data=None):
+        try:
+            with open(filepath, 'r') as f:
+                data = f.readlines()
                     
+            layer_indices = np.where(np.char.startswith(data, "$$LAYER/"))[0]
+            r_indices = np.where(np.char.startswith(data, "//R/"))[0]
+            hatch_indices = np.where(np.char.startswith(data, "$$HATCHES/"))[0]
+            polyline_indices = np.where(np.char.startswith(data, "$$POLYLINE/"))[0]
+            
+            # Combine layer and hatch indices
+            layer_indices = np.array(layer_indices)
+            hatch_indices = np.array(hatch_indices)
+            layer_indices = np.append(layer_indices, hatch_indices[-1]+ 1)
+            
+            for layer_num in range(len(layer_indices)-1):
+                # Find feature indices within the current layer
+                hatch_feature_indices = [i for i in hatch_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                polyline_feature_indices = [i for i in polyline_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                    # Store as numpy array
+                layer_hatches = [] 
+                    
+                # Find feature indices within the current layer
+                if len(r_indices) > 0:
+                    r_feature_indices = [i for i in r_indices if layer_indices[layer_num] < i < layer_indices[layer_num+1]]
+                    r = extract_array_from_line(data[r_feature_indices[0]])
+                    self.r.append(r)
+                    self.mean_r.append(np.mean(r))
+                    
+                for kk in range(len(hatch_feature_indices)):
+                    hatches = data[hatch_feature_indices[kk]]
+                    strCell = hatches.split(',')
+                    hatch_coords = list(map(float, strCell[2:]))
+                    layer_hatches.append(hatch_coords) 
+                
+                if layer_hatches: 
+                    self.layers.append(layer_hatches)
+                                    
+        except Exception as e:
+            raise e
+        
+                 
     def read_cli_file(self, dir, has_r=False, data=None):
         try:
             if data is None:

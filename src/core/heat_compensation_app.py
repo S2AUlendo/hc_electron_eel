@@ -58,12 +58,14 @@ class HeatCompensationApp:
         eel.expose(self.view_processed_files)
         eel.expose(self.get_r_from_opti_layer)
         eel.expose(self.get_r_from_data_layer)
-        eel.expose(self.convert_cli_file)
+        eel.expose(self.convert_cli_filepath)
+        eel.expose(self.convert_cli_filecontent)
         eel.expose(self.get_task_status)
         eel.expose(self.open_file_location)
         eel.expose(self.get_materials)
         eel.expose(self.get_machines)
         eel.expose(self.read_cli)
+        eel.expose(self.read_cli_from_path)
         eel.expose(self.compare_cli)
         eel.expose(self.set_current_opti_layer)
         eel.expose(self.set_current_data_layer)
@@ -147,8 +149,12 @@ class HeatCompensationApp:
         return self.processing.is_running()
     
     # File operations
-    def convert_cli_file(self, filecontent, filename, material, material_category, machine):
-        return self.processing.convert_cli_file(filecontent, filename, material, material_category, machine)
+    def convert_cli_filepath(self, filepath, filename, material, material_category, machine):
+        return self.processing.convert_cli_filepath(filepath, filename, material, material_category, machine)
+    
+    # File operations
+    def convert_cli_filecontent(self, filecontent, filename, material, material_category, machine):
+        return self.processing.convert_cli_filecontent(filecontent, filename, material, material_category, machine)
 
     def get_task_status(self, filename):
         return self.processing.get_task_status(filename)
@@ -215,6 +221,15 @@ class HeatCompensationApp:
         return self.data_manager.machines
     
     # Visualization methods
+    def read_cli_from_path(self, filepath):
+        try:
+            self.data_visualizer = CLIVisualizer()
+            self.data_visualizer.read_cli_filepath(filepath)
+            return True
+        except Exception as e:
+            eel.displayError(traceback.format_exc(), "Error")
+            return False
+        
     def read_cli(self, filecontent):
         try:
             self.data_visualizer = CLIVisualizer()

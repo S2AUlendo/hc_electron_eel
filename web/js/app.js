@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
         rMean: 0
     };
 
+    var inputFile;
     var selectedFile;
     var completeTrace;
     var activeButton = null;
@@ -92,7 +93,9 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Analysis Screen
-    const fileInput = document.getElementById('cliFile');
+    const fileInput = document.getElementById('electronFileButton');
+    const inputFileText = document.getElementById('filePathDisplay');
+
     const layerSlider = document.getElementById('layerSlider');
     const hatchSlider = document.getElementById('hatchSlider');
     const speedRange = document.getElementById('speedRange');
@@ -424,6 +427,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         playButton.addEventListener('click', togglePlay);
 
+        fileInput.addEventListener('click', async (e) => {
+            const result = await window.electronAPI.onSelectFile();
+
+            if (result && !result.cancelled) {
+                inputFile = {
+                    path: result.filePaths[0],
+                    name: extractFilenameFromPath(result.filePaths[0])
+                };
+                filePathDisplay.value = inputFile.name;
+            }
+        });
+
+        function extractFilenameFromPath(path) {
+            return path.split('\\').pop().split('/').pop();
+        }
         const mouseDownHandler = function (e) {
             // Get the current mouse position
             x = e.clientX;
@@ -559,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 
-    function resetMaterialFormValue(){
+    function resetMaterialFormValue() {
         document.getElementById('custom-material-name').value = selectedMaterial.name;
         document.getElementById('kt').value = selectedMaterial.kt;
         document.getElementById('rho').value = selectedMaterial.rho;
@@ -613,24 +631,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function openViewWindow() {
 
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            try {
-                if (!checkFileType(file.name)) {
-                    enableAllCoreForms();
-                    showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
-                    return;
-                }
+        if (inputFile) {
 
-                const fileContent = await readFileContent(file);
-                displayStatus("Opening View...");
-
-                await window.electronAPI.openViewWindow(file.name);
-                await window.electronAPI.sendToView(fileContent)
-                displayStatus("");
-            } catch (error) {
-                displayError('Error opening view:', error);
-            }
+            await window.electronAPI.openViewWindow(inputFile.name);
+            await window.electronAPI.sendToView(inputFile)
         } else {
             showErrorAlert("Input Type Error", "Please attach a .cli file.");
         }
@@ -1089,34 +1093,24 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        if (materialCanEdit || machineCanEdit){
+        if (materialCanEdit || machineCanEdit) {
             showErrorAlert("Input Error", "Please save or cancel your changes before processing.");
             return;
         }
 
         disableAllCoreForms();
 
-        const fileInput = document.getElementById('cliFile');
+        if (inputFile) {
 
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-
-            if (!checkFileType(file.name)) {
+            if (!checkFileType(inputFile.name)) {
                 enableAllCoreForms();
                 showErrorAlert("Input Error", "Invalid file type! Please attach a .cli file.");
                 return;
             }
 
             try {
-                progressContainer.style.display = 'flex';
-                // Read file content
-                displayStatus("Reading file...");
-                const fileContent = await readFileContent(file);
-
-                displayStatus("Copying file...");
-                // Send file content and name to Python
-                await eel.convert_cli_file(fileContent, file.name, selectedMaterial, selectedMaterialCategory, selectedMachine)();
-                checkTaskStatus(file.name);
+                await eel.convert_cli_filepath(inputFile.path, inputFile.name, selectedMaterial, selectedMaterialCategory, selectedMachine)();
+                checkTaskStatus(inputFile.name);
 
             } catch (error) {
                 displayError('Error processing file:', error);
@@ -1136,6 +1130,8 @@ document.addEventListener('DOMContentLoaded', function () {
         cancelController = new AbortController();
 
         let progress = 0;
+        progressContainer.style.display = 'flex';
+        loadingStatus.textContent = 'Starting...';
         loadingProgress.style.width = 0 + '%';
         cancelButton.disabled = false;
 
@@ -1277,6 +1273,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 x: box[0],
                 y: box[1],
                 mode: 'lines',
+                type: 'scattergl',
                 fill: 'toself',
                 line: {
                     color: color,
@@ -1299,58 +1296,92 @@ document.addEventListener('DOMContentLoaded', function () {
         return `rgb(${result.r},${result.g},${result.b})`;
     }
 
+    const heatScaleDummy = {
+        x: [null],
+        y: [null],
+        type: 'scatter',
+        mode: 'markers',
+        marker: {
+            size: 0,
+            cmax: 1,
+            cmin: 0,
+            colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
+            colorbar: {
+                title: 'Temporal Scale',
+                titleside: 'right',
+                thickness: 20,
+                len: 0.6,
+                yanchor: 'middle',
+                ticks: 'outside',
+                tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                ticktext: ['Oldest', '', '', '', '', 'Newest']
+            },
+            showscale: true
+        },
+        showlegend: false,
+        hoverinfo: 'none'
+    };
+
+    function getOptimizedHatchData() {
+        const xCoords = [];
+        const yCoords = [];
+
+        // Combine all hatch lines into a single trace with null separators
+        for (let i = 0; i < optimizedGraphData.layers.x.length; i += 2) {
+            xCoords.push(optimizedGraphData.layers.x[i], optimizedGraphData.layers.x[i + 1], null);
+            yCoords.push(optimizedGraphData.layers.y[i], optimizedGraphData.layers.y[i + 1], null);
+        }
+        xCoords.pop(); // Remove trailing null
+        yCoords.pop();
+        let data = {
+            x: xCoords,
+            y: yCoords,
+            mode: 'lines',
+            type: 'scattergl',
+            line: { width: 1, color: 'blue' },
+            showlegend: false
+        };
+
+        return data;
+    }
+
+    function getRawHatchData() {
+        const xCoordsRaw = [];
+        const yCoordsRaw = [];
+
+        // Combine all hatch lines into a single trace with null separators
+        for (let i = 0; i < rawGraphData.layers.x.length; i += 2) {
+            xCoordsRaw.push(rawGraphData.layers.x[i], rawGraphData.layers.x[i + 1], null);
+            yCoordsRaw.push(rawGraphData.layers.y[i], rawGraphData.layers.y[i + 1], null);
+        }
+        xCoordsRaw.pop(); // Remove trailing null
+        yCoordsRaw.pop();
+        let data = {
+            x: xCoordsRaw,
+            y: yCoordsRaw,
+            mode: 'lines',
+            type: 'scattergl',
+            line: { width: 1, color: 'green' },
+            showlegend: false
+        };
+
+        return data;
+    }
+
     function updateGraph(layerIndex) {
         try {
             const xPadding = (optimizedGraphData.x_max - optimizedGraphData.x_min) * 0.1;
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
             var optimizedData = [];
+            var optiPlotData = [];
 
             if (showHatchLines) {
-                for (let i = 0; i < optimizedGraphData.layers.x.length; i += 2) {
-                    optimizedData.push({
-                        x: [optimizedGraphData.layers.x[i], optimizedGraphData.layers.x[i + 1]],
-                        y: [optimizedGraphData.layers.y[i], optimizedGraphData.layers.y[i + 1]],
-                        mode: 'lines',
-                        type: 'scattergl',
-                        line: {
-                            width: 1,
-                            color: 'blue'
-                        },
-                        showlegend: false
-                    });
-                }
+                optimizedData = getOptimizedHatchData();
+                optiPlotData = [...completeTrace, optimizedData, heatScaleDummy];
             } else {
                 optimizedData = createScatterTraces(optimizedGraphData.layers);
+                optiPlotData = [...completeTrace, ...optimizedData, heatScaleDummy];
             }
-
-            // Create dummy trace for colorbar
-            const heatScaleDummy = {
-                x: [null],
-                y: [null],
-                type: 'scatter',
-                mode: 'markers',
-                marker: {
-                    size: 0,
-                    cmax: 1,
-                    cmin: 0,
-                    colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
-                    colorbar: {
-                        title: 'Temporal Scale',
-                        titleside: 'right',
-                        thickness: 20,
-                        len: 0.6,
-                        yanchor: 'middle',
-                        ticks: 'outside',
-                        tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
-                        ticktext: ['Oldest', '', '', '', '', 'Newest']
-                    },
-                    showscale: true
-                },
-                showlegend: false,
-                hoverinfo: 'none'
-            };
-
-            let optiPlotData = [...completeTrace, ...optimizedData, heatScaleDummy];
 
             const layout = {
                 height: navContainer.clientHeight * 0.7,
@@ -1376,7 +1407,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             };
 
-            Plotly.newPlot('opti_plot', optiPlotData, layout, chartConfiguration);
+            Plotly.react('opti_plot', optiPlotData, layout, chartConfiguration);
         } catch (error) {
             displayError('Error updating graph:', error);
         }
@@ -1395,35 +1426,21 @@ document.addEventListener('DOMContentLoaded', function () {
             const yPadding = (optimizedGraphData.y_max - optimizedGraphData.y_min) * 0.1;
             var rawData = [];
             var optiData = [];
+            var rawPlotData = [];
+            var optiPlotData = [];
 
             if (showHatchLines) {
-                for (let i = 0; i < optimizedGraphData.layers.x.length; i += 2) {
-                    rawData.push({
-                        x: [rawGraphData.layers.x[i], rawGraphData.layers.x[i + 1]],
-                        y: [rawGraphData.layers.y[i], rawGraphData.layers.y[i + 1]],
-                        mode: 'lines',
-                        type: 'scattergl',
-                        line: {
-                            width: 1,
-                            color: 'blue'
-                        },
-                        showlegend: false
-                    });
-                    optiData.push({
-                        x: [optimizedGraphData.layers.x[i], optimizedGraphData.layers.x[i + 1]],
-                        y: [optimizedGraphData.layers.y[i], optimizedGraphData.layers.y[i + 1]],
-                        mode: 'lines',
-                        type: 'scattergl',
-                        line: {
-                            width: 1,
-                            color: 'green'
-                        },
-                        showlegend: false
-                    });
-                }
+                optiData = getOptimizedHatchData();
+                optiPlotData = [...completeTrace, optiData, heatScaleDummy];
+                rawData = getRawHatchData();
+                rawPlotData = [...completeTrace, rawData, heatScaleDummy];
+
             } else {
                 optiData = createScatterTraces(optimizedGraphData.layers);
                 rawData = createScatterTraces(rawGraphData.layers);
+                optiPlotData = [...completeTrace, ...optiData, heatScaleDummy];
+                rawPlotData = [...completeTrace, ...rawData, heatScaleDummy];
+
             }
 
             function getLayout(title) {
@@ -1455,37 +1472,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return layout;
             }
 
-
-            const heatScaleDummy = {
-                x: [null],
-                y: [null],
-                type: 'scatter',
-                mode: 'markers',
-                marker: {
-                    size: 0,
-                    cmax: 1,
-                    cmin: 0,
-                    colorscale: [[0, 'blue'], [0.5, 'purple'], [1, 'red']],
-                    colorbar: {
-                        title: 'Temporal Scale',
-                        titleside: 'right',
-                        thickness: 20,
-                        len: 0.6,
-                        yanchor: 'middle',
-                        ticks: 'outside',
-                        tickvals: [0, 0.2, 0.4, 0.6, 0.8, 1],
-                        ticktext: ['Oldest', '', '', '', '', 'Newest']
-                    },
-                    showscale: true
-                },
-                showlegend: false,
-                hoverinfo: 'none'
-            };
-
-            let rawPlotData = [...completeTrace, ...rawData, heatScaleDummy]
-            let optiPlotData = [...completeTrace, ...optiData, heatScaleDummy]
-            Plotly.newPlot('data_plot', rawPlotData, getLayout("Pre-Opt"), chartConfiguration);
-            Plotly.newPlot('opti_plot', optiPlotData, getLayout("Post-Opt"), chartConfiguration);
+            Plotly.react('data_plot', rawPlotData, getLayout("Pre-Opt"), chartConfiguration);
+            Plotly.react('opti_plot', optiPlotData, getLayout("Post-Opt"), chartConfiguration);
         } catch (error) {
             displayError('Error updating graph:', error);
         }
