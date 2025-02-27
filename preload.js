@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld(
     onDirectorySelected: (callback) => {
         ipcRenderer.on('directory-selected', (_, path) => callback(path));
     },
+    onSelectFile: () => ipcRenderer.invoke('open-file'),
     openViewWindow: (windowName) => ipcRenderer.send('open-view-window', windowName),
     openAboutWindow: (data) => ipcRenderer.send('open-about-window', data),
     mpRunningResponse: (data) => ipcRenderer.send('mp-running-response', data),

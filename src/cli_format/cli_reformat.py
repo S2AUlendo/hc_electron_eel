@@ -14,7 +14,7 @@ from src.ulendohc_core.util import *
 from src.exceptions.exceptions import OverLimitException
 
 class CLIReformat:
-    def __init__(self, data, output_location, original_name, output_name, progress, selected_material, selected_machine, feature=2000, mp_output_queue=None):
+    def __init__(self, filepath, output_location, original_name, output_name, progress, selected_material, selected_machine, data=None, feature=2000, mp_output_queue=None):
         # Configuration parameters
         self.FACTOR = 1
         self.LAYER_GROUP = 10
@@ -22,7 +22,6 @@ class CLIReformat:
         self.dy = self.FACTOR  # mm
         self.feature = feature
         
-        self.data = data.splitlines()
         self.filelocation = output_location
         self.ori_filename = original_name
         self.opt_filename = output_name
@@ -55,6 +54,12 @@ class CLIReformat:
         self.progress = progress
         self.selected_material = selected_material
         self.selected_machine = selected_machine
+        
+        if filepath:
+            with open(filepath, "r") as file:
+                self.data = file.readlines()
+        else:
+            self.data = data.splitlines()
         
         self.parse_cli_header()
         self.retrieve_indices()
