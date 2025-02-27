@@ -1171,8 +1171,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadingStatus.textContent = '';
                 progressContainer.style.display = 'none';
                 await loadFileHistory();
-                await loadMaterials();
-                await loadMachines();
 
                 if (currentOutputFile) {
                     currentOutputFile.disabled = false;
