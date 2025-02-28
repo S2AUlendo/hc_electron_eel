@@ -669,72 +669,81 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         # Calculate number of time steps for each feature
         nts = distances * nt_pre
         Nts = np.floor(nts).astype(int)  # Shape: (total_features,)
+        max_nt = int(np.max(nts))  # Maximum number of time steps needed
 
         # Pre-allocate arrays for results
         Beq = np.zeros((Final_A.shape[0], total_features))
         Ab_set = np.zeros((total_features, Final_A.shape[0], Final_A.shape[0]))
 
-        # Process each feature (still need a loop for trajectory calculation, but operations are vectorized)
+        # Initialize identity matrices for all features
+        Abs = np.tile(np.eye(Final_A.shape[0])[None, :, :], (total_features, 1, 1))
+
+        # Create all trajectories at once
+        # Using broadcasting to create trajectories for all features simultaneously
+        alpha = np.linspace(0, 1, max_nt)[:, None, None]  # Shape: (max_nt, 1, 1)
+
+        # Broadcast to shape (max_nt, total_features, 2)
+        all_trajectories = startPoints[None, :, :] * (1 - alpha) + endPoints[None, :, :] * alpha
+
+        # Create masks for valid trajectory points (based on each feature's nt value)
+        valid_mask = np.arange(max_nt)[:, None] < nts[None, :]  # Shape: (max_nt, total_features)
+
+        # Separate x and y coordinates
+        all_positions_x = all_trajectories[:, :, 0]  # Shape: (max_nt, total_features)
+        all_positions_y = all_trajectories[:, :, 1]  # Shape: (max_nt, total_features)
+
+        # Process all features and all time steps at once
+        B_all = np.zeros((total_features, MN.shape[0], MN.shape[1]))
+        
+        MN0 = np.asarray(MN_SLICE_0)
+        MN1 = np.asarray(MN_SLICE_1)
+        
+        # For each feature, we only need to consider the valid time steps
         for feature_idx in range(total_features):
-            # Initialize for this feature
-            Ab = np.eye(Final_A.shape[0])
-            Bb = np.zeros((Final_A.shape[0], 1))
-            B = np.zeros((MN.shape[0], MN.shape[1]))
+            nt = int(nts[feature_idx])
+            if nt <= 0:
+                continue
+                
+            # Get trajectory points for this feature
+            positions_x = all_positions_x[:nt, feature_idx]  # Shape: (nt,)
+            positions_y = all_positions_y[:nt, feature_idx]  # Shape: (nt,)
             
-            startPoint = startPoints[feature_idx]
-            endPoint = endPoints[feature_idx]
-            nt = nts[feature_idx]
-            Nt = Nts[feature_idx]
-            
-            # Create linearly spaced arrays for x and y
-            x = np.linspace(startPoint[0], endPoint[0], int(nt))
-            y = np.linspace(startPoint[1], endPoint[1], int(nt))
-            
-            # Indices for the last int(nt) steps
-            idx_start = Nt - int(nt)
-            
-            positions_x = x[idx_start:Nt]
-            positions_y = y[idx_start:Nt]
-            
-            MN0 = np.asarray(MN_SLICE_0)
-            MN1 = np.asarray(MN_SLICE_1)
-            # Compute distances, Q factors, and B matrix vectorized across all positions
+            # Compute distances for all positions at once
             distances_all = np.sqrt(
                 (MN0[None, :, :] - positions_x[:, None, None])**2 +
                 (MN1[None, :, :] - positions_y[:, None, None])**2
-            )  # shape (steps, M, N)
+            )  # Shape: (nt, M, N)
             
-            # Calculate Q factors and normalization in one go
+            # Calculate Q factors and normalization
             q_factor_2_all = np.exp(-2.0 * distances_all)
             Q_unn = q_factor_1 * (q_factor_2_all / q_factor_3) / q_factor_4
             sum_Q_unn = Q_unn.sum(axis=(1, 2), keepdims=True)
             Q_norm_all = Q_unn / sum_Q_unn
             
             # Accumulate in B by summing over time slices
-            B += Q_norm_all.sum(axis=0)
+            B_all[feature_idx] = Q_norm_all.sum(axis=0)
             
             # Vectorized matrix operations
-            np.power(Ab, Nt, out=Ab)
+            Ab = np.eye(Final_A.shape[0])
+            np.power(Ab, Nts[feature_idx], out=Ab)
             Ab_1 = np.matmul(Ab, eigen_vectors.T)
             
-            B_current = np.reshape(B, [N_x*N_y, -1])
-            
+            B_current = np.reshape(B_all[feature_idx], [N_x*N_y, -1])
             B_current = B_current[diag[diag < N_x*N_y]]
             
             np.multiply(G, Ab_1, out=Ab_1)
             
-            Ab1_temp = np.concatenate((B_current, np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
+            Ab1_temp = np.concatenate((B_current, 
+                                    np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
             Ab_Dot = np.dot(Ab_1, Ab1_temp)
             
+            Bb = np.zeros((Final_A.shape[0], 1))
             np.add(Bb, Ab_Dot, out=Bb)
             
             # Store results
             Beq[:, feature_idx] = Bb[:, 0]
             Ab_set[feature_idx] = Ab
             
-        # print(np.sum(Beq, axis=0))
-        
-
         # # Initialize Cb matrix    
         Cb_ones = np.ones((reduced_order, reduced_order))/reduced_order
         Cb = np.eye(reduced_order) - Cb_ones
