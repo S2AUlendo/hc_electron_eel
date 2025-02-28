@@ -5,6 +5,7 @@ from src.utils.constants import features
 from datetime import datetime
 from multiprocessing import Pool, Manager, Queue
 from src.utils.io_utils import persistent_path
+from src.mp.multiprocessing_utils import NestablePool
 from src.cli_format.cli_reformat import CLIReformat
 import atexit
 import os
@@ -97,7 +98,7 @@ class ProcessingManager:
                 mp_output_queue=self.mp_output_queue
             )
             
-            self.pools[filename] = Pool()
+            self.pools[filename] = NestablePool()
             # Submit task
             async_result = self.pools[filename].apply_async(
                 self.cli_reformat.convert_dync_cli_file
@@ -168,7 +169,7 @@ class ProcessingManager:
                 mp_output_queue=self.mp_output_queue
             )
             
-            self.pools[filename] = Pool()
+            self.pools[filename] = NestablePool()
             # Submit task
             async_result = self.pools[filename].apply_async(
                 self.cli_reformat.convert_dync_cli_file
