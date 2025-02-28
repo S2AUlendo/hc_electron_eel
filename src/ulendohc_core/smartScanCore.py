@@ -256,6 +256,68 @@ def convert_hatch_to_voxel(hatch_lines, rotation=0, x_resolution=1, y_resolution
 
     return grid, int(np.ceil(x_max) + np.floor(x_min)), int(np.ceil(y_max) + np.floor(y_min))
 
+def cvs_hatch_to_voxel(hatch_lines = np.array([]), rotation = 0, x_resolution=1, y_resolution=1):
+    import time
+    """
+    This function converts the hatches supplied in the bounding box format
+    directly to a voxelized map
+
+    Args:
+        hatch_lines (ndarry):
+            an ndarray that contains an order list of hatches
+        rotation (float):
+            The rotation used to slice the hatches
+        x_resolution (float):
+            Width of the slice thickness
+        y_resolution (string):
+            Path to the STL that needs to be processed
+
+    Returns:
+        numpy.ndarray:
+            A binary grid containing the 1,0s, where a 1 represents an area of the area where 
+            there is material present, i.e. is occupied by the STL
+
+    """
+    # Get the bounding boxes form the hatch data
+    # Create an empty mask image (all zeros)
+    import cv2
+    tic = time.perf_counter()  
+
+    x_1, x_2, y_1, y_2 = hatch_lines[:,0], hatch_lines[:,2], hatch_lines[:,1], hatch_lines[:,3]
+
+    # Find the minimum and maximum x and y coordinates
+    min_x = min(x_1)
+    max_x = max(x_2)
+    min_y = min(y_1)
+    max_y = max(y_2)
+
+    mask_height = int(np.ceil(max_x - min_x))
+    mask_width = int(np.ceil(max_y - min_y))
+
+    mask = np.zeros((mask_height, mask_width), dtype=np.uint8)
+    grid_zero = np.zeros((mask_height, mask_width), dtype=np.uint8)
+
+    translated_bounding_boxes = np.stack([
+        x_1 - min_x,
+        y_1 - min_y,
+        x_2 - min_x,
+        y_2 - min_y,
+        hatch_lines[:,4]
+    ], axis=1)
+
+    print(f"Min X: {min_x}, Max X: {max_x}, Min Y: {min_y}, Max Y: {max_y}")
+    print(f"Mask height: {mask_height}, Mask width: {mask_width}")
+
+    # Draw rectangles on the mask using bounding box data
+    for (x1, y1, x2, y2, r) in translated_bounding_boxes:
+        mask = cv2.rectangle(mask, (int(x1), int(y1)), (int(x2), int(y2)), color=255, thickness=-1)
+        
+    toc = time.perf_counter()    
+    debugPrint(f"CVS Hatch to voxel time {toc - tic:0.4f} seconds", -1) 
+    
+    grid = np.dstack((mask, grid_zero))
+    return grid, int(np.ceil(max_x) + np.floor(min_x)), int(np.ceil(max_y) + np.floor(min_y))
+
 # We can take the perimeter of the bounding boxes from the dyndrite software
 # so that we avoid having to re-voxelize an STL file, and the potential errors
 # that might arise from hatching not being contained within the externally voxelized map 
@@ -486,11 +548,11 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         # debugPrint(f"smartScanCore - Added boundary conditions {toc - tic:0.4f} seconds", -1)   
             
         diag_elements = Correct_A.diagonal()
-        diag = np.where(diag_elements == 1)
+        diag = np.array(np.where(diag_elements == 1))
         #TODO: Reimplement delete of diagonal
         # Final_A = delete(Correct_A, diag, axis = 0)
         # Final_A = delete(Final_A, diag, axis = 1)    
-        debugPrint(f"smartScanCore - Final_A: {Final_A.shape}", -1)        
+        # debugPrint(f"smartScanCore - Final_A: {Final_A.shape}", -1)        
 
         tic = time.perf_counter()    
         retries = 0
@@ -596,88 +658,80 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         Ab = np.eye(Final_A.shape[0])    
 
         tic = time.perf_counter()
+        # Extract start and end points for all features at once
+        startPoints = numbers_set[:, :2]  # Shape: (total_features, 2)
+        endPoints = numbers_set[:, 2:4]   # Shape: (total_features, 2)
 
-        for feature_current in range(total_features):
-            numbers = numbers_set[feature_current, :]            
+        # Calculate distances for all features
+        sqDiffs = np.power((endPoints - startPoints), 2)
+        distances = np.sqrt(np.sum(sqDiffs, axis=1))  # Shape: (total_features,)
 
+        # Calculate number of time steps for each feature
+        nts = distances * nt_pre
+        Nts = np.floor(nts).astype(int)  # Shape: (total_features,)
+
+        # Pre-allocate arrays for results
+        Beq = np.zeros((Final_A.shape[0], total_features))
+        Ab_set = np.zeros((total_features, Final_A.shape[0], Final_A.shape[0]))
+
+        # Process each feature (still need a loop for trajectory calculation, but operations are vectorized)
+        for feature_idx in range(total_features):
+            # Initialize for this feature
             Ab = np.eye(Final_A.shape[0])
             Bb = np.zeros((Final_A.shape[0], 1))
-            x, y = [], []
-            Nt = 0
             B = np.zeros((MN.shape[0], MN.shape[1]))
-            A = Final_A
-            feature_start = feature_start + 1  
-
-            startPoint = numbers[:2]
-            endPoint = numbers[2:4]  
-
-            sqDiff = np.power((endPoint - startPoint), 2)
-            distance = np.sqrt(np.sum(sqDiff))
-
-            nt = distance * nt_pre
-            Nt += int(np.floor(nt))
-
+            
+            startPoint = startPoints[feature_idx]
+            endPoint = endPoints[feature_idx]
+            nt = nts[feature_idx]
+            Nt = Nts[feature_idx]
+            
             # Create linearly spaced arrays for x and y
-            x.extend(np.linspace(startPoint[0], endPoint[0], int(nt)))
-            y.extend(np.linspace(startPoint[1], endPoint[1], int(nt)))        
-            debugPrint(f"smartScanCore - X: {x} Y: {y}", 2)
-
+            x = np.linspace(startPoint[0], endPoint[0], int(nt))
+            y = np.linspace(startPoint[1], endPoint[1], int(nt))
+            
             # Indices for the last int(nt) steps
             idx_start = Nt - int(nt)
-
-            positions_x = np.asarray(x[idx_start:Nt])  # shape (steps,)
-            positions_y = np.asarray(y[idx_start:Nt])  # shape (steps,)
-
-            # Make sure MN_SLICE_0 and MN_SLICE_1 are NumPy arrays of shape (M, N)
+            
+            positions_x = x[idx_start:Nt]
+            positions_y = y[idx_start:Nt]
+            
             MN0 = np.asarray(MN_SLICE_0)
             MN1 = np.asarray(MN_SLICE_1)
-
+            # Compute distances, Q factors, and B matrix vectorized across all positions
             distances_all = np.sqrt(
-                (MN0[None, :, :] - positions_x[:, None, None])**2
-                + (MN1[None, :, :] - positions_y[:, None, None])**2
+                (MN0[None, :, :] - positions_x[:, None, None])**2 +
+                (MN1[None, :, :] - positions_y[:, None, None])**2
             )  # shape (steps, M, N)
-
-            # 2) Compute the exponential factor exp(-2*rb) for all steps simultaneously
-            q_factor_2_all = np.exp(-2.0 * distances_all)  # shape (steps, M, N)
-
-            Q_unn = q_factor_1 * (q_factor_2_all / q_factor_3) / q_factor_4  # shape (steps, M, N)
-
-            sum_Q_unn = Q_unn.sum(axis=(1, 2), keepdims=True)   # shape (steps, 1, 1)
-            Q_norm_all = Q_unn / sum_Q_unn                     # shape (steps, M, N)
-
-            B += Q_norm_all.sum(axis=0)  # shape (M, N)
-
-            debugPrint(f"smartScanCore - Current Features: {feature_current}", 2)
             
-            debugPrint(f"smartScanCore - Ab : {Ab.shape}", 2)
+            # Calculate Q factors and normalization in one go
+            q_factor_2_all = np.exp(-2.0 * distances_all)
+            Q_unn = q_factor_1 * (q_factor_2_all / q_factor_3) / q_factor_4
+            sum_Q_unn = Q_unn.sum(axis=(1, 2), keepdims=True)
+            Q_norm_all = Q_unn / sum_Q_unn
             
-            debugPrint(f"smartScanCore - Bb : {Bb.shape}", 2)
-
-            Ab = np.power(Ab, Nt)
-
-            Ab_1 = np.matmul(Ab, eigen_vectors.T)            
-            debugPrint(f"smartScanCore - Ab_1 : {Ab_1.shape}", 2)
-
-            B_current = np.reshape(B,  [N_x*N_y, -1])
-            debugPrint(f"smartScanCore - B_current : {B_current.shape}", 2)
-
-            diag = np.array(diag)
-            debugPrint(f"smartScanCore - diag : {diag.shape}", 2)
+            # Accumulate in B by summing over time slices
+            B += Q_norm_all.sum(axis=0)
             
-            B_current = B_current[diag[diag < N_x*N_y ]]
-
-            Ab_1 = np.multiply(G, Ab_1)
+            # Vectorized matrix operations
+            np.power(Ab, Nt, out=Ab)
+            Ab_1 = np.matmul(Ab, eigen_vectors.T)
+            
+            B_current = np.reshape(B, [N_x*N_y, -1])
+            
+            B_current = B_current[diag[diag < N_x*N_y]]
+            
+            np.multiply(G, Ab_1, out=Ab_1)
             
             Ab1_temp = np.concatenate((B_current, np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
-
-            Ab_1 = np.dot(Ab_1, Ab1_temp)
-            # print("Ab1_temp: ", Ab1_temp)
-            # print("Ab_1: ", Ab_1)
-
-            Bb = np.add(Bb, Ab_1)
+            Ab_Dot = np.dot(Ab_1, Ab1_temp)
             
-            Beq[:, feature_current] = Bb[:,0]
-            Ab_set[feature_current] = Ab
+            np.add(Bb, Ab_Dot, out=Bb)
+            
+            # Store results
+            Beq[:, feature_idx] = Bb[:, 0]
+            Ab_set[feature_idx] = Ab
+            
         # print(np.sum(Beq, axis=0))
         
 
@@ -707,7 +761,7 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         debugPrint(f"smartScanCore -lambda_0 {lambda_0.shape} lambda_1: {lambda_1.shape} T_opt: {Tm0.shape}", 2)
 
         toc = time.perf_counter()    
-        debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", 2)
+        debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", -1)
         
         # T_opt = np.array(T_opt)
     

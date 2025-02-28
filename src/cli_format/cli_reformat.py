@@ -182,7 +182,7 @@ class CLIReformat:
                         else:
                             totaltracker = int(self.hatch_lines[layer_num].shape[0]) + totaltracker
                                                 
-                            new_layer, x_size, y_size = convert_hatch_to_voxel(self.hatch_lines[layer_num], 67, 1, 1)   
+                            new_layer, x_size, y_size = cvs_hatch_to_voxel(self.hatch_lines[layer_num], 67, 1, 1)   
                             Objective_layers = 2     
                             
 
