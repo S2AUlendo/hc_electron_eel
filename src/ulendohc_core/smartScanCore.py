@@ -732,69 +732,83 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         Ab = np.eye(Final_A.shape[0])    
 
         tic = time.perf_counter()
-        
+        # Extract start and end points for all features at once
         startPoints = numbers_set[:, :2]  # Shape: (total_features, 2)
         endPoints = numbers_set[:, 2:4]   # Shape: (total_features, 2)
-        
+
         # Calculate distances for all features
         sqDiffs = np.power((endPoints - startPoints), 2)
         distances = np.sqrt(np.sum(sqDiffs, axis=1))  # Shape: (total_features,)
-        
+
         # Calculate number of time steps for each feature
         nts = distances * nt_pre
         Nts = np.floor(nts).astype(int)  # Shape: (total_features,)
+
+        # Pre-allocate arrays for results
+        Beq = np.zeros((Final_A.shape[0], total_features))
+        Ab_set = np.zeros((total_features, Final_A.shape[0], Final_A.shape[0]))
+
+        # Process each feature (still need a loop for trajectory calculation, but operations are vectorized)
+        for feature_idx in range(total_features):
+            # Initialize for this feature
+            Ab = np.eye(Final_A.shape[0])
+            Bb = np.zeros((Final_A.shape[0], 1))
+            B = np.zeros((MN.shape[0], MN.shape[1]))
+            
+            startPoint = startPoints[feature_idx]
+            endPoint = endPoints[feature_idx]
+            nt = nts[feature_idx]
+            Nt = Nts[feature_idx]
+            
+            # Create linearly spaced arrays for x and y
+            x = np.linspace(startPoint[0], endPoint[0], int(nt))
+            y = np.linspace(startPoint[1], endPoint[1], int(nt))
+            
+            # Indices for the last int(nt) steps
+            idx_start = Nt - int(nt)
+            
+            positions_x = x[idx_start:Nt]
+            positions_y = y[idx_start:Nt]
+            
+            MN0 = np.asarray(MN_SLICE_0)
+            MN1 = np.asarray(MN_SLICE_1)
+            # Compute distances, Q factors, and B matrix vectorized across all positions
+            distances_all = np.sqrt(
+                (MN0[None, :, :] - positions_x[:, None, None])**2 +
+                (MN1[None, :, :] - positions_y[:, None, None])**2
+            )  # shape (steps, M, N)
+            
+            # Calculate Q factors and normalization in one go
+            q_factor_2_all = np.exp(-2.0 * distances_all)
+            Q_unn = q_factor_1 * (q_factor_2_all / q_factor_3) / q_factor_4
+            sum_Q_unn = Q_unn.sum(axis=(1, 2), keepdims=True)
+            Q_norm_all = Q_unn / sum_Q_unn
+            
+            # Accumulate in B by summing over time slices
+            B += Q_norm_all.sum(axis=0)
+            
+            # Vectorized matrix operations
+            np.power(Ab, Nt, out=Ab)
+            Ab_1 = np.matmul(Ab, eigen_vectors.T)
+            
+            B_current = np.reshape(B, [N_x*N_y, -1])
+            
+            B_current = B_current[diag[diag < N_x*N_y]]
+            
+            np.multiply(G, Ab_1, out=Ab_1)
+            
+            Ab1_temp = np.concatenate((B_current, np.zeros((Ab_1.shape[1] - B_current.shape[0], 1))))
+            Ab_Dot = np.dot(Ab_1, Ab1_temp)
+            
+            np.add(Bb, Ab_Dot, out=Bb)
+            
+            # Store results
+            Beq[:, feature_idx] = Bb[:, 0]
+            Ab_set[feature_idx] = Ab
+            
+        # print(np.sum(Beq, axis=0))
         
-        def smart_scan_vectorized_parallel():
-            # Extract start and end points for all features at once
-            # Determine chunk size based on CPU count
-            num_cores = cpu_count()
-            chunk_size = max(1, total_features // num_cores)
-            
-            # Split features into chunks
-            feature_chunks = [
-                list(range(i, min(i + chunk_size, total_features))) 
-                for i in range(0, total_features, chunk_size)
-            ]
-            
-            # Pre-allocate results
-            Beq = np.zeros((Final_A.shape[0], total_features))
-            Ab_set = np.zeros((total_features, Final_A.shape[0], Final_A.shape[0]))
-            
-            # Create a partial function with fixed parameters
-            process_func = partial(
-                process_feature_chunk,
-                startPoints=startPoints,
-                endPoints=endPoints,
-                nts=nts,
-                Nts=Nts,
-                Final_A=Final_A,
-                eigen_vectors=eigen_vectors,
-                MN_SLICE_0=MN_SLICE_0,
-                MN_SLICE_1=MN_SLICE_1,
-                N_x=N_x,
-                N_y=N_y,
-                diag=diag,
-                G=G,
-                q_factor_1=q_factor_1,
-                q_factor_3=q_factor_3,
-                q_factor_4=q_factor_4,
-                MN_shape=MN.shape
-            )
-        
-            # Process chunks in parallel
-            with Pool(processes=num_cores) as pool:
-                results = pool.map(process_func, feature_chunks)
-            
-            # Combine results from all chunks
-            for chunk_idx, (chunk_features, (beq_chunk, ab_set_chunk)) in enumerate(zip(feature_chunks, results)):
-                for i, feature_idx in enumerate(chunk_features):
-                    Beq[:, feature_idx] = beq_chunk[:, i]
-                    Ab_set[feature_idx] = ab_set_chunk[i]
-            
-            return Beq, Ab_set
-            
-        Beq, Ab_set = smart_scan_vectorized_parallel()
-        
+
         # # Initialize Cb matrix    
         Cb_ones = np.ones((reduced_order, reduced_order))/reduced_order
         Cb = np.eye(reduced_order) - Cb_ones
@@ -824,7 +838,7 @@ def smartScanCore (numbers_set=np.array([]), Sorted_layers=np.array([]), dx:floa
         debugPrint(f"smartScanCore - Loop time {toc - tic:0.4f} seconds", -1)
         
         # T_opt = np.array(T_opt)
-        # Sorting Sequence and calculating R values
+    
         R_opt = []
         R_ori = []
 
